@@ -8,7 +8,6 @@ from scipy.sparse import csr_matrix, lil_matrix
 import operator
 import code
 from functools import reduce
-
 from decision_tree_with_bagging import DecisionTreeWithBaggingRegressor
 
 
@@ -100,7 +99,7 @@ class WaveletsForestRegressor:
         ##
 
         for i in range(len(rf.estimators_)):
-            logging.info('Working on tree %s' % i)
+            # logging.info('Working on tree %s' % i)
             estimator = rf.estimators_[i]
             num_nodes = len(estimator.tree_.value)
             num_features = np.shape(X)[1]
@@ -111,7 +110,7 @@ class WaveletsForestRegressor:
             vals = np.zeros((val_size, num_nodes))
             self.__traverse_nodes(estimator, 0, node_box, norms, vals)
 
-            logging.info('Traversing nodes of tree %s to extract volumes and norms' % i)
+            # logging.info('Traversing nodes of tree %s to extract volumes and norms' % i)
             volumes = np.product(node_box[:, :, 1] - node_box[:, :, 0], 1)
 
             paths = estimator.decision_path(X)
@@ -123,7 +122,7 @@ class WaveletsForestRegressor:
             else:
                 norms = np.multiply(norms, np.sqrt(num_samples))
 
-            logging.info('Number of wavelets in tree %s: %s' % (i, np.shape(norms)[0]))
+            # logging.info('Number of wavelets in tree %s: %s' % (i, np.shape(norms)[0]))
 
             self.volumes = np.append(self.volumes, volumes)
             self.norms = np.append(self.norms, norms)
@@ -236,6 +235,7 @@ class WaveletsForestRegressor:
         errors = []
         step = 10
         power = 2
+        print_errors = False
 
         paths, n_nodes_ptr = self.rf.decision_path(self.X)
         predictions = np.zeros(np.shape(self.y))
@@ -246,9 +246,11 @@ class WaveletsForestRegressor:
             error_norms = np.power(np.sum(np.power(self.y - predictions, power), 1), 1. / power)
             total_error = np.sum(np.square(error_norms), 0) / len(self.X)
             if m_step > 0 and total_error > 0:
-                logging.info('Error for m=%s: %s' % (m_step - 1, total_error))
+                if print_errors:
+                    logging.info('Error for m=%s: %s' % (m_step - 1, total_error))
                 n_wavelets.append(m_step - 1)
                 errors.append(total_error)
+        logging.info(f"total m_step is {m_step}")
 
         n_wavelets_log = np.log(np.reshape(n_wavelets, (-1, 1)))
         errors_log = np.log(np.reshape(errors, (-1, 1)))
@@ -256,7 +258,7 @@ class WaveletsForestRegressor:
         regr = linear_model.LinearRegression()
         regr.fit(n_wavelets_log, errors_log)
         alpha = np.abs(regr.coef_[0][0])
-        logging.info('Smoothness index: %s' % alpha)
+        # logging.info('Smoothness index: %s' % alpha)
 
         return alpha, n_wavelets, errors
 

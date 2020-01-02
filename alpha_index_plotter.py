@@ -9,7 +9,8 @@ from mpl_toolkits.mplot3d import Axes3D
 from random_forest import WaveletsForestRegressor
 from matplotlib.pyplot import plot, ion, show
 from utils import normalize_data, kfold_alpha_smoothness
-import logging
+import logging	
+import time
 ion()
 
 def plot_dataset(X, Y):
@@ -22,6 +23,94 @@ def plot_dataset(X, Y):
 	# plt.savefig(os.path.join(folder_path, 'dataset_first_two_dims.png'), \
 	# 	dpi=300, bbox_inches='tight')
 	plt.show()
+
+MIN_SIZE = 400
+MAX_SIZE = 20000
+STEP = 1200
+
+# MIN_SIZE = 200000
+# MAX_SIZE = 260001
+# STEP = 50000
+
+
+def plot_alpha_per_num_sample_points(flags, \
+	data_str, normalize=True, output_path=''):
+	n_folds = 10
+	add_noisy_channels = True
+	start = time.time()
+	sizes ,alphas, stds = [], [], []
+	pointGen = PointGenerator(dim=flags.dimension, seed=flags.seed, \
+		add_noisy_channels=add_noisy_channels)	
+	seed_dict = defaultdict(list)
+	N_wavelets = flags.num_wavelets
+	norm_normalization = 'volume'
+	normalize = True
+	if not os.path.isdir(output_path):
+		os.mkdir(output_path)
+
+	for dataset_size in tqdm(range(MIN_SIZE, MAX_SIZE, STEP)):
+		x, y = pointGen[dataset_size]
+		logging.info(f"LABELS COUNTER: {Counter(y.squeeze())}")
+
+		# if flags.dimension == 2:
+		# 	rf.visualize_classifier()
+		mean_alpha, std_alpha, num_wavelets, norm_m_term = \
+			kfold_alpha_smoothness(x, y, t_method=flags.regressor, \
+				num_wavelets=N_wavelets, n_folds=n_folds, n_trees=flags.trees, m_depth=flags.depth,
+                n_features='auto', n_state=2000, normalize=normalize, norm_normalization=norm_normalization)
+		
+		stds.append(std_alpha)
+		alphas.append(mean_alpha)
+		
+		if True:
+			sizes.append(dataset_size)	
+
+	print(f'stds:{stds}')
+	plt.figure(1)
+	plt.plot(sizes, alphas)
+	# plt.plot(sizes, results)
+	draw_predictive_line(flags.dimension, p=2)
+
+	plt.title(data_str)
+	plt.xlabel(f'dataset size')
+	plt.ylabel(f'evaluate_smoothnes index- alpha')
+
+	save_graph=True
+	if save_graph:
+		print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')
+		save_path = os.path.join(\
+			output_path, 'decision_tree_with_bagging', f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_IsNormalize_{normalize}_noisy_{add_noisy_channels}.png")
+		print(f"save_path:{save_path}")
+		plt.savefig(save_path, \
+			dpi=300, bbox_inches='tight')
+	end = time.time()
+	print(f"total time is {end-start}")
+	plt.show(block=True)
+
+def draw_predictive_line(n, p=2):
+	x = np.linspace(MIN_SIZE,MAX_SIZE,100)
+	y = [1/(p*(n-1)) for k in x]
+	plt.plot(x, y, '-r', label='y=2x+1')
+	# plt.grid()
+
+def save_results(sizes, alphas, X, y, data_str, output_path):
+	folder_path = os.path.join(output_path, data_str)
+	if not os.path.isdir(folder_path):
+		os.mkdir(folder_path)
+
+	plt.figure(1)
+	plt.plot(sizes, alphas)
+	plt.title(data_str)
+	plt.xlabel(f'dataset size')
+	plt.ylabel(f'smoothness index- alpha')
+
+	plt.savefig(os.path.join(folder_path, 'alpha.png'), \
+		dpi=300, bbox_inches='tight')	
+
+	plt.figure(2)
+	plot_dataset(X, y, folder_path)
+
+
 
 def plot_alpha_per_tree_number(flags, data_str, output_path):
 	tree_sizes ,alphas = [], []
@@ -58,8 +147,6 @@ def plot_alpha_per_tree_number(flags, data_str, output_path):
 	plt.ylabel(f'evaluate_smoothnessothness index- alpha')
 	
 	plt.show(block=True)
-
-
 def plot_alpha_per_depth(flags, data_str, output_path):
 	depths ,alphas = [], []
 	pointGen = PointGenerator(dim=flags.dimension, seed=flags.seed)
@@ -97,84 +184,3 @@ def plot_alpha_per_depth(flags, data_str, output_path):
 	plt.ylabel(f'evaluate_smoothnessothness index- alpha')
 	
 	plt.show(block=True)
-
-# MIN_SIZE = 5000000
-# MAX_SIZE = 10000002
-# STEP = 1000000
-
-MIN_SIZE = 1000
-MAX_SIZE = 200000
-STEP = 5000
-
-
-
-def plot_alpha_per_num_sample_points(flags, \
-	data_str, normalize=True, output_path=None):
-	sizes ,alphas, stds = [], [], []
-	pointGen = PointGenerator(dim=flags.dimension, seed=flags.seed)	
-	seed_dict = defaultdict(list)
-
-	for dataset_size in tqdm(range(MIN_SIZE, MAX_SIZE, STEP)):
-		x, y = pointGen[dataset_size]
-		logging.info(f"LABELS COUNTER: {Counter(y.squeeze())}")
-		# rf.visualize_estimator("depth_100")
-
-		# if flags.dimension == 2:
-		# 	rf.visualize_classifier()
-		mean_alpha, std_alpha, num_wavelets, norm_m_term = \
-				kfold_alpha_smoothness(x, y, t_method=flags.regressor, \
-				num_wavelets=1000, n_folds=10, n_trees=flags.trees, m_depth=flags.depth,
-                n_features='auto', n_state=2000, normalize=True, norm_normalization='samples')
-
-		# alpha, n_wavelets, errors = rf.evaluate_smoothness(m=10000)
-		stds.append(std_alpha)
-		alphas.append(mean_alpha)
-		# import pdb; pdb.set_trace()
-		
-		if True:
-			sizes.append(dataset_size)	
-
-	print(f'stds:{stds}')
-	plt.figure(1)
-	plt.plot(sizes, alphas)
-	# plt.plot(sizes, results)
-	draw_predictive_line(flags.dimension, p=2)
-
-	plt.title(data_str)
-	plt.xlabel(f'dataset size')
-	plt.ylabel(f'evaluate_smoothnes index- alpha')
-
-	save_graph=False
-	if save_graph:
-		save_path = os.path.join(\
-			output_path, f"{str(flags.dimension)}.png")
-		# import pd b; pdb.set_trace()
-		plt.savefig(save_path, \
-			dpi=300, bbox_inches='tight')
-	plt.show(block=True)
-
-def draw_predictive_line(n, p=2):
-	x = np.linspace(MIN_SIZE,MAX_SIZE,100)
-	y = [1/(p*(n-1)) for k in x]
-	plt.plot(x, y, '-r', label='y=2x+1')
-	# plt.grid()
-
-def save_results(sizes, alphas, X, y, data_str, output_path):
-	folder_path = os.path.join(output_path, data_str)
-	if not os.path.isdir(folder_path):
-		os.mkdir(folder_path)
-
-	plt.figure(1)
-	plt.plot(sizes, alphas)
-	plt.title(data_str)
-	plt.xlabel(f'dataset size')
-	plt.ylabel(f'smoothness index- alpha')
-
-	plt.savefig(os.path.join(folder_path, 'alpha.png'), \
-		dpi=300, bbox_inches='tight')	
-
-	plt.figure(2)
-	plot_dataset(X, y, folder_path)
-
-
-
