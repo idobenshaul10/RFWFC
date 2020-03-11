@@ -88,12 +88,9 @@ def kfold_alpha_smoothness(x, y, t_method='RF', num_wavelets=10, n_folds=10, n_t
 
     norm_m_term = 0
     with tqdm(total=n_folds) as pbar:
-        for idx, (train, test) in enumerate(kf.split(x)):
-            # Create the training and testing arrays for each fold
+        for idx, (train, test) in enumerate(kf.split(x)):            
             x_train = x[shuffle_data[train]]
-            y_train = y[shuffle_data[train]]
-            x_test = x[shuffle_data[test]]
-            y_test = y[shuffle_data[test]]
+            y_train = y[shuffle_data[train]]            
             model = train_model(x_train, y_train, method=t_method, trees=n_trees,
                         depth=m_depth, features=n_features, state=n_state, \
                         nnormalization=norm_normalization)
@@ -104,8 +101,7 @@ def kfold_alpha_smoothness(x, y, t_method='RF', num_wavelets=10, n_folds=10, n_t
 
             alpha, n_wavelets, errors = model.evaluate_smoothness(m=num_wavelets)            
             alphas.append(alpha)
-            logging.log(20, f'Fold {idx} alpha: {str(alphas[-1])}')
-            # logging.log(20, ' Fold alpha: '+str(alphas[-1]))
+            logging.log(20, f'Fold {idx} alpha: {str(alphas[-1])}')            
             pbar.update(1)
 
     logging.log(60, 'MEAN ALPHA SMOOTHNESS over all folds: ' + str(np.mean(alphas)) +

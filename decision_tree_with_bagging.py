@@ -16,6 +16,8 @@ class DecisionTreeWithBaggingRegressor:
     self.seed = seed
     self.random_state = np.random.RandomState(seed=self.seed)
     self.estimators_ = []
+    if depth == -1:
+      depth = None
     for i in range(trees):
       self.estimators_.append(tree.DecisionTreeRegressor(
         max_depth=depth,
@@ -31,6 +33,9 @@ class DecisionTreeWithBaggingRegressor:
       X, X_test, y, y_test, indices, indices_test = train_test_split(X_all, y_all, indices_all, test_size=1-self.bagging, random_state=random_state)
       X, y = shuffle(X, y, random_state=self.seed)
       self.estimators_[i].fit(X, y)
+      cur_depth = self.estimators_[i].tree_.max_depth
+      if cur_depth> 20:
+        print(f"depth of tree is {cur_depth}")
     return self
 
   def decision_path(self, X):
@@ -47,5 +52,6 @@ class DecisionTreeWithBaggingRegressor:
       current_i += current_paths.shape[1]
 
     return paths_csr.tocsr(), []
+
 
 

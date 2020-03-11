@@ -25,18 +25,14 @@ def plot_dataset(X, Y):
 	plt.show()
 
 MIN_SIZE = 400
-MAX_SIZE = 20000
-STEP = 1200
-
-# MIN_SIZE = 200000
-# MAX_SIZE = 260001
-# STEP = 50000
+MAX_SIZE = 10000
+STEP = 400
 
 
 def plot_alpha_per_num_sample_points(flags, \
 	data_str, normalize=True, output_path=''):
-	n_folds = 10
-	add_noisy_channels = True
+	n_folds = 5
+	add_noisy_channels = False
 	start = time.time()
 	sizes ,alphas, stds = [], [], []
 	pointGen = PointGenerator(dim=flags.dimension, seed=flags.seed, \
@@ -50,14 +46,14 @@ def plot_alpha_per_num_sample_points(flags, \
 
 	for dataset_size in tqdm(range(MIN_SIZE, MAX_SIZE, STEP)):
 		x, y = pointGen[dataset_size]
-		logging.info(f"LABELS COUNTER: {Counter(y.squeeze())}")
+		logging.info(f"LABELS COUNTER: {Counter(y.squeeze())}")		
 
 		# if flags.dimension == 2:
 		# 	rf.visualize_classifier()
 		mean_alpha, std_alpha, num_wavelets, norm_m_term = \
 			kfold_alpha_smoothness(x, y, t_method=flags.regressor, \
 				num_wavelets=N_wavelets, n_folds=n_folds, n_trees=flags.trees, m_depth=flags.depth,
-                n_features='auto', n_state=2000, normalize=normalize, norm_normalization=norm_normalization)
+				n_features='auto', n_state=2000, normalize=normalize, norm_normalization=norm_normalization)
 		
 		stds.append(std_alpha)
 		alphas.append(mean_alpha)
@@ -67,9 +63,20 @@ def plot_alpha_per_num_sample_points(flags, \
 
 	print(f'stds:{stds}')
 	plt.figure(1)
-	plt.plot(sizes, alphas)
-	# plt.plot(sizes, results)
-	draw_predictive_line(flags.dimension, p=2)
+	plt.plot(sizes, alphas)	
+	desired_value = draw_predictive_line(flags.dimension, p=2)
+	last_alpha = alphas[-1]
+	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_IsNormalize_{normalize}_noisy_{add_noisy_channels}"
+	img_file_name =file_name + ".png"
+	txt_file_name = file_name + ".txt"
+	print(f"desired_value:{desired_value}, last_value:{last_alpha}")
+	print(f"RELATIVE ERROR:{abs(desired_value - last_alpha)/ last_alpha}")
+
+	outF = open(os.path.join(output_path, txt_file_name), "w")
+	for line in textList:
+	  # write line to output file
+	  outF.write(f"desired_value:{desired_value}, last_value:{last_alpha}")
+	  outF.write(f"RELATIVE ERROR:{abs(desired_value - last_alpha)/ last_alpha}")
 
 	plt.title(data_str)
 	plt.xlabel(f'dataset size')
@@ -77,9 +84,12 @@ def plot_alpha_per_num_sample_points(flags, \
 
 	save_graph=True
 	if save_graph:
-		print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')
-		save_path = os.path.join(\
-			output_path, 'decision_tree_with_bagging', f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_IsNormalize_{normalize}_noisy_{add_noisy_channels}.png")
+		dir_path = os.path.join(output_path, 'decision_tree_with_bagging', str(flags.dimension))
+		if not os.path.isdir(dir_path):
+			os.mkdir(dir_path)
+
+		print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')		
+		save_path = os.path.join(dir_path, file_name)
 		print(f"save_path:{save_path}")
 		plt.savefig(save_path, \
 			dpi=300, bbox_inches='tight')
@@ -89,9 +99,10 @@ def plot_alpha_per_num_sample_points(flags, \
 
 def draw_predictive_line(n, p=2):
 	x = np.linspace(MIN_SIZE,MAX_SIZE,100)
-	y = [1/(p*(n-1)) for k in x]
+	desired_value = 1/(p*(n-1))
+	y = [desired_value for k in x]
 	plt.plot(x, y, '-r', label='y=2x+1')
-	# plt.grid()
+	return desired_value
 
 def save_results(sizes, alphas, X, y, data_str, output_path):
 	folder_path = os.path.join(output_path, data_str)

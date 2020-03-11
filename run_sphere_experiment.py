@@ -38,14 +38,9 @@ def main():
 	parser.add_argument('--seed',default=2000,type=int,help='Seed')
 	parser.add_argument('--num_wavelets',default=5000,type=int,help='Seed')
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
-	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
-	# parser.add_argument('--data',default='trainingData.csv',help='Training data path. Default is "trainingData.csv".')
-	# parser.add_argument('--labels',default='trainingLabel.csv',	help='Training labels path. Default is "trainingLabel.csv".')	
-	
+	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')	
 	parser.add_argument('--output_path', default=r'C:\projects\RFWFC\results',help='Splitting criterion.')
 	parser.add_argument('--dimension',default=2,type=int, help='Dimension for sphere in R^n experiment')
-	# parser.add_argument('--dataset_size',default=5000,type=int,	help='number of points to draw from unit_box(for more info- check PointGenerator')	
-
 
 	flags, _ = parser.parse_known_args()
 	if os.path.exists(flags.config):

@@ -73,14 +73,15 @@ class PointGenerator:
 		logging.info(f"LABELS COUNTER: {labels_counter}")
 		logging.info(f"cube vol:{pow(self.cube_length, self.dim)}, \
 			ball_vol:{self.get_n_ball_volume(self.dim)}")
-		logging.info("done making dataset")
+		logging.info("done making dataset")		
 		points = np.array(points).squeeze()		
 		labels = np.array(labels).reshape(-1, 1)
+
 
 		return labels_counter, points, labels
 
 	@staticmethod
-	def get_cube_length_from_dim(n):		
+	def get_cube_length_from_dim(n):
 		n_ball_volume = PointGenerator.get_n_ball_volume(n)		
 		# we want C*V~q^n - I found C empiraclly to balance datasets
 		C = PointGenerator.ratios_sample[n]
