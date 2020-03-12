@@ -66,30 +66,29 @@ def plot_alpha_per_num_sample_points(flags, \
 	plt.plot(sizes, alphas)	
 	desired_value = draw_predictive_line(flags.dimension, p=2)
 	last_alpha = alphas[-1]
+	print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')	
 	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_IsNormalize_{normalize}_noisy_{add_noisy_channels}"
+	dir_path = os.path.join(output_path, 'decision_tree_with_bagging', str(flags.dimension))
 	img_file_name =file_name + ".png"
 	txt_file_name = file_name + ".txt"
 	print(f"desired_value:{desired_value}, last_value:{last_alpha}")
-	print(f"RELATIVE ERROR:{abs(desired_value - last_alpha)/ last_alpha}")
+	print(f"RELATIVE ERROR:{abs(desired_value - last_alpha)/ last_alpha}")	
 
-	outF = open(os.path.join(output_path, txt_file_name), "w")
-	for line in textList:
-	  # write line to output file
-	  outF.write(f"desired_value:{desired_value}, last_value:{last_alpha}")
-	  outF.write(f"RELATIVE ERROR:{abs(desired_value - last_alpha)/ last_alpha}")
+	outF = open(os.path.join(dir_path, txt_file_name), "w")	
+	outF.write(f"desired_value:{desired_value}, last_value:{last_alpha}")
+	outF.write(f"RELATIVE ERROR:{abs(desired_value - last_alpha)/ last_alpha}")
+	outF.close()
 
 	plt.title(data_str)
 	plt.xlabel(f'dataset size')
 	plt.ylabel(f'evaluate_smoothnes index- alpha')
 
 	save_graph=True
-	if save_graph:
-		dir_path = os.path.join(output_path, 'decision_tree_with_bagging', str(flags.dimension))
+	if save_graph:		
 		if not os.path.isdir(dir_path):
 			os.mkdir(dir_path)
-
-		print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')		
-		save_path = os.path.join(dir_path, file_name)
+		
+		save_path = os.path.join(dir_path, img_file_name)
 		print(f"save_path:{save_path}")
 		plt.savefig(save_path, \
 			dpi=300, bbox_inches='tight')
