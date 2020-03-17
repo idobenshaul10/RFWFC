@@ -73,10 +73,9 @@ class PointGenerator:
 		logging.info(f"LABELS COUNTER: {labels_counter}")
 		logging.info(f"cube vol:{pow(self.cube_length, self.dim)}, \
 			ball_vol:{self.get_n_ball_volume(self.dim)}")
-		logging.info("done making dataset")		
+		logging.info("done making dataset")				
 		points = np.array(points).squeeze()		
 		labels = np.array(labels).reshape(-1, 1)
-
 
 		return labels_counter, points, labels
 
@@ -96,7 +95,7 @@ class PointGenerator:
 
 
 if __name__ == '__main__':
-	pointGen = PointGenerator(dim=5)
+	pointGen = PointGenerator(dim=50)
 	__, dataset, labels = pointGen.make_dataset()
 	print(f'dataset:{Counter(labels)}')	
-	print(f'dataset[0].shape:{dataset[0].shape}')
+	# print(f'dataset[0].shape:{dataset[0].shape}')

@@ -11,6 +11,7 @@ from matplotlib.pyplot import plot, ion, show
 from utils import normalize_data, kfold_alpha_smoothness
 import logging	
 import time
+import json
 ion()
 
 def plot_dataset(X, Y):
@@ -27,7 +28,6 @@ def plot_dataset(X, Y):
 MIN_SIZE = 400
 MAX_SIZE = 10000
 STEP = 400
-
 
 def plot_alpha_per_num_sample_points(flags, \
 	data_str, normalize=True, output_path=''):
@@ -64,20 +64,32 @@ def plot_alpha_per_num_sample_points(flags, \
 	print(f'stds:{stds}')
 	plt.figure(1)
 	plt.plot(sizes, alphas)	
+	
+	write_data = {}
+	write_data['points'] = sizes
+	write_data['alphas'] = alphas	
+	write_data['flags'] = vars(flags)
+	write_data['MIN_SIZE'] = MIN_SIZE
+	write_data['MAX_SIZE'] = MAX_SIZE
+	write_data['STEP'] = STEP
+	write_data['N_wavelets'] = N_wavelets
+	write_data['norm_normalization'] = norm_normalization
+	write_data['normalize'] = normalize
+	write_data['add_noisy_channels'] = add_noisy_channels	
+
 	desired_value = draw_predictive_line(flags.dimension, p=2)
 	last_alpha = alphas[-1]
 	print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')	
 	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_IsNormalize_{normalize}_noisy_{add_noisy_channels}"
 	dir_path = os.path.join(output_path, 'decision_tree_with_bagging', str(flags.dimension))
+	
+	if not os.path.isdir(dir_path):
+		os.mkdir(dir_path)
 	img_file_name =file_name + ".png"
-	txt_file_name = file_name + ".txt"
-	print(f"desired_value:{desired_value}, last_value:{last_alpha}")
-	print(f"RELATIVE ERROR:{abs(desired_value - last_alpha)/ last_alpha}")	
-
-	outF = open(os.path.join(dir_path, txt_file_name), "w")	
-	outF.write(f"desired_value:{desired_value}, last_value:{last_alpha}")
-	outF.write(f"RELATIVE ERROR:{abs(desired_value - last_alpha)/ last_alpha}")
-	outF.close()
+	json_file_name = file_name + ".json"
+	
+	with open(os.path.join(dir_path, json_file_name), "w+") as f:
+		json.dump(write_data, f)
 
 	plt.title(data_str)
 	plt.xlabel(f'dataset size')
