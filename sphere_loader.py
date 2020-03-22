@@ -17,6 +17,9 @@ from global_values import ConstantValues
 from tqdm import tqdm 
 import logging
 
+# https://www.cs.cmu.edu/~venkatg/teaching/CStheory-infoage/chap1-high-dim-space.pdf
+# https://baezortega.github.io/2018/10/14/hypersphere-sampling/
+
 class PointGenerator:
 	ratios_sample = ConstantValues.ratios
 	def __init__(self, dim=2, cube_length=1.25, seed=1, add_noisy_channels=False):		
@@ -26,8 +29,6 @@ class PointGenerator:
 		self.seed = seed
 		np.random.seed(self.seed)
 		self.cube_length = PointGenerator.get_cube_length_from_dim(self.dim)
-
-
 		print(f"cube_length:{self.cube_length} for dim:{self.dim}")		
 		__, self.points, self.labels = self.make_dataset()
 
@@ -72,8 +73,8 @@ class PointGenerator:
 		labels_counter = Counter(labels)
 		logging.info(f"LABELS COUNTER: {labels_counter}")
 		logging.info(f"cube vol:{pow(self.cube_length, self.dim)}, \
-			ball_vol:{self.get_n_ball_volume(self.dim)}")
-		logging.info("done making dataset")				
+			ball_vol:{self.get_n_ball_volume(self.dim)}")		
+		logging.info("done making dataset")						
 		points = np.array(points).squeeze()		
 		labels = np.array(labels).reshape(-1, 1)
 
@@ -84,6 +85,7 @@ class PointGenerator:
 		n_ball_volume = PointGenerator.get_n_ball_volume(n)		
 		# we want C*V~q^n - I found C empiraclly to balance datasets
 		C = PointGenerator.ratios_sample[n]
+		print(f"C is {C}")
 		q = pow((C*n_ball_volume), 1/n)
 		return q
 
