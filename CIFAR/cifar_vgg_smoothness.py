@@ -24,6 +24,7 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
 from models.vgg import *
 from utils import *
+import time
 
 ion()
 
@@ -108,12 +109,13 @@ for k, layer in enumerate(layers):
 			output = model(input)
 
 		X = activation[list(activation.keys())[0]]
-		model = train_model(X, Y, method='RF', trees=args.trees,
+		start = time.time()
+		model = train_model(X, Y, method='WF', trees=args.trees,
             depth=args.depth, features='auto', state=2000, \
             nnormalization='volume')
 
 		alpha, n_wavelets, errors = model.evaluate_smoothness(m=args.num_wavelets)
-		import pdb; pdb.set_trace()
+		print(f"time:{time.time()-start}, alpha  is {alpha}")		
 		# seperability.get_seperability(model, 250, X=activation)
 		handle.remove()
 		del activation[layer_name]
