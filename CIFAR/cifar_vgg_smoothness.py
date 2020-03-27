@@ -31,7 +31,7 @@ ion()
 def get_args():
 	parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
 	# regressor args
-	parser.add_argument('--trees',default=2,type=int,help='Number of trees in the forest.')	
+	parser.add_argument('--trees',default=1,type=int,help='Number of trees in the forest.')	
 	parser.add_argument('--depth', default=30, type=int,help='Maximum depth of each tree.Use 0 for unlimited depth.')		
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
@@ -40,8 +40,6 @@ def get_args():
 	parser.add_argument('--output_folder', type=str, default=r"C:\projects\LinearEstimators\results", \
 						help='path to save results')
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')
-
-
 	parser.add_argument('--dataset', type=str, default="cifar10")
 
 	args = parser.parse_args()
@@ -92,17 +90,18 @@ def get_activation(name):
 layers = [module for module in model.features.modules() if type(module) != nn.Sequential][1:]
 ctr = 0 
 for k, layer in enumerate(layers):
-	if type(layer) == torch.nn.modules.activation.ReLU:
+	# if type(layer) == torch.nn.modules.activation.ReLU:
+	if type(layer) == torch.nn.modules.pooling.MaxPool2d:
 		ctr += 1
 
 args = get_args()
 Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()
 
 for k, layer in enumerate(layers):
-	if k <= 15 :
-		continue
+	# if k <= 8:
+	# 	continue
 	print(f"LAYER {k}")
-	if type(layer) == torch.nn.modules.activation.ReLU:	
+	if type(layer) == torch.nn.modules.pooling.MaxPool2d:	
 		layer_name = f'layer_{k}'
 		handle = layer.register_forward_hook(get_activation(layer_name))
 		for i, (input, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
@@ -110,13 +109,17 @@ for k, layer in enumerate(layers):
 
 		X = activation[list(activation.keys())[0]]
 		start = time.time()
-		model = train_model(X, Y, method='WF', trees=args.trees,
+		Y = np.array(Y).reshape(-1, 1)
+		X = np.array(X).squeeze()
+		print(f"Y shape:{Y.shape}")
+		WF = train_model(X, Y, method='WF', trees=args.trees,
             depth=args.depth, features='auto', state=2000, \
             nnormalization='volume')
 
-		alpha, n_wavelets, errors = model.evaluate_smoothness(m=args.num_wavelets)
-		print(f"time:{time.time()-start}, alpha  is {alpha}")		
-		# seperability.get_seperability(model, 250, X=activation)
+		end = time.time()
+		print(f"time for fitting:{end-start}")
+		alpha, n_wavelets, errors = WF.evaluate_smoothness(m=args.num_wavelets)
+		print(f"time for eval evaluate_smoothness:{time.time()-end}, alpha  is {alpha}")
 		handle.remove()
 		del activation[layer_name]
 

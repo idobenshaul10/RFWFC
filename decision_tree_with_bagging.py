@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 from scipy.sparse import csr_matrix, lil_matrix
 import operator
 import code
+from tqdm import tqdm
 from functools import reduce
 
 class DecisionTreeWithBaggingRegressor:
@@ -29,7 +30,7 @@ class DecisionTreeWithBaggingRegressor:
     indices_all = np.arange(len(X_all))
 
     random_state = np.random.RandomState(seed=self.seed)
-    for i in range(self.trees):
+    for i in tqdm(range(self.trees)):
       X, X_test, y, y_test, indices, indices_test = train_test_split(X_all, y_all, indices_all, test_size=1-self.bagging, random_state=random_state)
       X, y = shuffle(X, y, random_state=self.seed)
       self.estimators_[i].fit(X, y)
