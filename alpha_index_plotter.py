@@ -25,9 +25,9 @@ def plot_dataset(X, Y):
 	# 	dpi=300, bbox_inches='tight')
 	plt.show()
 
-MIN_SIZE = 400
-MAX_SIZE = 10000
-STEP = 400
+MIN_SIZE = 10000
+MAX_SIZE = 20000
+STEP = 10000
 
 def plot_alpha_per_num_sample_points(flags, \
 	data_str, normalize=True, output_path=''):
@@ -46,10 +46,8 @@ def plot_alpha_per_num_sample_points(flags, \
 
 	for dataset_size in tqdm(range(MIN_SIZE, MAX_SIZE, STEP)):
 		x, y = pointGen[dataset_size]
-		logging.info(f"LABELS COUNTER: {Counter(y.squeeze())}")		
-
-		# if flags.dimension == 2:
-		# 	rf.visualize_classifier()
+		logging.info(f"LABELS COUNTER: {Counter(y.squeeze())}")
+		
 		mean_alpha, std_alpha, num_wavelets, norm_m_term = \
 			kfold_alpha_smoothness(x, y, t_method=flags.regressor, \
 				num_wavelets=N_wavelets, n_folds=n_folds, n_trees=flags.trees, m_depth=flags.depth,
@@ -108,6 +106,36 @@ def plot_alpha_per_num_sample_points(flags, \
 	print(f"total time is {end-start}")
 	plt.show(block=True)
 
+
+def plot_alpha_per_depth(flags, \
+	data_str, normalize=True, output_path=''):
+	n_folds = 5
+	add_noisy_channels = False
+	start = time.time()
+	sizes ,alphas, stds = [], [], []
+	pointGen = PointGenerator(dim=flags.dimension, seed=flags.seed, \
+		add_noisy_channels=add_noisy_channels)	
+	seed_dict = defaultdict(list)
+	N_wavelets = flags.num_wavelets
+	norm_normalization = 'volume'
+	normalize = True
+	if not os.path.isdir(output_path):
+		os.mkdir(output_path)
+
+	dataset_size = 30000
+	x, y = pointGen[dataset_size]
+	logging.info(f"LABELS COUNTER: {Counter(y.squeeze())}")
+	for depth in tqdm(range(1, 20)):
+		kfold_alpha_smoothness(x, y, t_method=flags.regressor, \
+			num_wavelets=N_wavelets, n_folds=n_folds, n_trees=1, m_depth=depth,
+			n_features='auto', n_state=2000, normalize=normalize, norm_normalization=norm_normalization)		
+		# stds.append(std_alpha)
+		# alphas.append(mean_alpha)		
+
+	print(f'stds:{stds}')
+	plt.figure(1)
+	plt.plot(sizes, alphas)	
+
 def draw_predictive_line(n, p=2):
 	x = np.linspace(MIN_SIZE,MAX_SIZE,100)
 	desired_value = 1/(p*(n-1))
@@ -152,8 +180,8 @@ def plot_alpha_per_tree_number(flags, data_str, output_path):
 			depth=depth)
 
 		rf = regressor.fit(X, y)		
-		# if flags.dimension == 2 :
-		# 	rf.visualize_classifier()
+		if flags.dimension == 2 :
+			rf.visualize_classifier()
 		alpha, n_wavelets, errors = rf.evaluate_smoothness(m=1000)		
 
 		alphas.append(alpha)
@@ -166,43 +194,42 @@ def plot_alpha_per_tree_number(flags, data_str, output_path):
 
 	plt.title(data_str + f" dataset_size: {dataset_size}")
 	plt.xlabel(f'# of trees')
-	plt.ylabel(f'evaluate_smoothnessothness index- alpha')
-	
+	plt.ylabel(f'evaluate_smoothness index- alpha')	
 	plt.show(block=True)
-def plot_alpha_per_depth(flags, data_str, output_path):
-	depths ,alphas = [], []
-	pointGen = PointGenerator(dim=flags.dimension, seed=flags.seed)
-	# samples =[500, 750, 1000, 1500, 2000, 2500] #+ list(range(1550, 1550, 200))
 
-	dataset_size = 2400
-	X, y = pointGen[dataset_size]
+# def plot_alpha_per_depth(flags, data_str, output_path):
+# 	depths ,alphas = [], []
+# 	pointGen = PointGenerator(dim=flags.dimension, seed=flags.seed)	
 
-	for depth in tqdm(range(5, 100, 5)):		
-		print(f"\t\t1:{y.sum()}, 0:{dataset_size-y.sum()}")
-		try:
-			del regressor
-			print("deleted regressor")
-		except:
-			pass
-		regressor = WaveletsForestRegressor(\
-			regressor=flags.regressor, trees=flags.trees, \
-			features=flags.features, seed=flags.seed, \
-			depth=depth)
+# 	dataset_size = 2400
+# 	X, y = pointGen[dataset_size]
 
-		rf = regressor.fit(X, y)
-		if flags.dimension == 2 :
-			rf.visualize_classifier()
-		alpha, n_wavelets, errors = rf.evaluate_smoothness(m=10000)		
+# 	for depth in tqdm(range(5, 100, 5)):
+# 		print(f"\t\t1:{y.sum()}, 0:{dataset_size-y.sum()}")
+# 		try:
+# 			del regressor
+# 			print("deleted regressor")
+# 		except:
+# 			pass
+# 		regressor = WaveletsForestRegressor(\
+# 			regressor=flags.regressor, trees=flags.trees, \
+# 			features=flags.features, seed=flags.seed, \
+# 			depth=depth)
 
-		alphas.append(alpha)
-		depths.append(depth)
+# 		rf = regressor.fit(X, y)
+# 		if flags.dimension == 2 :
+# 			rf.visualize_classifier()
+# 		alpha, n_wavelets, errors = rf.evaluate_smoothness(m=10000)		
 
-	plt.figure(1)
-	plt.plot(depths, alphas)	
-	# draw_predictive_line(flags.dimension, p=2)
+# 		alphas.append(alpha)
+# 		depths.append(depth)
 
-	plt.title(data_str)
-	plt.xlabel(f'depths')
-	plt.ylabel(f'evaluate_smoothnessothness index- alpha')
+# 	plt.figure(1)
+# 	plt.plot(depths, alphas)	
+# 	# draw_predictive_line(flags.dimension, p=2)
+
+# 	plt.title(data_str)
+# 	plt.xlabel(f'depths')
+# 	plt.ylabel(f'evaluate_smoothnessothness index- alpha')
 	
-	plt.show(block=True)
+# 	plt.show(block=True)
