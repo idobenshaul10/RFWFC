@@ -34,7 +34,7 @@ def main():
 	parser.add_argument('--regressor',default='WF',help='Regressor type.')
 	parser.add_argument('--trees',default=1,type=int,help='Number of trees in the forest.')
 	parser.add_argument('--features',default='auto',help='Features to consider in each split. Same options as sklearn\'s DecisionTreeRegressor.')
-	parser.add_argument('--depth', default=9,type=int,help='Maximum depth of each tree.Use 0 for unlimited depth.')
+	parser.add_argument('--depth', default=-1,type=int,help='Maximum depth of each tree.Use 0 for unlimited depth.')
 	parser.add_argument('--seed',default=2000,type=int,help='Seed')
 	parser.add_argument('--num_wavelets',default=5000,type=int,help='Seed')
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
@@ -54,13 +54,11 @@ def main():
 	logging.info('Creating regressor with (dimension=%s, regressor=%s, trees=%s, features=%s, depth=%s, seed=%s, criterion=%s, bagging=%s)' % (flags.dimension, flags.regressor, flags.trees, flags.features, flags.depth, flags.seed, flags.criterion, flags.bagging) )
 	
 	data_str = f'Dimension:{flags.dimension}, # Trees:{flags.trees}, Depth:{flags.depth}'
-	plot_alpha_per_num_sample_points(flags, data_str, output_path=flags.output_path)
-	
+	plot_alpha_per_num_sample_points(flags, data_str, output_path=flags.output_path)	
 	# plot_alpha_per_depth(flags, \
 	# 		data_str, output_path=flags.output_path)
 
-	# plot_alpha_per_tree_number(flags, \
-	# 		data_str, output_path=flags.output_path)
+	# plot_alpha_per_tree_number(flags, data_str, output_path=flags.output_path)
 	
 
 if '__main__' == __name__:

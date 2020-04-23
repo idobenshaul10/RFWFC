@@ -51,7 +51,7 @@ def train_model(x, y, method='RF', trees=5, depth=9, features='auto',
     if method == 'RF':
         model = RandomForestRegressor(n_estimators=trees, max_depth=depth, \
                                       max_features=features, random_state=state)
-    elif method == 'WF':
+    elif method == 'WF':        
         model = WaveletsForestRegressor(regressor='decision_tree_with_bagging', \
             trees=trees, depth=depth, train_vi=train_vi, features=features, \
             seed=state, vi_threshold=threshold, norms_normalization=nnormalization)
@@ -70,18 +70,34 @@ def predict_model(x, model, method='RF', m=10):
     else:
         raise Exception('Method incorrect - should be either RF or WF')
 
+def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=10, n_folds=10, n_trees=5, m_depth=9,
+                         n_features='auto', n_state=2000, normalize=True, norm_normalization='volume'):
+    
+    if normalize:
+        X = normalize_data(X)
+
+    norm_m_term = 0
+    model = train_model(X, y, method=t_method, trees=n_trees,
+                depth=m_depth, features=n_features, state=n_state, \
+                nnormalization=norm_normalization)
+    if t_method == 'WF':
+        if num_wavelets < 1:
+            num_wavelets = int(np.round(num_wavelets*len(model.norms)))
+            norm_m_term = -np.sort(-model.norms)[num_wavelets-1]
+
+    alpha, n_wavelets, errors = model.evaluate_smoothness(m=num_wavelets)    
+
+    logging.log(60, 'ALPHA SMOOTHNESS over X: ' + str(alpha))                
+    return alpha, -1, num_wavelets, norm_m_term
+
 def kfold_alpha_smoothness(x, y, t_method='RF', num_wavelets=10, n_folds=10, n_trees=5, m_depth=9,
                          n_features='auto', n_state=2000, normalize=True, norm_normalization='volume'):
-    # Input - Labeled data and number of folds
-    # Normalize the data if needed
+    
     if normalize:
         x = normalize_data(x)
-
-    # Use scikit-learn's KFold, will automatically split the data into training and testing in each fold
+    
     kf = KFold(n_splits=n_folds)
     alphas = []
-
-    # Shuffle the data indexes to get k-random folds
     np.random.seed(seed=n_state)
     shuffle_data = np.arange(len(x))
     np.random.shuffle(shuffle_data)

@@ -46,7 +46,11 @@ class WaveletsForestRegressor:
 		self.regressor = regressor
 		self.criterion = criterion
 		self.bagging = bagging
-		self.depth = depth
+
+		if self.regressor == "random_forest" and depth == -1:
+			self.depth = None
+		else:
+			self.depth = depth
 		self.trees = trees
 		self.seed = seed
 		self.train_vi = train_vi
@@ -272,7 +276,6 @@ class WaveletsForestRegressor:
 	def evaluate_smoothness(self, m=1000):
 		'''
 		Evaluates smoothness for a maximum of M-terms
-
 		:m: Maximum terms to use. Default is 1000.
 		:return: Smothness index, n_wavelets, errors.
 		'''
