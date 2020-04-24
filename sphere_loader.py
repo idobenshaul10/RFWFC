@@ -19,36 +19,44 @@ import logging
 
 # https://www.cs.cmu.edu/~venkatg/teaching/CStheory-infoage/chap1-high-dim-space.pdf
 # https://baezortega.github.io/2018/10/14/hypersphere-sampling/
-
 class PointGenerator:
 	ratios_sample = ConstantValues.ratios
-	def __init__(self, dim=2, cube_length=1.25, seed=1, add_noisy_channels=False):		
+	def __init__(self, dim=2, cube_length=1.25, seed=1, add_noisy_channels=False, donut_distance=0.5):
 		self.add_noisy_channels = add_noisy_channels
 		self.num_points = 1000000
-		self.dim = dim 		
+		self.dim = dim
 		self.seed = seed
+		self.donut_distance = donut_distance
 		np.random.seed(self.seed)
 		self.cube_length = PointGenerator.get_cube_length_from_dim(self.dim)
 		print(f"cube_length:{self.cube_length} for dim:{self.dim}")		
 		__, self.points, self.labels = self.make_dataset()
-
-	# what do we demand of the sampling? it is much more probable to get 0 label..
+	
 	def get_label(self, vec):
 		vec = vec[0]
 		norm = np.sqrt(vec.dot(vec))
 		return int(norm <= 1)
 
-	def get_random_point_in_cube(self):		
-		random_point_in_unit_cube = 2 * np.random.rand(1, self.dim)
-		random_point_in_unit_cube -= 1
-		random_point_in_unit_cube *= (self.cube_length/2)
+	def get_random_point_in_cube(self):
+		if self.donut_distance < 0:		
+			random_point_in_unit_cube = 2 * np.random.rand(1, self.dim)
+			random_point_in_unit_cube -= 1
+			random_point_in_unit_cube *= (self.cube_length/2)			
+		else:			
+			angle = np.random.uniform(0, 2*math.pi)
+			distance = 1
+			x, y = distance * math.cos(angle), distance * math.sin(angle)
+			factor = (1-self.donut_distance)+2*self.donut_distance*np.random.sample(1)
+			random_point_in_unit_cube = np.expand_dims(np.array([x,y])*factor, axis=0)
+			# print(f"factor:{factor}")
+			# print(f"Distance from orgin: {random_point_in_unit_cube[0,1]**2 + random_point_in_unit_cube[0,0]**2}")			
 		return random_point_in_unit_cube
 
-	def get_data_point(self):				
+	def get_data_point(self):
 		N = 8
 		vec = self.get_random_point_in_cube()
 		label= self.get_label(vec)
-		if self.add_noisy_channels: 
+		if self.add_noisy_channels:
 			noisy = np.random.rand(1,N)
 			vec = np.expand_dims(np.append(vec, noisy), axis=0)
 		return vec, label
