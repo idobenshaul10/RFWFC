@@ -20,16 +20,16 @@ def main(args):
 
 	for json_path in json_file_paths:
 		with open(json_path, "r+") as f:
-			result = json.load(f)
+			result = json.load(f)		
+		donut_hole_size = json_path.split('\\')[-1].split('_')[-1].replace('.json', '')
 		points = result["points"]
 		alphas = np.array(result["alphas"])
-		plt.plot(points, alphas, label = json_path, \
-			marker='o', markerfacecolor='black', markersize=12, linewidth=4)
+		plt.plot(points, alphas, label = donut_hole_size, \
+			marker='o', markerfacecolor='black', markersize=12, linewidth=4)		
 
-		# N = result["flags"]["dimension"]
-		# print(f"mean_alpha:{mean_alpha}, estimated_desired_value:{estimated_desired_value}, "
-		# 	+ f"absolute_error:{absolute_error}, relative_error:{relative_error}")
-
+	plt.xlabel(f'dataset size')
+	plt.ylabel(f'evaluate_smoothnes index- alpha')
+	plt.legend()
 	plt.show()
 
 if __name__ == '__main__':
