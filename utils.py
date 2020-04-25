@@ -70,7 +70,7 @@ def predict_model(x, model, method='RF', m=10):
     else:
         raise Exception('Method incorrect - should be either RF or WF')
 
-def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=10, n_folds=10, n_trees=5, m_depth=9,
+def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=10, n_trees=5, m_depth=9,
                          n_features='auto', n_state=2000, normalize=True, norm_normalization='volume'):
     
     if normalize:

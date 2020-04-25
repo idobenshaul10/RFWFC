@@ -55,6 +55,8 @@ def main():
 	logging.info('Creating regressor with (dimension=%s, regressor=%s, trees=%s, features=%s, depth=%s, seed=%s, criterion=%s, bagging=%s)' % (flags.dimension, flags.regressor, flags.trees, flags.features, flags.depth, flags.seed, flags.criterion, flags.bagging) )
 	
 	data_str = f'Dimension:{flags.dimension}, # Trees:{flags.trees}, Depth:{flags.depth}'
+	# plot_alpha_per_donut_size(flags, data_str, output_path=flags.output_path)
+
 	plot_alpha_per_num_sample_points(flags, data_str, output_path=flags.output_path)	
 	# plot_alpha_per_depth(flags, \
 	# 		data_str, output_path=flags.output_path)
