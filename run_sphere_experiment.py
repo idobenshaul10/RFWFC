@@ -39,7 +39,7 @@ def main():
 	parser.add_argument('--num_wavelets',default=5000,type=int,help='Seed')
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')	
-	parser.add_argument('--output_path', default=r'C:\projects\RFWFC\results\donut_holes',help='Splitting criterion.')
+	parser.add_argument('--output_path', default=r'C:\projects\RFWFC\results\per_dimension_estimating',help='Splitting criterion.')
 	parser.add_argument('--dimension',default=2,type=int, help='Dimension for sphere in R^n experiment')
 	parser.add_argument('--donut_distance',default=-1, type=float, help='Dimension for sphere in R^n experiment')
 

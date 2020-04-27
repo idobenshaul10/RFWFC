@@ -37,6 +37,7 @@ class DecisionTreeWithBaggingRegressor:
       cur_depth = self.estimators_[i].tree_.max_depth
       if cur_depth> 20:
         print(f"depth of tree is {cur_depth}")
+        
     return self
 
   def decision_path(self, X):

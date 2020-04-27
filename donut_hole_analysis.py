@@ -24,16 +24,25 @@ def compare_on_folder(args):
 		with open(json_path, "r+") as f:
 			result = json.load(f)		
 		donut_hole_size = json_path.split('\\')[-1].split('_')[-1].replace('.json', '')
-		points = result["points"]
+		points = np.array(result["points"])
 		alphas = np.array(result["alphas"])
+
+		indices = np.array(points) > 10000
+		points = points[indices]
+		alphas = alphas[indices]		
 		plt.plot(points, alphas, label = donut_hole_size, \
-			marker='o', markerfacecolor='black', markersize=12, linewidth=4)		
+			marker='o', markerfacecolor='black', markersize=2, linewidth=4)		
 
 	plt.figure(1)
 	plt.xlabel(f'dataset size')
 	plt.ylabel(f'smoothness index- alpha')
-	plt.legend()	
 
+	current_handles, current_labels = plt.gca().get_legend_handles_labels()	
+	indices = np.argsort(current_labels)[::-1]
+	reversed_handles = list(np.array(current_handles)[indices])
+	reversed_labels = list(np.array(current_labels)[indices])
+	plt.legend(reversed_handles,reversed_labels, prop={"size":5})	
+	
 	plt.savefig(os.path.join(args.folder_path, 'plot.png'), \
 		dpi=300, bbox_inches='tight')
 	plt.figure(2)

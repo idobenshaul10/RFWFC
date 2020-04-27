@@ -25,9 +25,9 @@ def plot_dataset(X, Y):
 	plt.pause(0.001)
 
 # samples
-MIN_SIZE = 100000
-MAX_SIZE = 500001
-STEP = 100000
+MIN_SIZE = 1000
+MAX_SIZE = 51001
+STEP = 10000
 
 def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_path=''):
 	n_folds = 5
