@@ -14,20 +14,27 @@ import time
 import json
 ion()
 
-def plot_dataset(X, Y):
+def plot_dataset(X, Y, donut_distance):
 	colors = ["red" if y==1 else "blue" for y in Y]
 	groups = ("in ball", "outside ball")
-	plt.scatter(X[:, 0], X[:, 1], c=colors, alpha=0.5)
-	plt.title(f'Dataset:size is {X.shape[0]}')
+	s = [0.5 for n in range(len(X))]
+	plt.scatter(X[:, 0], X[:, 1], c=colors, s=s, alpha=0.5)
+	plt.title(f'Dataset:size is {X.shape[0]}, donut_distance:{donut_distance}')
 	plt.xlabel('x')
 	plt.ylabel('y')	
 	plt.draw()
 	plt.pause(0.001)
+	# dir_path = r"C:\projects\RFWFC\results\plots\decision_tree_with_bagging"
+	# img_file_name = f"donut_distance_{donut_distance}.png"
+	# save_path = os.path.join(dir_path, img_file_name)
+	# print(f"save_path:{save_path}")
+	# plt.savefig(save_path, \
+	# 	dpi=300, bbox_inches='tight')	
 
-# samples
-MIN_SIZE = 1000
-MAX_SIZE = 51001
-STEP = 10000
+
+MIN_SIZE = 100000
+MAX_SIZE = 200000
+STEP = 30000
 
 def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_path=''):
 	n_folds = 5
@@ -41,15 +48,17 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	donut_distance = flags.donut_distance
 	norm_normalization = 'volume'
 	normalize = True
+	model = None
 	if not os.path.isdir(output_path):
 		os.mkdir(output_path)
 
 	for dataset_size in tqdm(range(MIN_SIZE, MAX_SIZE, STEP)):
-		x, y = pointGen[dataset_size]
-		# plot_dataset(x,y)
+		x, y = pointGen[dataset_size, model]
+		# plot_dataset(x,y, donut_distance)
+
 		logging.info(f"LABELS COUNTER: {Counter(y.squeeze())}")		
 
-		mean_alpha, std_alpha, num_wavelets, norm_m_term = \
+		mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \
 			run_alpha_smoothness(x, y, t_method=flags.regressor, \
 				num_wavelets=N_wavelets, n_trees=flags.trees, m_depth=flags.depth,
 				n_features='auto', n_state=2000, normalize=normalize, norm_normalization=norm_normalization)
@@ -98,8 +107,7 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	plt.ylabel(f'evaluate_smoothnes index- alpha')
 
 	save_graph=True
-	if save_graph:
-		
+	if save_graph:		
 		if not os.path.isdir(dir_path):
 			os.mkdir(dir_path)
 		

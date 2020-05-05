@@ -121,15 +121,15 @@ class WaveletsForestRegressor:
 				trees=self.trees,
 				seed=self.seed,
 			)
-		else:
-			regressor = ensemble.RandomForestClassifier(
-				n_estimators=self.trees,
-				criterion=self.criterion,
-				max_depth=self.depth,
-				max_features='auto',
-				n_jobs=-1,
-				random_state=self.seed,
+		else:			
+			regressor = ensemble.RandomForestRegressor(
+				  n_estimators=self.trees,				  
+				  max_depth=self.depth,
+				  max_features='auto',
+				  n_jobs=-1,
+				  random_state=self.seed,
 			)
+			y = y.squeeze()
 
 		rf = regressor.fit(X, y)
 		self.rf = rf

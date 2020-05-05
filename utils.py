@@ -51,7 +51,7 @@ def train_model(x, y, method='RF', trees=5, depth=9, features='auto',
     if method == 'RF':
         model = RandomForestRegressor(n_estimators=trees, max_depth=depth, \
                                       max_features=features, random_state=state)
-    elif method == 'WF':        
+    elif method == 'WF':    #decision_tree_with_bagging
         model = WaveletsForestRegressor(regressor='decision_tree_with_bagging', \
             trees=trees, depth=depth, train_vi=train_vi, features=features, \
             seed=state, vi_threshold=threshold, norms_normalization=nnormalization)
@@ -88,7 +88,7 @@ def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=10, n_trees=5, m_dept
     alpha, n_wavelets, errors = model.evaluate_smoothness(m=num_wavelets)    
 
     logging.log(60, 'ALPHA SMOOTHNESS over X: ' + str(alpha))                
-    return alpha, -1, num_wavelets, norm_m_term
+    return alpha, -1, num_wavelets, norm_m_term, model
 
 def kfold_alpha_smoothness(x, y, t_method='RF', num_wavelets=10, n_folds=10, n_trees=5, m_depth=9,
                          n_features='auto', n_state=2000, normalize=True, norm_normalization='volume'):

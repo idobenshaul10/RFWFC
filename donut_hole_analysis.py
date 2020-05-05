@@ -27,15 +27,16 @@ def compare_on_folder(args):
 		points = np.array(result["points"])
 		alphas = np.array(result["alphas"])
 
-		indices = np.array(points) > 10000
-		points = points[indices]
-		alphas = alphas[indices]		
+		# indices = np.array(points) > 10000
+		# points = points[indices]
+		# alphas = alphas[indices]
 		plt.plot(points, alphas, label = donut_hole_size, \
 			marker='o', markerfacecolor='black', markersize=2, linewidth=4)		
 
 	plt.figure(1)
 	plt.xlabel(f'dataset size')
 	plt.ylabel(f'smoothness index- alpha')
+	plt.title("Alpha smoothness for different Donut-Hole Diameters")
 
 	current_handles, current_labels = plt.gca().get_legend_handles_labels()	
 	indices = np.argsort(current_labels)[::-1]
@@ -53,12 +54,11 @@ def draw_per_donut_size(args):
 			result = json.load(f)		
 	points = result["points"]
 	alphas = np.array(result["alphas"])
-	plt.plot(points, alphas, label = "donut_hole_size", \
-		marker='o', markerfacecolor='black', markersize=12, linewidth=4)		
+	plt.scatter(points, alphas, label = "donut_hole_size", marker='o')
 
-	plt.figure(1)	
-	plt.title(json_path.split('\\')[-1][:-50])
-	plt.xlabel(f'donut hole percent')
+	plt.figure(1)
+	plt.title(json_path.split('\\')[-1][:-5])
+	plt.xlabel(f'donut hole diameter')
 	plt.ylabel(f'smoothness index- alpha')
 	plt.legend()
 
@@ -68,5 +68,5 @@ def draw_per_donut_size(args):
 
 if __name__ == '__main__':
 	args = get_args()
-	compare_on_folder(args)
-	# draw_per_donut_size(args)
+	# compare_on_folder(args)
+	draw_per_donut_size(args)

@@ -29,6 +29,8 @@ class PointGenerator:
 		self.donut_distance = donut_distance
 		np.random.seed(self.seed)
 		self.cube_length = PointGenerator.get_cube_length_from_dim(self.dim)
+		# self.acquisition_function = 'entropy'
+		self.acquisition_function = None
 		print(f"cube_length:{self.cube_length} for dim:{self.dim}")		
 		__, self.points, self.labels = self.make_dataset()
 	
@@ -61,14 +63,19 @@ class PointGenerator:
 			vec = np.expand_dims(np.append(vec, noisy), axis=0)
 		return vec, label
 
-	def __getitem__(self, index):
-		if index > len(self.points):
+
+
+	def __getitem__(self, index):		
+		if index[0] > len(self.points):
 			print("requested datasize is not available!")
 			exit()
 
 		# indices = np.random.choice(len(self.points), index, replace=False)
-		indices = np.arange(index)
-		result = self.points[indices], self.labels[indices]	
+		if self.acquisition_function is None or index[1] is None:
+			indices = np.arange(index[0])
+			result = self.points[indices], self.labels[indices]
+		elif self.acquisition_function=="entropy":
+			import pdb; pdb.set_trace()
 		return result
 
 	def make_dataset(self):

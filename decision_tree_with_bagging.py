@@ -20,11 +20,11 @@ class DecisionTreeWithBaggingRegressor:
     if depth == -1:
       depth = None
     for i in range(trees):
-      self.estimators_.append(tree.DecisionTreeRegressor(
+      self.estimators_.append(tree.DecisionTreeRegressor(        
         max_depth=depth,
         max_features='auto',
         random_state = self.random_state,
-      ))
+      ))      
 
   def fit(self, X_all, y_all):
     indices_all = np.arange(len(X_all))
@@ -43,7 +43,7 @@ class DecisionTreeWithBaggingRegressor:
   def decision_path(self, X):
     paths = []
     for i in range(self.trees):
-      current_paths = self.estimators_[i].decision_path(X)
+      current_paths = self.estimators_[i].decision_path(X)      
       paths = np.append(paths, current_paths)
 
     paths_csr_dim = reduce(lambda s, x: s+x.shape[1], paths, 0)
@@ -54,6 +54,8 @@ class DecisionTreeWithBaggingRegressor:
       current_i += current_paths.shape[1]
 
     return paths_csr.tocsr(), []
+  
+
 
 
 
