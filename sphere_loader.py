@@ -23,35 +23,36 @@ class PointGenerator:
 	ratios_sample = ConstantValues.ratios
 	def __init__(self, dim=2, cube_length=1.25, seed=1, add_noisy_channels=False, donut_distance=0.5):
 		self.add_noisy_channels = add_noisy_channels
-		self.num_points = 1000000
+		self.num_points = 20000
 		self.dim = dim
 		self.seed = seed
 		self.donut_distance = donut_distance
 		np.random.seed(self.seed)
-		self.cube_length = PointGenerator.get_cube_length_from_dim(self.dim)
-		# self.acquisition_function = 'entropy'
-		self.acquisition_function = None
+		self.cube_length = PointGenerator.get_cube_length_from_dim(self.dim)		
 		print(f"cube_length:{self.cube_length} for dim:{self.dim}")		
 		__, self.points, self.labels = self.make_dataset()
 	
 	def get_label(self, vec):
 		vec = vec[0]
 		norm = np.sqrt(vec.dot(vec))
-		return int(norm <= 1)
+		value = int(norm <= 1)		
+		return value
 
 	def get_random_point_in_cube(self):
-		if self.donut_distance < 0:		
+		if self.donut_distance < 0:			
 			random_point_in_unit_cube = 2 * np.random.rand(1, self.dim)
 			random_point_in_unit_cube -= 1
-			random_point_in_unit_cube *= (self.cube_length/2)			
-		else:			
+			random_point_in_unit_cube *= (self.cube_length/2)
+		else:
 			angle = np.random.uniform(0, 2*math.pi)
 			distance = 1
-			x, y = distance * math.cos(angle), distance * math.sin(angle)
-			factor = (1-self.donut_distance)+2*self.donut_distance*np.random.sample(1)
-			random_point_in_unit_cube = np.expand_dims(np.array([x,y])*factor, axis=0)
-			# print(f"factor:{factor}")
-			# print(f"Distance from orgin: {random_point_in_unit_cube[0,1]**2 + random_point_in_unit_cube[0,0]**2}")			
+			x, y = distance * math.cos(angle), distance * math.sin(angle)			
+			hard_distance = True
+			if hard_distance:
+				factor = (1-self.donut_distance)+2*self.donut_distance*np.random.sample(1)
+			else:
+				factor = np.random.normal(loc=1., scale=self.donut_distance)
+			random_point_in_unit_cube = np.expand_dims(np.array([x,y])*factor, axis=0)			
 		return random_point_in_unit_cube
 
 	def get_data_point(self):
@@ -66,34 +67,34 @@ class PointGenerator:
 
 
 	def __getitem__(self, index):		
-		if index[0] > len(self.points):
+		if index > len(self.points):
 			print("requested datasize is not available!")
 			exit()
-
-		# indices = np.random.choice(len(self.points), index, replace=False)
-		if self.acquisition_function is None or index[1] is None:
-			indices = np.arange(index[0])
-			result = self.points[indices], self.labels[indices]
-		elif self.acquisition_function=="entropy":
-			import pdb; pdb.set_trace()
+				
+		indices = np.arange(index)
+		result = self.points[indices], self.labels[indices]		
 		return result
 
 	def make_dataset(self):
 		points, labels = [], []
 		for i in tqdm(range(self.num_points)):
-			new_point, new_label = self.get_data_point()
+			new_point, new_label = self.get_data_point()			
 			points.append(new_point)
 			labels.append(new_label)
 
-		labels_counter = Counter(labels)
-		logging.info(f"LABELS COUNTER: {labels_counter}")
-		logging.info(f"cube vol:{pow(self.cube_length, self.dim)}, \
-			ball_vol:{self.get_n_ball_volume(self.dim)}")		
-		logging.info("done making dataset")						
-		points = np.array(points).squeeze()		
-		labels = np.array(labels).reshape(-1, 1)
+		
+		# labels_counter = Counter(labels)
+		# logging.info(f"LABELS COUNTER: {labels_counter}")
+		# logging.info(f"cube vol:{pow(self.cube_length, self.dim)}, \
+		# 	ball_vol:{self.get_n_ball_volume(self.dim)}")
 
-		return labels_counter, points, labels
+
+		logging.info("done making dataset")
+		points = np.array(points).squeeze()
+		labels = np.array(labels)
+		labels = labels.reshape(-1, 1)
+
+		return None, points, labels
 
 	@staticmethod
 	def get_cube_length_from_dim(n):

@@ -8,10 +8,12 @@ from collections import Counter, defaultdict
 from mpl_toolkits.mplot3d import Axes3D
 from random_forest import WaveletsForestRegressor
 from matplotlib.pyplot import plot, ion, show
-from utils import normalize_data, run_alpha_smoothness, kfold_alpha_smoothness
+from utils import normalize_data, run_alpha_smoothness, kfold_alpha_smoothness, \
+	kfold_regression_mse
 import logging	
 import time
 import json
+
 ion()
 
 def plot_dataset(X, Y, donut_distance):
@@ -32,9 +34,53 @@ def plot_dataset(X, Y, donut_distance):
 	# 	dpi=300, bbox_inches='tight')	
 
 
-MIN_SIZE = 100000
-MAX_SIZE = 200000
-STEP = 30000
+MIN_SIZE = 2000
+MAX_SIZE = 10001
+STEP = 1000
+
+
+def plot_mse_per_donut_distance(flags, data_str, normalize=True, output_path=''):
+	results = defaultdict(list)
+	donut_sizes = np.concatenate((np.array([-1, 0.001, 0.01, 0.05]), np.arange(0.1, 0.51, 0.2)))
+	num_wavelets = range(1, 300, 10)
+
+	for donut_distance in donut_sizes:
+		for num_wav in tqdm(num_wavelets):
+			pointGen = PointGenerator(dim=flags.dimension, seed=flags.seed, donut_distance=donut_distance)			
+			x, y = pointGen[10000]
+			mse, __, __, __ = \
+				kfold_regression_mse(x, y, t_method='WF', num_wavelets=num_wav, n_state=2000, n_folds=5,
+					n_trees=flags.trees, m_depth=flags.depth)
+			results[donut_distance].append(mse)
+
+	plt.clf()	
+	for donut_size, values in results.items():		
+		plt.plot(num_wavelets, values, label="{:.2f}".format(donut_size))
+
+	plt.legend()
+	plt.title(data_str)
+	plt.xlabel(f'number of wavelets')
+	plt.ylabel(f'mse error')
+
+	print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')	
+	file_name = f"PLOT_MSE_DONUT_SIZE"
+	dir_path = os.path.join(output_path, 'decision_tree_with_bagging', str(flags.dimension))
+	
+	if not os.path.isdir(dir_path):
+		os.mkdir(dir_path)
+	img_file_name =file_name + ".png"
+
+	save_graph=True
+	if save_graph:		
+		if not os.path.isdir(dir_path):
+			os.mkdir(dir_path)
+		
+		save_path = os.path.join(dir_path, img_file_name)
+		print(f"save_path:{save_path}")
+		plt.savefig(save_path, \
+			dpi=300, bbox_inches='tight')	
+	plt.show(block=False)
+
 
 def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_path=''):
 	n_folds = 5
@@ -42,7 +88,7 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	start = time.time()
 	sizes ,alphas, stds = [], [], []
 	pointGen = PointGenerator(dim=flags.dimension, seed=flags.seed, \
-		add_noisy_channels=add_noisy_channels, donut_distance=flags.donut_distance)	
+		add_noisy_channels=add_noisy_channels, donut_distance=flags.donut_distance)
 	seed_dict = defaultdict(list)
 	N_wavelets = flags.num_wavelets
 	donut_distance = flags.donut_distance
@@ -53,11 +99,10 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 		os.mkdir(output_path)
 
 	for dataset_size in tqdm(range(MIN_SIZE, MAX_SIZE, STEP)):
-		x, y = pointGen[dataset_size, model]
+		x, y = pointGen[dataset_size]
 		# plot_dataset(x,y, donut_distance)
 
-		logging.info(f"LABELS COUNTER: {Counter(y.squeeze())}")		
-
+		# logging.info(f"LABELS COUNTER: {Counter(y.squeeze())}")		
 		mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \
 			run_alpha_smoothness(x, y, t_method=flags.regressor, \
 				num_wavelets=N_wavelets, n_trees=flags.trees, m_depth=flags.depth,
@@ -69,10 +114,10 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 		if True:
 			sizes.append(dataset_size)	
 
-	print(f'stds:{stds}')
-	plt.clf()
+	print(f'stds:{stds}')	
 	plt.figure(1)
-	plt.plot(sizes, alphas)	
+	plt.clf()
+	plt.plot(sizes, alphas)
 	
 	write_data = {}
 	write_data['points'] = sizes
@@ -105,6 +150,7 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	plt.title(data_str)
 	plt.xlabel(f'dataset size')
 	plt.ylabel(f'evaluate_smoothnes index- alpha')
+
 
 	save_graph=True
 	if save_graph:		

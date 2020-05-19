@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import logging
 from tqdm import tqdm
 from sklearn import metrics
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.model_selection import KFold
 from random_forest import WaveletsForestRegressor
 
@@ -17,7 +17,7 @@ def normalize_data(x_raw):
 
 def read_data(set_name):
     # Input - data-set name
-    # Output - Reading the data from the file and returning np arrays of the data
+    # Output - Reading the data from the file and returning np arrays of the data    
     train_str = r'db/' + set_name + '/trainingData.txt'
     label_str = r'db/' + set_name + '/trainingLabel.txt'
     x = pd.read_csv(train_str, delimiter=' ', header=None).values
@@ -52,7 +52,7 @@ def train_model(x, y, method='RF', trees=5, depth=9, features='auto',
         model = RandomForestRegressor(n_estimators=trees, max_depth=depth, \
                                       max_features=features, random_state=state)
     elif method == 'WF':    #decision_tree_with_bagging
-        model = WaveletsForestRegressor(regressor='decision_tree_with_bagging', \
+        model = WaveletsForestRegressor(regressor='random_forest', \
             trees=trees, depth=depth, train_vi=train_vi, features=features, \
             seed=state, vi_threshold=threshold, norms_normalization=nnormalization)
     else:
@@ -77,9 +77,16 @@ def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=10, n_trees=5, m_dept
         X = normalize_data(X)
 
     norm_m_term = 0
+
     model = train_model(X, y, method=t_method, trees=n_trees,
-                depth=m_depth, features=n_features, state=n_state, \
-                nnormalization=norm_normalization)
+            depth=m_depth, features=n_features, state=n_state, \
+            nnormalization=norm_normalization)
+    
+    paths, n_nodes_ptr = model.rf.decision_path(X)
+    y_pred = model.predict(X, m=1000, start_m=0, paths=paths)
+    auc = metrics.roc_auc_score(y, y_pred)
+    print(f"AUC on train data: {auc}")
+
     if t_method == 'WF':
         if num_wavelets < 1:
             num_wavelets = int(np.round(num_wavelets*len(model.norms)))
@@ -87,8 +94,9 @@ def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=10, n_trees=5, m_dept
 
     alpha, n_wavelets, errors = model.evaluate_smoothness(m=num_wavelets)    
 
-    logging.log(60, 'ALPHA SMOOTHNESS over X: ' + str(alpha))                
+    logging.log(60, 'ALPHA SMOOTHNESS over X: ' + str(alpha))
     return alpha, -1, num_wavelets, norm_m_term, model
+
 
 def kfold_alpha_smoothness(x, y, t_method='RF', num_wavelets=10, n_folds=10, n_trees=5, m_depth=9,
                          n_features='auto', n_state=2000, normalize=True, norm_normalization='volume'):
@@ -125,7 +133,7 @@ def kfold_alpha_smoothness(x, y, t_method='RF', num_wavelets=10, n_folds=10, n_t
     return np.mean(alphas), np.std(alphas), num_wavelets, norm_m_term
 
 
-def kfold_regression_mse(x, y, t_method='RF', num_wavelets=10, n_folds=10, n_trees=5, m_depth=9,
+def kfold_regression_mse(x, y, t_method='RF', num_wavelets=10, n_folds=5, n_trees=5, m_depth=9,
                          n_features='auto', n_state=2000, normalize=True, norm_normalization='volume'):
     # Input - Labeled data and number of folds
     # Output - Mean and standard deviation of mean squared errors over all folds
@@ -160,9 +168,10 @@ def kfold_regression_mse(x, y, t_method='RF', num_wavelets=10, n_folds=10, n_tre
         y_pred = predict_model(x_test, model, method=t_method, m=num_wavelets)
         # Calculate the MSE accuracy and append it to the accuracies vector
         mse.append(metrics.mean_squared_error(y_test, y_pred))
-        logging.log(20, '   Fold accuracy: '+str(mse[-1]))
-    logging.log(60, '   Mean of MSE over all folds: ' + str(np.mean(mse)) +
-                '   Standard deviation: ' + str(np.std(mse)))
+        # logging.log(20, '   Fold accuracy: '+str(mse[-1]))
+
+    # logging.log(60, '   Mean of MSE over all folds: ' + str(np.mean(mse)) +
+    #             '   Standard deviation: ' + str(np.std(mse)))
     return np.mean(mse), np.std(mse), num_wavelets, norm_m_term
 
 
@@ -204,3 +213,14 @@ def kfold_error_one_by_one_feature(x, y, method='RF', trees=5, depth=9, features
                                         n_features=features, n_state=state, num_wavelets=wavelets,
                                         norm_normalization=nnormalization)[0])
     return mse
+
+
+
+if __name__ == '__main__':
+    # set_name = "sonar"
+    # a = read_data(set_name)
+    from sklearn.datasets import make_moons, make_circles, make_classification
+    X, y = make_classification(n_features=2, n_redundant=0, n_informative=2,
+                           random_state=1, n_clusters_per_class=1)
+
+    import pdb; pdb.set_trace()

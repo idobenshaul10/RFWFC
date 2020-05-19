@@ -1,3 +1,5 @@
+import pdb; pdb.set_trace()
+import cv2
 import numpy as np
 import pandas as pd
 import os
@@ -39,7 +41,7 @@ def main():
 	parser.add_argument('--num_wavelets',default=5000,type=int,help='Seed')
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')	
-	parser.add_argument('--output_path', default=r'C:\projects\RFWFC\results\problem',help='Splitting criterion.')
+	parser.add_argument('--output_path', default=r'C:\projects\RFWFC\results\graph_checking',help='Splitting criterion.')
 	parser.add_argument('--dimension',default=2,type=int, help='Dimension for sphere in R^n experiment')
 	parser.add_argument('--donut_distance',default=-1, type=float, help='Dimension for sphere in R^n experiment')
 
@@ -57,7 +59,11 @@ def main():
 	data_str = f'Dimension:{flags.dimension}, # Trees:{flags.trees}, Depth:{flags.depth}'
 	# plot_alpha_per_donut_size(flags, data_str, output_path=flags.output_path)
 
-	plot_alpha_per_num_sample_points(flags, data_str, output_path=flags.output_path)	
+	# plot_alpha_per_num_sample_points(flags, data_str, output_path=flags.output_path)
+
+	plot_mse_per_donut_distance(flags, data_str, output_path=flags.output_path)
+
+
 	# plot_alpha_per_depth(flags, \
 	# 		data_str, output_path=flags.output_path)
 
