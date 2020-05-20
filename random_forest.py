@@ -17,8 +17,8 @@ import random
 from sklearn import metrics
 # ion() # enables interactive mode
 
-f1 = plt.figure(1)
-f2 = plt.figure(2)
+# f1 = plt.figure(1)
+# f2 = plt.figure(2)
 
 class WaveletsForestRegressor:
     def __init__(self, regressor='random_forest', criterion='gini', bagging=0.8, train_vi=False,
@@ -92,13 +92,13 @@ class WaveletsForestRegressor:
                                levels=np.arange(n_classes + 1) - 0.5,
                                cmap=cmap, zorder=1)
         ax.set(xlim=xlim, ylim=ylim)        
-        # plt.show(block=True)
-        dir_path = r"C:\projects\RFWFC\results\decision_tree_with_bagging\visualizations\per_depth"
-        save_path = os.path.join(dir_path, f"circle_{depth}.png")
-        print(f"save_path:{save_path}")
-        plt.savefig(save_path, \
-            dpi=300, bbox_inches='tight')
-        plt.clf()
+        plt.show(block=True)
+        # dir_path = r"C:\projects\RFWFC\results\decision_tree_with_bagging\visualizations\per_depth"
+        # save_path = os.path.join(dir_path, f"circle_{depth}.png")
+        # print(f"save_path:{save_path}")
+        # plt.savefig(save_path, \
+        #     dpi=300, bbox_inches='tight')
+        # plt.clf()
 
 
     def fit(self, X_raw, y):
@@ -110,9 +110,9 @@ class WaveletsForestRegressor:
         '''
 
         logging.info('Fitting %s samples' % np.shape(X_raw)[0])
-        # X = (X_raw - np.min(X_raw, 0))/(np.max(X_raw, 0) - np.min(X_raw, 0))
-        # X = np.nan_to_num(X)
-        X = X_raw
+        X = (X_raw - np.min(X_raw, 0))/(np.max(X_raw, 0) - np.min(X_raw, 0))
+        X = np.nan_to_num(X)
+        
         self.X = X
         self.y = y        
 
@@ -138,8 +138,9 @@ class WaveletsForestRegressor:
 
         rf = regressor.fit(self.X, self.y)
         self.rf = rf        
-        # y_pred = self.rf.predict(X)        
-        # auc = metrics.roc_auc_score(y, y_pred)
+        y_pred = self.rf.predict(X)        
+        auc = metrics.roc_auc_score(y, y_pred)
+        print(f"auc:{auc}")
         # import pdb; pdb.set_trace()
 
         try:
@@ -331,8 +332,8 @@ class WaveletsForestRegressor:
         plt.ylabel('log(errors)')
         plt.plot(n_wavelets_log, errors_log)
         
-        # regr = linear_model.LinearRegression()
-        regr = linear_model.Ridge(alpha=.8)
+        regr = linear_model.LinearRegression()
+        # regr = linear_model.Ridge(alpha=.8)
         
         regr.fit(n_wavelets_log, errors_log)
 

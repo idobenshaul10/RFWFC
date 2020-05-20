@@ -1,5 +1,6 @@
-import pdb; pdb.set_trace()
+import torch
 import cv2
+
 import numpy as np
 import pandas as pd
 import os
@@ -61,7 +62,9 @@ def main():
 
 	# plot_alpha_per_num_sample_points(flags, data_str, output_path=flags.output_path)
 
-	plot_mse_per_donut_distance(flags, data_str, output_path=flags.output_path)
+	# plot_mse_per_donut_distance(flags, data_str, output_path=flags.output_path)
+
+	plot_intersection_volumes(flags, data_str, normalize=True)
 
 
 	# plot_alpha_per_depth(flags, \

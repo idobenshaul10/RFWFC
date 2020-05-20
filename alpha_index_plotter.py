@@ -9,7 +9,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from random_forest import WaveletsForestRegressor
 from matplotlib.pyplot import plot, ion, show
 from utils import normalize_data, run_alpha_smoothness, kfold_alpha_smoothness, \
-	kfold_regression_mse
+	kfold_regression_mse, train_model
 import logging	
 import time
 import json
@@ -80,8 +80,6 @@ def plot_mse_per_donut_distance(flags, data_str, normalize=True, output_path='')
 		plt.savefig(save_path, \
 			dpi=300, bbox_inches='tight')	
 	plt.show(block=False)
-
-
 def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_path=''):
 	n_folds = 5
 	add_noisy_channels = False
@@ -164,7 +162,6 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	end = time.time()
 	print(f"total time is {end-start}")
 	plt.show(block=False)
-
 def plot_alpha_per_depth(flags, \
 	data_str, normalize=True, output_path=''):
 	n_folds = 5
@@ -355,6 +352,68 @@ def plot_alpha_per_donut_size(flags, data_str, output_path):
 	end = time.time()
 	print(f"total time is {end-start}")	
 
+def plot_intersection_volumes(flags, data_str, normalize=True):
+	folder_path = r"C:\projects\RFWFC\results\intersection_size"
+	n_folds = 5
+	add_noisy_channels = False
+	start = time.time()
+	sizes ,alphas, stds = [], [], []
+	pointGen = PointGenerator(dim=flags.dimension, seed=flags.seed, \
+		add_noisy_channels=add_noisy_channels, donut_distance=flags.donut_distance)
+	seed_dict = defaultdict(list)
+	N_wavelets = flags.num_wavelets
+	donut_distance = flags.donut_distance
+	norm_normalization = 'volume'
+	normalize = True
+	model = None
+	dataset_size = 50000
+
+
+	X, y = pointGen[dataset_size]
+	# plot_dataset(x,y, donut_distance)
+
+	model = train_model(X, y, method=flags.regressor, trees=flags.trees,
+			depth=flags.depth, nnormalization=norm_normalization)
+
+	model.visualize_classifier()	
+	exit()
+	
+	if True:
+		sizes.append(dataset_size)	
+
+	print(f'stds:{stds}')	
+	# plt.figure(1)
+	# plt.clf()
+	# plt.plot(sizes, alphas)	
+
+	desired_value = draw_predictive_line(flags.dimension, p=2)
+	last_alpha = alphas[-1]
+	print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')	
+	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_IsNormalize_{normalize}_noisy_{add_noisy_channels}_"+ \
+		f"donut_distance_{donut_distance}"
+	dir_path = os.path.join(output_path, 'decision_tree_with_bagging', str(flags.dimension))
+	
+	if not os.path.isdir(dir_path):
+		os.mkdir(dir_path)
+	img_file_name =file_name + ".png"	
+
+	plt.title(data_str)
+	plt.xlabel(f'dataset size')
+	plt.ylabel(f'evaluate_smoothnes index- alpha')
+
+
+	save_graph=True
+	if save_graph:		
+		if not os.path.isdir(dir_path):
+			os.mkdir(dir_path)
+		
+		save_path = os.path.join(dir_path, img_file_name)
+		print(f"save_path:{save_path}")
+		plt.savefig(save_path, \
+			dpi=300, bbox_inches='tight')
+	end = time.time()
+	print(f"total time is {end-start}")
+	plt.show(block=False)
 
 def save_results(sizes, alphas, X, y, data_str, output_path):
 	folder_path = os.path.join(output_path, data_str)

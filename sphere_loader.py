@@ -23,7 +23,7 @@ class PointGenerator:
 	ratios_sample = ConstantValues.ratios
 	def __init__(self, dim=2, cube_length=1.25, seed=1, add_noisy_channels=False, donut_distance=0.5):
 		self.add_noisy_channels = add_noisy_channels
-		self.num_points = 20000
+		self.num_points = 1000000
 		self.dim = dim
 		self.seed = seed
 		self.donut_distance = donut_distance
