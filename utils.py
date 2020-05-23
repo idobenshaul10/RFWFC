@@ -45,15 +45,15 @@ def plot_vec(x=0, y=None, title='', xaxis='', yaxis=''):
     plt.show()
 
 
-def train_model(x, y, method='RF', trees=5, depth=9, features='auto',
+def train_model(x, y, method='RF', mode='classification', trees=5, depth=9, features='auto',
                 state=2000, threshold=1000, train_vi=False, nnormalization='volume'):
-    # Declare a random/wavelet forest classifier and set the parameters
+    # Declare a random/wavelet forest classifier and set the parameters    
     if method == 'RF':
         model = RandomForestRegressor(n_estimators=trees, max_depth=depth, \
                                       max_features=features, random_state=state)
     elif method == 'WF':    #decision_tree_with_bagging
         model = WaveletsForestRegressor(regressor='random_forest', \
-            trees=trees, depth=depth, train_vi=train_vi, features=features, \
+            mode=mode, trees=trees, depth=depth, train_vi=train_vi, features=features, \
             seed=state, vi_threshold=threshold, norms_normalization=nnormalization)
     else:
         raise Exception('Method incorrect - should be either RF or WF')

@@ -23,7 +23,7 @@ class PointGenerator:
 	ratios_sample = ConstantValues.ratios
 	def __init__(self, dim=2, cube_length=1.25, seed=1, add_noisy_channels=False, donut_distance=0.5):
 		self.add_noisy_channels = add_noisy_channels
-		self.num_points = 1000000
+		self.num_points = 15000
 		self.dim = dim
 		self.seed = seed
 		self.donut_distance = donut_distance
@@ -35,8 +35,11 @@ class PointGenerator:
 	def get_label(self, vec):
 		vec = vec[0]
 		norm = np.sqrt(vec.dot(vec))
-		value = int(norm <= 1)		
-		return value
+		value = int(norm <= 1)
+		if value == 1:
+			return 1 
+		else:
+			return -1		
 
 	def get_random_point_in_cube(self):
 		if self.donut_distance < 0:			
@@ -91,9 +94,9 @@ class PointGenerator:
 
 		logging.info("done making dataset")
 		points = np.array(points).squeeze()
-		labels = np.array(labels)
+		labels = np.array(labels).squeeze()
 		labels = labels.reshape(-1, 1)
-
+		# import pdb; pdb.set_trace()
 		return None, points, labels
 
 	@staticmethod
