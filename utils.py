@@ -85,7 +85,7 @@ def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=10, n_trees=5, m_dept
     paths, n_nodes_ptr = model.rf.decision_path(X)
     y_pred = model.predict(X, m=1000, start_m=0, paths=paths)
     auc = metrics.roc_auc_score(y, y_pred)
-    print(f"AUC on train data: {auc}")
+    print(f"AUC on train data: {auc}")    
 
     if t_method == 'WF':
         if num_wavelets < 1:

@@ -23,7 +23,7 @@ def plot_dataset(X, Y, donut_distance):
 	plt.scatter(X[:, 0], X[:, 1], c=colors, s=s, alpha=0.5)
 	plt.title(f'Dataset:size is {X.shape[0]}, donut_distance:{donut_distance}')
 	plt.xlabel('x')
-	plt.ylabel('y')	
+	plt.ylabel('y')
 	plt.draw()
 	plt.pause(0.001)
 	# dir_path = r"C:\projects\RFWFC\results\plots\decision_tree_with_bagging"
@@ -34,9 +34,9 @@ def plot_dataset(X, Y, donut_distance):
 	# 	dpi=300, bbox_inches='tight')	
 
 
-MIN_SIZE = 2000
-MAX_SIZE = 10001
-STEP = 1000
+MIN_SIZE = 1000
+MAX_SIZE = 100001
+STEP = 5000
 
 
 def plot_mse_per_donut_distance(flags, data_str, normalize=True, output_path=''):
