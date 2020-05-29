@@ -40,6 +40,7 @@ def main():
 	parser.add_argument('--features',default='auto',help='Features to consider in each split. Same options as sklearn\'s DecisionTreeRegressor.')
 	parser.add_argument('--depth', default=-1,type=int,help='Maximum depth of each tree.Use 0 for unlimited depth.')
 	parser.add_argument('--seed',default=2000,type=int,help='Seed')
+	parser.add_argument('--dataset_size',default=10000, type=int)
 	parser.add_argument('--num_wavelets',default=5000,type=int,help='Seed')
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')	
@@ -63,9 +64,8 @@ def main():
 
 	# plot_alpha_per_num_sample_points(flags, data_str, output_path=flags.output_path)
 
-	# plot_mse_per_donut_distance(flags, data_str, output_path=flags.output_path)
-
-	plot_intersection_volumes(flags, data_str, normalize=True)
+	# plot_mse_per_donut_distance(flags, data_str, output_path=flags.output_path)	
+	plot_intersection_volumes(flags, data_str, dataset_size=flags.dataset_size,  normalize=True)
 
 
 	# plot_alpha_per_depth(flags, \

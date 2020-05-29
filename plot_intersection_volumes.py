@@ -22,7 +22,7 @@ import time
 # 	import pdb; pdb.set_trace()
 
 from sklearn.tree import _tree
-def tree_to_code(tree, feature_names):
+def tree_to_code(tree, feature_names, data):
 	output_str = ""
 	tree_ = tree.tree_
 	feature_name = [
@@ -44,7 +44,7 @@ def tree_to_code(tree, feature_names):
 			print("{}return {}".format(indent, tree_.value[node]))
 	recurse(0, 1)
 
-def plot_intersection_volumes(flags, data_str, normalize=True):
+def plot_intersection_volumes(flags, data_str, dataset_size=10000, normalize=True):
 	folder_path = r"C:\projects\RFWFC\results\intersection_size"	
 	add_noisy_channels = False
 	start = time.time()
@@ -56,13 +56,15 @@ def plot_intersection_volumes(flags, data_str, normalize=True):
 	donut_distance = flags.donut_distance
 	norm_normalization = 'volume'
 	normalize = True
-	model = None
-	dataset_size = 10
+	model = None	
+
+	# import pdb; pdb.set_trace()
 
 
 	X, y = pointGen[dataset_size]
 	# plot_dataset(X ,y, donut_distance)
-	model = train_model(X, y, method=flags.regressor, mode='regression', trees=flags.trees,
+	# regression
+	model = train_model(X, y, method=flags.regressor, mode='classification', trees=flags.trees,
 		depth=flags.depth, nnormalization=norm_normalization)
 
 
@@ -71,16 +73,10 @@ def plot_intersection_volumes(flags, data_str, normalize=True):
 
 	exit()
 	
-	if True:
-		sizes.append(dataset_size)	
-
-	print(f'stds:{stds}')	
 	# plt.figure(1)
 	# plt.clf()
-	# plt.plot(sizes, alphas)	
-
-	desired_value = draw_predictive_line(flags.dimension, p=2)
-	last_alpha = alphas[-1]
+	# plt.plot(sizes, alphas)
+	
 	print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')	
 	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_IsNormalize_{normalize}_noisy_{add_noisy_channels}_"+ \
 		f"donut_distance_{donut_distance}"

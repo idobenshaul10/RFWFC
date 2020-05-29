@@ -108,21 +108,48 @@ class WaveletsForestRegressor:
 			result.append(abs(l-r)*abs(d-u))
 		return np.array(result)
 
-	def calculate_level_volumes(self, rectangles, levels):
+	def calculate_level_volumes(self, rectangles, levels, volumes):
 		levels_volumes = np.zeros(len(np.unique(levels)))
-		intersections = self.find_rectangle_intersection(rectangles)
-		volumes = self.get_volumes(rectangles)
+		intersections = self.find_rectangle_intersection(rectangles)		
+		# volumes_2 = self.get_volumes(rectangles)		
+
 		intersection_volumes = intersections*volumes
 		for i in range(len(intersection_volumes)):
-			levels_volumes[int(levels[i])] += intersection_volumes[i]
+			levels_volumes[int(levels[i])] += intersection_volumes[i]		
 		
-		
-		ratios = np.array([levels_volumes[k+1]/levels_volumes[k] for k in range(0, levels_volumes.shape[0]-2, 1)])
-		ratios_every_2 = np.array([levels_volumes[k+2]/levels_volumes[k] for k in range(0, levels_volumes.shape[0]-3, 2)])
-		
-		print(f"ratios every level is {ratios}")
-		print(f"ratios every two levels are {ratios_every_2}")		
-		return levels_volumes	
+		return levels_volumes
+
+	def copy_numpy_array_to_clipboard(self, array, decimal="."):
+		import win32clipboard as clipboard	    
+		"""
+		Copies an array into a string format acceptable by Excel.
+		Columns separated by \t, rows separated by \n
+		"""
+		# Create string from array
+		try:
+			n, m = np.shape(array)
+		except ValueError:
+			n, m = 1, 0
+		line_strings = []
+		if m > 0:
+			for line in array:
+				if decimal == ",":
+					line_strings.append("\t".join(line.astype(str)).replace(
+						"\t","").replace(".", ","))
+				else:
+					line_strings.append("\t".join(line.astype(str)).replace(
+						"\t",""))
+			array_string = "\t".join(line_strings)
+		else:
+			if decimal == ",":
+				array_string = "\t".join(array.astype(str)).replace(".", ",")
+			else:
+				array_string = "\t".join(array.astype(str))
+		# Put string into clipboard (open, clear, set, close)
+		clipboard.OpenClipboard()
+		clipboard.EmptyClipboard()
+		clipboard.SetClipboardText(array_string)
+		clipboard.CloseClipboard()
 
 	def rectangle_circle_collision(self, RectX, RectY, RectWidth, RectHeight, \
 			CircleX, CircleY, CircleRadius):
@@ -204,6 +231,7 @@ class WaveletsForestRegressor:
 		self.norms = np.array([])
 		self.vals = np.zeros((val_size, 0))
 		self.volumes = np.array([])
+		self.intersect_levels = []
 		##
 		self.num_samples = np.array([])
 		self.si_tree = np.zeros((np.shape(X)[1], len(rf.estimators_)))
@@ -225,11 +253,15 @@ class WaveletsForestRegressor:
 			rectangles = np.zeros((norms.shape[0], 4))			
 			levels = np.zeros((norms.shape[0]))
 			self.__traverse_nodes(estimator, 0, node_box, norms, vals, rectangles, levels)
-			self.calculate_level_volumes(rectangles, levels)
+			
 
-
-			# logging.info('Traversing nodes of tree %s to extract volumes and norms' % i)          
 			volumes = np.product(node_box[:, :, 1] - node_box[:, :, 0], 1)
+			self.volumes = np.append(self.volumes, volumes)
+
+			intersect_levels = self.calculate_level_volumes(rectangles, levels, volumes)
+			intersect_levels = np.expand_dims(intersect_levels, 0)
+			self.intersect_levels.append(intersect_levels)
+			# logging.info('Traversing nodes of tree %s to extract volumes and norms' % i)			
 
 
 			paths = estimator.decision_path(X)
@@ -266,7 +298,22 @@ class WaveletsForestRegressor:
 		##
 		y_pred_2 = self.predict(X)      
 		auc = metrics.roc_auc_score(y, y_pred_2)
-		print(f"AUC_2:{auc}")       
+		print(f"AUC_2:{auc}")
+		intersect_levels = np.zeros(max([a.shape[1] for a in self.intersect_levels]))
+		for i in range(len(self.intersect_levels)):			
+			current_values = self.intersect_levels[i].squeeze()			
+			for j in range(current_values.shape[0]):
+				intersect_levels[j] += current_values[j]
+		self.intersect_levels = intersect_levels
+		
+		ratios_every_2 = np.array([self.intersect_levels[k+2]/self.intersect_levels[k] for k in range(0, \
+			self.intersect_levels.shape[0]-3, 2)])
+		
+		# self.copy_numpy_array_to_clipboard(ratios)		
+		# print(f"ratios every level is {list(ratios)}")		
+		self.copy_numpy_array_to_clipboard(ratios_every_2)
+		print(f"ratios every two levels are {list(ratios_every_2)}")		
+		
 		return self
 
 	def __compute_norm(self, avg, parent_avg, volume):      
