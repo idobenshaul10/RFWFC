@@ -57,7 +57,7 @@ def plot_intersection_volumes(flags, data_str, normalize=True):
 	norm_normalization = 'volume'
 	normalize = True
 	model = None
-	dataset_size = 10000
+	dataset_size = 10
 
 
 	X, y = pointGen[dataset_size]
@@ -67,8 +67,7 @@ def plot_intersection_volumes(flags, data_str, normalize=True):
 
 
 	model.visualize_classifier()
-	tree = model.rf.estimators_[0]
-	tree_to_code(tree, feature_names=['x','y'])	
+	tree = model.rf.estimators_[0]	
 
 	exit()
 	

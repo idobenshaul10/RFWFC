@@ -85,6 +85,7 @@ class WaveletsForestRegressor:
 		ax.add_artist(circle2)
 		
 		Z = self.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)       
+		# Z = self.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)
 
 		n_classes = len(np.unique(Z))
 		contours = ax.contourf(xx, yy, Z, alpha=0.3,
@@ -115,48 +116,27 @@ class WaveletsForestRegressor:
 		for i in range(len(intersection_volumes)):
 			levels_volumes[int(levels[i])] += intersection_volumes[i]
 		
-		levels_volumes
-		return levels_volumes
-
-	
-	def collision(self, rleft, rtop, width, height, center_x, center_y, radius):  
 		
-		rright, rbottom = rleft + width/2, rtop + height/2		
-		cleft, ctop     = center_x-radius, center_y-radius
-		cright, cbottom = center_x+radius, center_y+radius
+		ratios = np.array([levels_volumes[k+1]/levels_volumes[k] for k in range(0, levels_volumes.shape[0]-2, 1)])
+		ratios_every_2 = np.array([levels_volumes[k+2]/levels_volumes[k] for k in range(0, levels_volumes.shape[0]-3, 2)])
 		
-		if rright < cleft or rleft > cright or rbottom < ctop or rtop > cbottom:
-			return False  
+		print(f"ratios every level is {ratios}")
+		print(f"ratios every two levels are {ratios_every_2}")		
+		return levels_volumes	
 
-		
-		for x in (rleft, rleft+width):
-			for y in (rtop, rtop+height):				
-				if math.hypot(x-center_x, y-center_y) <= radius:
-					return True  # collision detected
-
-		
-		if rleft <= center_x <= rright and rtop <= center_y <= rbottom:
-			return True
-
-		return False
-
+	def rectangle_circle_collision(self, RectX, RectY, RectWidth, RectHeight, \
+			CircleX, CircleY, CircleRadius):
+		DeltaX = CircleX - max(RectX, min(CircleX, RectX + RectWidth))
+		DeltaY = CircleY - max(RectY, min(CircleY, RectY + RectHeight))
+		return (DeltaX * DeltaX + DeltaY * DeltaY) < (CircleRadius * CircleRadius)
 
 	def find_rectangle_intersection(self, rectangles):
 		# INTERSECTION: [LEFT, RIGHT, DOWN, UP]
 		intersections = np.zeros(rectangles.shape[0])
 		for idx, rectangle in enumerate(rectangles):
-			l, r, d, u = rectangle
-			does_intersect = int(self.collision(l, u, r-l, u-d, 0, 0, 1))
+			l, r, d, u = rectangle			
+			does_intersect = int(self.rectangle_circle_collision(l, d, r-l, u-d, 0., 0., 1.))			
 			intersections[idx] = does_intersect
-
-		# intersections = np.zeros(rectangles.shape[0])
-		# for idx, rectangle in enumerate(rectangles):
-		# 	l, r, d, u = rectangle
-		# 	top_right = r*r + u*u > 1
-		# 	top_left = l*l + u*u > 1
-		# 	bottom_right = r*r + d*d > 1
-		# 	bottom_left = l*l + d*d > 1
-		# 	intersections[idx] = int(not(top_right and top_left and bottom_right and bottom_left))
 		return intersections
 
 	def fit(self, X_raw, y):
