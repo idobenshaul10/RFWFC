@@ -12,6 +12,7 @@ import code
 from functools import reduce
 from decision_tree_with_bagging import DecisionTreeWithBaggingRegressor
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from matplotlib.pyplot import plot, ion, show
 import random
 from sklearn import metrics
@@ -64,18 +65,57 @@ class WaveletsForestRegressor:
 		self.norms_normalization = norms_normalization
 
 
-	def visualize_classifier(self, ax=None, cmap='rainbow', depth=-1):        
-		# ion()     
+	def visualize_classifier(self, ax=None, cmap='rainbow', depth=-1):
+		import matplotlib.cm as cm
+		import matplotlib as mpl
+		from matplotlib.patches import Patch
+		from matplotlib.lines import Line2D
+		# ion()
 		ax = ax or plt.gca()
 		colors = self.y.reshape(-1)     
 		
-		indices = np.random.choice(self.X.shape[0], int(len(self.X)/5))
-		show_X = self.X[indices]
+		# indices = np.random.choice(self.X.shape[0], int(len(self.X)/5))
+		# show_X = self.X[indices]
+		show_X = self.X
 
-		# ax.scatter(show_X[:, 0], show_X[:, 1], c=colors[indices], \
+		# ax.scatter(show_X[:, 0], show_X[:, 1], c=colors, \
 		#   clim=(self.y.min(), self.y.max()), s=0.1, cmap=cmap, zorder=1)
+		
 
-		ax.axis('tight')        
+		# INTERSECTIONS		
+
+		max_level = self.levels.max()+1
+		norm = mpl.colors.Normalize(vmin=0, vmax=max_level+1)
+		cmap_2 = cm.hsv
+		m = cm.ScalarMappable(norm=norm, cmap=cmap_2)
+		# color_func = lambda x: tuple(list(m.to_rgba(x))[:3] + [0.9])
+		color_func = lambda x: m.to_rgba(x)
+		colors_dict = {k:color_func(k) for k in range(int(max_level)+1)}
+
+		legend_elements = [Patch(facecolor=colors_dict[i], edgecolor='b',label=str(i)) for \
+			i in range(len(list(colors_dict.keys())))]
+
+		for i in range(self.rectangles.shape[0]):
+			if self.intersections[i] == 0:
+				continue
+			
+			l, r, d, u = self.rectangles[i]
+			# INTERSECTION: [LEFT, RIGHT, DOWN, UP]
+			cur_level = self.levels[i]
+
+			if cur_level > 14:
+				# color = (1.,1.,1.,1.)
+				color = (0.,0.,0.,0.)
+				continue
+			else:
+				color = colors_dict[cur_level]
+
+			rect = patches.Rectangle((l,d),r-l,u-d,linewidth=1,\
+				edgecolor='g',facecolor=color)
+			ax.add_patch(rect)
+
+
+		ax.axis('tight')
 		xlim = ax.get_xlim()
 		ylim = ax.get_ylim()        
 		xx, yy = np.meshgrid(np.linspace(*xlim, num=200),
@@ -84,14 +124,14 @@ class WaveletsForestRegressor:
 		circle2 = plt.Circle((0.5, 0.5), 0.4, color='b', fill=False, lw=0.25)       
 		ax.add_artist(circle2)
 		
-		Z = self.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)       
-		# Z = self.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)
+		# Z = self.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)  
+		# n_classes = len(np.unique(Z))
+		# contours = ax.contourf(xx, yy, Z, alpha=0.3,
+		# 					   levels=np.arange(n_classes + 1) - 0.5,
+		# 					   cmap=cmap, zorder=1)
 
-		n_classes = len(np.unique(Z))
-		contours = ax.contourf(xx, yy, Z, alpha=0.3,
-							   levels=np.arange(n_classes + 1) - 0.5,
-							   cmap=cmap, zorder=1)
-		ax.set(xlim=xlim, ylim=ylim)        
+		ax.set(xlim=xlim, ylim=ylim)
+		ax.legend(handles=legend_elements)
 		plt.show(block=True)
 
 		# dir_path = r"C:\projects\RFWFC\results\decision_tree_with_bagging\visualizations\per_depth"
@@ -108,16 +148,24 @@ class WaveletsForestRegressor:
 			result.append(abs(l-r)*abs(d-u))
 		return np.array(result)
 
-	def calculate_level_volumes(self, rectangles, levels, volumes):
+	def calculate_level_volumes(self, rectangles, levels, volumes, leaves):
 		levels_volumes = np.zeros(len(np.unique(levels)))
 		intersections = self.find_rectangle_intersection(rectangles)		
-		# volumes_2 = self.get_volumes(rectangles)		
 
+		# volumes_2 = self.get_volumes(rectangles)
 		intersection_volumes = intersections*volumes
+
 		for i in range(len(intersection_volumes)):
-			levels_volumes[int(levels[i])] += intersection_volumes[i]		
+			cur_level = int(levels[i])
+			levels_volumes[cur_level] += intersection_volumes[i]
+			if leaves[i]: 
+				for j in range(i+1, len(levels_volumes)):
+					try:
+						levels_volumes[j] += intersection_volumes[i]		
+					except:
+						import pdb; pdb.set_trace()
 		
-		return levels_volumes
+		return levels_volumes, intersections
 
 	def copy_numpy_array_to_clipboard(self, array, decimal="."):
 		import win32clipboard as clipboard	    
@@ -250,15 +298,22 @@ class WaveletsForestRegressor:
 			vals = np.zeros((val_size, num_nodes))          
 			
 			# INTERSECTION: [LEFT, RIGHT, DOWN, UP]
-			rectangles = np.zeros((norms.shape[0], 4))			
+			rectangles = np.zeros((norms.shape[0], 4))
 			levels = np.zeros((norms.shape[0]))
 			self.__traverse_nodes(estimator, 0, node_box, norms, vals, rectangles, levels)
 			
 
 			volumes = np.product(node_box[:, :, 1] - node_box[:, :, 0], 1)
 			self.volumes = np.append(self.volumes, volumes)
+			leaves = (self.rf.estimators_[i].tree_.feature == -2).astype(np.float64)
 
-			intersect_levels = self.calculate_level_volumes(rectangles, levels, volumes)
+			intersect_levels, intersections = \
+				self.calculate_level_volumes(rectangles, levels, volumes, leaves)
+
+			self.intersections = intersections
+			self.rectangles = rectangles
+			self.levels = levels
+
 			intersect_levels = np.expand_dims(intersect_levels, 0)
 			self.intersect_levels.append(intersect_levels)
 			# logging.info('Traversing nodes of tree %s to extract volumes and norms' % i)			
@@ -306,14 +361,10 @@ class WaveletsForestRegressor:
 				intersect_levels[j] += current_values[j]
 		self.intersect_levels = intersect_levels
 		
-		ratios_every_2 = np.array([self.intersect_levels[k+2]/self.intersect_levels[k] for k in range(0, \
-			self.intersect_levels.shape[0]-3, 2)])
-		
-		# self.copy_numpy_array_to_clipboard(ratios)		
-		# print(f"ratios every level is {list(ratios)}")		
-		self.copy_numpy_array_to_clipboard(ratios_every_2)
-		print(f"ratios every two levels are {list(ratios_every_2)}")		
-		
+		self.copy_numpy_array_to_clipboard(self.intersect_levels)
+		# ratios_every_2 = np.array([self.intersect_levels[k+2]/self.intersect_levels[k] for k in range(0, \
+		# 	self.intersect_levels.shape[0]-3, 2)])		
+		# print(f"ratios every two levels are {list(ratios_every_2)}")		
 		return self
 
 	def __compute_norm(self, avg, parent_avg, volume):      

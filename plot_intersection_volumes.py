@@ -58,18 +58,18 @@ def plot_intersection_volumes(flags, data_str, dataset_size=10000, normalize=Tru
 	normalize = True
 	model = None	
 
-	# import pdb; pdb.set_trace()
-
 
 	X, y = pointGen[dataset_size]
-	# plot_dataset(X ,y, donut_distance)
-	# regression
-	model = train_model(X, y, method=flags.regressor, mode='classification', trees=flags.trees,
+	# plot_dataset(X ,y, donut_distance)	
+	model = train_model(X, y, method=flags.regressor, mode='regression', trees=flags.trees,
 		depth=flags.depth, nnormalization=norm_normalization)
+
+	# model = train_model(X, y, method=flags.regressor, mode='classification', trees=flags.trees,
+	# 	depth=flags.depth, nnormalization=norm_normalization)
 
 
 	model.visualize_classifier()
-	tree = model.rf.estimators_[0]	
+	tree = model.rf.estimators_[0]
 
 	exit()
 	
