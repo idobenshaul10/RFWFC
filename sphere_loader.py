@@ -29,7 +29,7 @@ class PointGenerator:
 		self.donut_distance = donut_distance
 		np.random.seed(self.seed)
 		self.cube_length = PointGenerator.get_cube_length_from_dim(self.dim)		
-		print(f"cube_length:{self.cube_length} for dim:{self.dim}")		
+		print(f"cube_length:{self.cube_length} for dim:{self.dim}")				
 		__, self.points, self.labels = self.make_dataset()
 	
 	def get_label(self, vec):
@@ -50,7 +50,7 @@ class PointGenerator:
 			angle = np.random.uniform(0, 2*math.pi)
 			distance = 1
 			x, y = distance * math.cos(angle), distance * math.sin(angle)			
-			hard_distance = True
+			hard_distance = False
 			if hard_distance:
 				factor = (1-self.donut_distance)+2*self.donut_distance*np.random.sample(1)
 			else:

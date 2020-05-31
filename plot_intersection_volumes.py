@@ -51,25 +51,24 @@ def plot_intersection_volumes(flags, data_str, dataset_size=10000, normalize=Tru
 	sizes ,alphas, stds = [], [], []
 	pointGen = PointGenerator(dim=flags.dimension, seed=flags.seed, \
 		add_noisy_channels=add_noisy_channels, donut_distance=flags.donut_distance)
+	cube_length = pointGen.cube_length
 	seed_dict = defaultdict(list)
 	N_wavelets = flags.num_wavelets
 	donut_distance = flags.donut_distance
 	norm_normalization = 'volume'
 	normalize = True
-	model = None	
-
+	model = None
 
 	X, y = pointGen[dataset_size]
 	# plot_dataset(X ,y, donut_distance)	
 	model = train_model(X, y, method=flags.regressor, mode='regression', trees=flags.trees,
-		depth=flags.depth, nnormalization=norm_normalization)
+		depth=flags.depth, nnormalization=norm_normalization, cube_length=cube_length)
 
 	# model = train_model(X, y, method=flags.regressor, mode='classification', trees=flags.trees,
 	# 	depth=flags.depth, nnormalization=norm_normalization)
 
 
-	model.visualize_classifier()
-	tree = model.rf.estimators_[0]
+	model.visualize_classifier()	
 
 	exit()
 	

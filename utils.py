@@ -46,7 +46,7 @@ def plot_vec(x=0, y=None, title='', xaxis='', yaxis=''):
 
 
 def train_model(x, y, method='RF', mode='classification', trees=5, depth=9, features='auto',
-                state=2000, threshold=1000, train_vi=False, nnormalization='volume'):
+                state=2000, threshold=1000, train_vi=False, nnormalization='volume', cube_length=1.):
     # Declare a random/wavelet forest classifier and set the parameters    
     if method == 'RF':
         model = RandomForestRegressor(n_estimators=trees, max_depth=depth, \
@@ -54,7 +54,7 @@ def train_model(x, y, method='RF', mode='classification', trees=5, depth=9, feat
     elif method == 'WF':    #decision_tree_with_bagging
         model = WaveletsForestRegressor(regressor='random_forest', \
             mode=mode, trees=trees, depth=depth, train_vi=train_vi, features=features, \
-            seed=state, vi_threshold=threshold, norms_normalization=nnormalization)
+            seed=state, vi_threshold=threshold, norms_normalization=nnormalization, cube_length=cube_length)
     else:
         raise Exception('Method incorrect - should be either RF or WF')
     # Fit the model

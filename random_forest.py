@@ -24,7 +24,8 @@ import math
 
 class WaveletsForestRegressor:
 	def __init__(self, regressor='random_forest', mode='classification', criterion='gini', bagging=0.8, train_vi=False,
-				 depth=9, trees=5, features='auto', seed=None, vi_threshold=0.8, norms_normalization='volume'):
+				 depth=9, trees=5, features='auto', seed=None, vi_threshold=0.8, norms_normalization='volume', 
+				 cube_length=1.):
 		'''
 		Construct a new 'WaveletsForestRegressor' object.
 
@@ -53,6 +54,7 @@ class WaveletsForestRegressor:
 		self.regressor = regressor
 		self.criterion = criterion
 		self.bagging = bagging
+		self.cube_length = cube_length
 
 		if self.regressor == "random_forest" and depth == -1:
 			self.depth = None
@@ -77,9 +79,6 @@ class WaveletsForestRegressor:
 		# indices = np.random.choice(self.X.shape[0], int(len(self.X)/5))
 		# show_X = self.X[indices]
 		show_X = self.X
-
-		# ax.scatter(show_X[:, 0], show_X[:, 1], c=colors, \
-		#   clim=(self.y.min(), self.y.max()), s=0.1, cmap=cmap, zorder=1)
 		
 
 		# INTERSECTIONS		
@@ -103,8 +102,7 @@ class WaveletsForestRegressor:
 			# INTERSECTION: [LEFT, RIGHT, DOWN, UP]
 			cur_level = self.levels[i]
 
-			if cur_level > 14:
-				# color = (1.,1.,1.,1.)
+			if cur_level > len(list(colors_dict.keys())):				
 				color = (0.,0.,0.,0.)
 				continue
 			else:
@@ -115,13 +113,17 @@ class WaveletsForestRegressor:
 			ax.add_patch(rect)
 
 
+		ax.scatter(show_X[:, 0], show_X[:, 1], c=colors, \
+		  clim=(self.y.min(), self.y.max()), s=0.8, cmap=cmap, zorder=10)
+
 		ax.axis('tight')
 		xlim = ax.get_xlim()
 		ylim = ax.get_ylim()        
 		xx, yy = np.meshgrid(np.linspace(*xlim, num=200),
 							 np.linspace(*ylim, num=200))
 
-		circle2 = plt.Circle((0.5, 0.5), 0.4, color='b', fill=False, lw=0.25)       
+		# circle2 = plt.Circle((0.5, 0.5), 0.4, color='b', fill=False, lw=0.25)
+		circle2 = plt.Circle((0., 0.), 1., color='b', fill=False, lw=0.25)
 		ax.add_artist(circle2)
 		
 		# Z = self.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)  
@@ -149,21 +151,18 @@ class WaveletsForestRegressor:
 		return np.array(result)
 
 	def calculate_level_volumes(self, rectangles, levels, volumes, leaves):
+		import pdb; pdb.set_trace()
 		levels_volumes = np.zeros(len(np.unique(levels)))
-		intersections = self.find_rectangle_intersection(rectangles)		
-
-		# volumes_2 = self.get_volumes(rectangles)
+		intersections = self.find_rectangle_intersection(rectangles)
 		intersection_volumes = intersections*volumes
+		# import pdb; pdb.set_trace()
 
 		for i in range(len(intersection_volumes)):
 			cur_level = int(levels[i])
 			levels_volumes[cur_level] += intersection_volumes[i]
-			if leaves[i]: 
+			if leaves[i]:
 				for j in range(i+1, len(levels_volumes)):
-					try:
-						levels_volumes[j] += intersection_volumes[i]		
-					except:
-						import pdb; pdb.set_trace()
+					levels_volumes[j] += intersection_volumes[i]					
 		
 		return levels_volumes, intersections
 
@@ -209,7 +208,7 @@ class WaveletsForestRegressor:
 		# INTERSECTION: [LEFT, RIGHT, DOWN, UP]
 		intersections = np.zeros(rectangles.shape[0])
 		for idx, rectangle in enumerate(rectangles):
-			l, r, d, u = rectangle			
+			l, r, d, u = rectangle
 			does_intersect = int(self.rectangle_circle_collision(l, d, r-l, u-d, 0., 0., 1.))			
 			intersections[idx] = does_intersect
 		return intersections
@@ -223,9 +222,9 @@ class WaveletsForestRegressor:
 		'''
 
 		logging.info('Fitting %s samples' % np.shape(X_raw)[0])
-		X = (X_raw - np.min(X_raw, 0))/(np.max(X_raw, 0) - np.min(X_raw, 0))
-		X = np.nan_to_num(X)
-		# X = X_raw
+		# X = (X_raw - np.min(X_raw, 0))/(np.max(X_raw, 0) - np.min(X_raw, 0))
+		# X = np.nan_to_num(X)
+		X = X_raw
 		
 		self.X = X
 		self.y = y
@@ -329,7 +328,6 @@ class WaveletsForestRegressor:
 				norms = np.multiply(norms, np.sqrt(num_samples))
 
 			# logging.info('Number of wavelets in tree %s: %s' % (i, np.shape(norms)[0]))
-
 			self.volumes = np.append(self.volumes, volumes)
 			self.norms = np.append(self.norms, norms)
 			self.num_samples = np.append(self.num_samples, num_samples)         
@@ -354,17 +352,19 @@ class WaveletsForestRegressor:
 		y_pred_2 = self.predict(X)      
 		auc = metrics.roc_auc_score(y, y_pred_2)
 		print(f"AUC_2:{auc}")
+
 		intersect_levels = np.zeros(max([a.shape[1] for a in self.intersect_levels]))
 		for i in range(len(self.intersect_levels)):			
 			current_values = self.intersect_levels[i].squeeze()			
 			for j in range(current_values.shape[0]):
 				intersect_levels[j] += current_values[j]
+
 		self.intersect_levels = intersect_levels
 		
 		self.copy_numpy_array_to_clipboard(self.intersect_levels)
-		# ratios_every_2 = np.array([self.intersect_levels[k+2]/self.intersect_levels[k] for k in range(0, \
-		# 	self.intersect_levels.shape[0]-3, 2)])		
-		# print(f"ratios every two levels are {list(ratios_every_2)}")		
+		ratios_every_2 = np.array([self.intersect_levels[k+2]/self.intersect_levels[k] for k in range(0, \
+			self.intersect_levels.shape[0]-3, 2)])		
+		print(f"ratios every two levels are {list(ratios_every_2)}")		
 		return self
 
 	def __compute_norm(self, avg, parent_avg, volume):      
@@ -387,8 +387,9 @@ class WaveletsForestRegressor:
 
 		if base_node_id == 0:
 			vals[:, base_node_id] = self.compute_average_score_from_tree(estimator.tree_.value[base_node_id])
-			norms[base_node_id] = self.__compute_norm(vals[:, base_node_id], 0, 1)
-			rectangles[base_node_id] = np.array([-2., 2., -2., 2.])			
+			norms[base_node_id] = self.__compute_norm(vals[:, base_node_id], 0, 1)			
+			rectangles[base_node_id] = np.array([-self.cube_length//2, self.cube_length//2, \
+				-self.cube_length//2, self.cube_length//2])
 
 		left_id = estimator.tree_.children_left[base_node_id]
 		right_id = estimator.tree_.children_right[base_node_id]
