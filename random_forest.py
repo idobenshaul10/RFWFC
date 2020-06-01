@@ -23,7 +23,7 @@ import math
 # f2 = plt.figure(2)
 
 class WaveletsForestRegressor:
-	def __init__(self, regressor='random_forest', mode='classification', criterion='gini', bagging=0.8, train_vi=False,
+	def __init__(self, regressor='random_forest', mode='regression', criterion='gini', bagging=0.8, train_vi=False,
 				 depth=9, trees=5, features='auto', seed=None, vi_threshold=0.8, norms_normalization='volume', 
 				 cube_length=1.):
 		'''
@@ -76,9 +76,9 @@ class WaveletsForestRegressor:
 		ax = ax or plt.gca()
 		colors = self.y.reshape(-1)     
 		
-		# indices = np.random.choice(self.X.shape[0], int(len(self.X)/5))
-		# show_X = self.X[indices]
-		show_X = self.X
+		indices = np.random.choice(self.X.shape[0], 10000)
+		show_X = self.X[indices]
+		# show_X = self.X
 		
 
 		# INTERSECTIONS		
@@ -93,7 +93,7 @@ class WaveletsForestRegressor:
 
 		legend_elements = [Patch(facecolor=colors_dict[i], edgecolor='b',label=str(i)) for \
 			i in range(len(list(colors_dict.keys())))]
-
+		
 		for i in range(self.rectangles.shape[0]):
 			if self.intersections[i] == 0:
 				continue
@@ -113,7 +113,7 @@ class WaveletsForestRegressor:
 			ax.add_patch(rect)
 
 
-		ax.scatter(show_X[:, 0], show_X[:, 1], c=colors, \
+		ax.scatter(show_X[:, 0], show_X[:, 1], c=colors[indices], \
 		  clim=(self.y.min(), self.y.max()), s=0.8, cmap=cmap, zorder=10)
 
 		ax.axis('tight')
@@ -122,10 +122,12 @@ class WaveletsForestRegressor:
 		xx, yy = np.meshgrid(np.linspace(*xlim, num=200),
 							 np.linspace(*ylim, num=200))
 
-		# circle2 = plt.Circle((0.5, 0.5), 0.4, color='b', fill=False, lw=0.25)
-		circle2 = plt.Circle((0., 0.), 1., color='b', fill=False, lw=0.25)
+
+		new_radius = 1/(self.cube_length)		
+		circle2 = plt.Circle((0.5, 0.5), new_radius, color='b', fill=False, lw=0.25)
+		# circle2 = plt.Circle((0., 0.), 1., color='b', fill=False, lw=0.25)
 		ax.add_artist(circle2)
-		
+
 		# Z = self.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)  
 		# n_classes = len(np.unique(Z))
 		# contours = ax.contourf(xx, yy, Z, alpha=0.3,
@@ -141,7 +143,7 @@ class WaveletsForestRegressor:
 		# print(f"save_path:{save_path}")
 		# plt.savefig(save_path, \
 		#     dpi=300, bbox_inches='tight')
-		# plt.clf()
+		# plt.clf()	
 
 	def get_volumes(self, rectangles):
 		result = []
@@ -151,9 +153,11 @@ class WaveletsForestRegressor:
 		return np.array(result)
 
 	def calculate_level_volumes(self, rectangles, levels, volumes, leaves):
-		import pdb; pdb.set_trace()
+		# import pdb; pdb.set_trace()
 		levels_volumes = np.zeros(len(np.unique(levels)))
 		intersections = self.find_rectangle_intersection(rectangles)
+
+		# volumes = self.get_volumes(rectangles)
 		intersection_volumes = intersections*volumes
 		# import pdb; pdb.set_trace()
 
@@ -222,9 +226,10 @@ class WaveletsForestRegressor:
 		'''
 
 		logging.info('Fitting %s samples' % np.shape(X_raw)[0])
-		# X = (X_raw - np.min(X_raw, 0))/(np.max(X_raw, 0) - np.min(X_raw, 0))
-		# X = np.nan_to_num(X)
-		X = X_raw
+		# import pdb; pdb.set_trace()
+		X = (X_raw - np.min(X_raw, 0))/(np.max(X_raw, 0) - np.min(X_raw, 0))
+		X = np.nan_to_num(X)
+		# X = X_raw
 		
 		self.X = X
 		self.y = y
@@ -302,6 +307,7 @@ class WaveletsForestRegressor:
 			self.__traverse_nodes(estimator, 0, node_box, norms, vals, rectangles, levels)
 			
 
+			# import pdb; pdb.set_trace()
 			volumes = np.product(node_box[:, :, 1] - node_box[:, :, 0], 1)
 			self.volumes = np.append(self.volumes, volumes)
 			leaves = (self.rf.estimators_[i].tree_.feature == -2).astype(np.float64)
@@ -340,6 +346,7 @@ class WaveletsForestRegressor:
 					vi_norms = np.zeros(num_nodes)
 					vi_vals = np.zeros((val_size, num_nodes))
 					self.__variable_importance(estimator, 0, vi_node_box, vi_norms, vi_vals, k, self.vi_threshold)
+					
 					if self.norms_normalization == 'volume':
 						vi_norms = np.multiply(vi_norms, np.sqrt(volumes))
 					else:
@@ -383,17 +390,16 @@ class WaveletsForestRegressor:
 		# https://stackoverflow.com/questions/47719001/what-does-scikit-learn-decisiontreeclassifier-tree-value-do
 		# https://stackoverflow.com/questions/52376272/getting-the-value-of-a-leaf-node-in-a-decisiontreeregressor
 		
+		# feature - feature used for splitting!
 		# INTERSECTION: [LEFT, RIGHT, DOWN, UP]		
 
 		if base_node_id == 0:
 			vals[:, base_node_id] = self.compute_average_score_from_tree(estimator.tree_.value[base_node_id])
 			norms[base_node_id] = self.__compute_norm(vals[:, base_node_id], 0, 1)			
-			rectangles[base_node_id] = np.array([-self.cube_length//2, self.cube_length//2, \
-				-self.cube_length//2, self.cube_length//2])
+			rectangles[base_node_id] = np.array([0., 1., 0., 1.])
 
 		left_id = estimator.tree_.children_left[base_node_id]
-		right_id = estimator.tree_.children_right[base_node_id]
-
+		right_id = estimator.tree_.children_right[base_node_id]		
 
 		if left_id >= 0:			
 			rectangles[left_id] = rectangles[base_node_id]
@@ -408,6 +414,7 @@ class WaveletsForestRegressor:
 				rectangles[left_id][3] = left_threshold			
 
 			node_box[left_id, :, :] = node_box[base_node_id, :, :]			
+			# import pdb; pdb.set_trace()
 			node_box[left_id, estimator.tree_.feature[base_node_id], 1] = np.min(
 				[estimator.tree_.threshold[base_node_id], node_box[left_id, estimator.tree_.feature[base_node_id], 1]])
 			self.__traverse_nodes(estimator, left_id, node_box, norms, vals, rectangles, levels)
@@ -522,8 +529,7 @@ class WaveletsForestRegressor:
 		plt.ylabel('errors')
 		plt.plot(n_wavelets, errors)
 		plt.draw()
-		plt.pause(1)
-		
+		plt.pause(1)		
 
 		plt.figure(2)
 		plt.clf()

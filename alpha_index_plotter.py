@@ -36,7 +36,7 @@ def plot_dataset(X, Y, donut_distance):
 
 MIN_SIZE = 1000
 MAX_SIZE = 100001
-STEP = 5000
+STEP = 20000
 
 
 def plot_mse_per_donut_distance(flags, data_str, normalize=True, output_path=''):

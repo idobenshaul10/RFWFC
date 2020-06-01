@@ -65,7 +65,7 @@ def plot_intersection_volumes(flags, data_str, dataset_size=10000, normalize=Tru
 		depth=flags.depth, nnormalization=norm_normalization, cube_length=cube_length)
 
 	# model = train_model(X, y, method=flags.regressor, mode='classification', trees=flags.trees,
-	# 	depth=flags.depth, nnormalization=norm_normalization)
+		# depth=flags.depth, nnormalization=norm_normalization)
 
 
 	model.visualize_classifier()	
