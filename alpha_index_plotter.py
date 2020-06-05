@@ -95,14 +95,16 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	if not os.path.isdir(output_path):
 		os.mkdir(output_path)
 
-	dataset_size = 10000
-	x, y = pointGen[dataset_size]
-	
+	dataset_size = 10
+	x, y = pointGen[dataset_size]	
+
 	mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \
-		run_alpha_smoothness(x, y, t_method=flags.regressor, \
-			num_wavelets=N_wavelets, n_trees=flags.trees, m_depth=flags.depth,
-			n_features='auto', n_state=2000, normalize=normalize, norm_normalization=norm_normalization)
+		run_alpha_smoothness(x, y, t_method="dyadic", \
+			num_wavelets=N_wavelets, m_depth=flags.depth, \
+			n_state=2000, normalize=False, \
+			norm_normalization=norm_normalization, cube_length=pointGen.cube_length)
 	
+	exit()
 	stds.append(std_alpha)
 	alphas.append(mean_alpha)
 	

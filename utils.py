@@ -7,6 +7,7 @@ from sklearn import metrics
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.model_selection import KFold
 from random_forest import WaveletsForestRegressor
+from dyadic_decision_tree_regressor import DyadicDecisionTreeRegressor
 
 
 def normalize_data(x_raw):
@@ -55,10 +56,18 @@ def train_model(x, y, method='RF', mode='classification', trees=5, depth=9, feat
         model = WaveletsForestRegressor(regressor='random_forest', \
             mode=mode, trees=trees, depth=depth, train_vi=train_vi, features=features, \
             seed=state, vi_threshold=threshold, norms_normalization=nnormalization, cube_length=cube_length)
+
+    elif method == "dyadic":
+        model = DyadicDecisionTreeRegressor(depth=depth, seed=state, \
+            norms_normalization=nnormalization, cube_length=cube_length)
+
     else:
         raise Exception('Method incorrect - should be either RF or WF')
     # Fit the model
     model.fit(x, y)
+    model.print_regressor()
+    exit()
+    import pdb; pdb.set_trace()
     return model
 
 
@@ -70,30 +79,30 @@ def predict_model(x, model, method='RF', m=10):
     else:
         raise Exception('Method incorrect - should be either RF or WF')
 
-def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=10, n_trees=5, m_depth=9,
-                         n_features='auto', n_state=2000, normalize=True, norm_normalization='volume'):
+def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_depth=9,
+                         n_features='auto', n_state=2000, normalize=True, \
+                         norm_normalization='volume', cube_length=1.):
     
     if normalize:
         X = normalize_data(X)
 
     norm_m_term = 0
 
-    model = train_model(X, y, method=t_method, trees=n_trees,
-            depth=m_depth, features=n_features, state=n_state, \
-            nnormalization=norm_normalization)
+    model = train_model(X, y, method=t_method, trees=n_trees, \
+        depth=m_depth, features=n_features, state=n_state, \
+        nnormalization=norm_normalization, cube_length=cube_length)
     
     paths, n_nodes_ptr = model.rf.decision_path(X)
     y_pred = model.predict(X, m=1000, start_m=0, paths=paths)
     auc = metrics.roc_auc_score(y, y_pred)
-    print(f"AUC on train data: {auc}")    
+    print(f"AUC on train data: {auc}")
 
     if t_method == 'WF':
         if num_wavelets < 1:
             num_wavelets = int(np.round(num_wavelets*len(model.norms)))
             norm_m_term = -np.sort(-model.norms)[num_wavelets-1]
 
-    alpha, n_wavelets, errors = model.evaluate_smoothness(m=num_wavelets)    
-
+    alpha, n_wavelets, errors = model.evaluate_smoothness(m=num_wavelets) 
     logging.log(60, 'ALPHA SMOOTHNESS over X: ' + str(alpha))
     return alpha, -1, num_wavelets, norm_m_term, model
 

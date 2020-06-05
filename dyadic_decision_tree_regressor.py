@@ -17,15 +17,14 @@ from matplotlib.pyplot import plot, ion, show
 import random
 from sklearn import metrics
 import math
+from dyadic_decision_tree_model import DyadicDecisionTreeModel
 # ion() # enables interactive mode
 
 # f1 = plt.figure(1)
 # f2 = plt.figure(2)
 
 class DyadicDecisionTreeRegressor:
-	def __init__(self, regressor='random_forest', mode='regression', criterion='gini', bagging=0.8, train_vi=False,
-				 depth=9, trees=5, features='auto', seed=None, vi_threshold=0.8, norms_normalization='volume', 
-				 cube_length=1.):
+	def __init__(self, depth=9, seed=None, norms_normalization='volume', cube_length=1.):
 		'''
 		Construct a new 'WaveletsForestRegressor' object.
 
@@ -39,36 +38,27 @@ class DyadicDecisionTreeRegressor:
 		'''
 
 		self.norms = None
-		self.vals = None
-		##
-		self.si_tree = None
-		self.si = None
-		self.feature_importances_ = None
+		self.vals = None		
 		##
 		self.volumes = None
 		self.X = None
 		self.y = None
 		self.rf = None
 
-		self.mode = mode
-		self.regressor = regressor
-		self.criterion = criterion
-		self.bagging = bagging
 		self.cube_length = cube_length
+		self.depth = depth
 
-		if self.regressor == "random_forest" and depth == -1:
-			self.depth = None
-		else:
-			self.depth = depth
-		self.trees = trees
-		self.seed = seed
-		self.train_vi = train_vi
-		self.vi_threshold = vi_threshold
+		self.regressor = DyadicDecisionTreeModel(depth=self.depth, cube_length=self.cube_length)
+		
+		self.seed = seed		
 		self.norms_normalization = norms_normalization	
 
 	# def __compute_norm(self, avg, parent_avg, volume):      
 	# 	norm = np.sqrt(np.sum(np.square(avg - parent_avg)) * volume)
 	# 	return norm
+
+	def print_regressor(self):
+		print(self.regressor.print_tree())
 
 	def compute_average_score_from_tree(self, tree_value):
 		if self.mode == 'classification':
@@ -133,6 +123,9 @@ class DyadicDecisionTreeRegressor:
 			vals[:, right_id] = self.compute_average_score_from_tree(estimator.tree_.value[right_id]) - \
 				self.compute_average_score_from_tree(estimator.tree_.value[base_node_id])
 			norms[right_id] = self.__compute_norm(vals[:, right_id], vals[:, base_node_id], 1)
+
+	def fit(self, X_raw, y):
+		self.regressor.fit(X_raw)
 
 	##
 

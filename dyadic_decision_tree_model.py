@@ -8,92 +8,87 @@ import operator
 import code
 from tqdm import tqdm
 from functools import reduce
-from binarytree import Node
 
 class Rectangle:	
 	# [LEFT, RIGHT, DOWN, UP]
 	def __init__(self, left, right, down, up):
 		self.data = (left, right, down, up)
 
+	def points(self):
+		return self.data
+
 	def get_volume(self):
 		return (self.right - self.left) * (self.up - self.down)
 
 class Node:
-	def __init__(self, data, level=0):
-		self.left = None
-		self.right = None
-		self.rect = Rectangle(data)
-		self.level = level
+	def __init__(self, data, level, X_all=None, parent_indices=None):
+		self.rect = data		
+		self.level = level		
+
+		if parent_indices is not None:
+			self.indices = self.indices_in_rectangle(X_all, parent_indices)
 
 	def PrintTree(self):
 		print(self.data)
 
-	def point_in_rect(self, point):
-		x, y = point
-		if x > self.rect[1] or x < self.rect[0]:
-			return False
-		if y > self.rect[3] or y < self.rect[2]:
-			return False
-		return True
-
-	def indices_in_rectangle(self, X):
-		indices = np.where(point_in_rect(self, X))
-		return indices
+	def indices_in_rectangle(self, X_all, parent_indices):
+		x, y = X_all[:, 0], X_all[:, 1]
+		rect_points = self.rect.points()		
+		result_x = np.logical_and(x < rect_points[1] , x > rect_points[0])
+		result_y = np.logical_and(y < rect_points[3] , y > rect_points[2])
+		result = np.logical_and(result_x, result_y)
+		result = np.logical_and(result, parent_indices)		
+		return result
 
 class DyadicDecisionTreeModel:
-	def __init__(self, depth=9, seed=None):    
-		self.seed = seed
+	def __init__(self, depth=9, seed=2000, cube_length=1.):    
+		self.seed = seed		
 		self.random_state = np.random.RandomState(seed=self.seed)
 		self.estimators_ = []
 		self.cube_length = cube_length
+		self.nodes = []
 		
 		rectangle = Rectangle(-self.cube_length/2, self.cube_length/2, \
-			-self.cube_length/2, self.cube_length/2)
+			-self.cube_length/2, self.cube_length/2)		
+		self.root = Node(rectangle, level=0)
+		self.nodes.append(self.root)
+ 
+	def fit(self, X_all, parent=None, indices=None):
+		if parent is None:
+			parent = self.root			
+			self.root.indices = np.ones(len(X_all))			
 
-		self.root = Node(rectangle)
-
-	def fit(self, X_all, parent=self.root):
-		import pdb; pdb.set_trace()
-
-		indices = np.arange(len(X_all))
+		parent_indices = parent.indices
+		new_level = parent.level + 1		
 		random_state = np.random.RandomState(seed=self.seed)
-
-		if len(indices) < 1:
+		
+		if parent_indices.sum() < 5:			
 			return
 
-		p_left, p_right, p_down, p_up = parent.data		
-		
-		if parent.level % 2 == 0:			
+		p_left, p_right, p_down, p_up = parent.rect.points()
+
+		if parent.level % 2 == 0:
 			left_rectangle = Rectangle(p_left, (p_right+p_left)/2, p_down, p_up)
 			right_rectangle = Rectangle((p_right+p_left)/2, p_right, p_down, p_up)
-			
-			left_node = Node(left_rectangle)
-			self.root.left = left_node
-			X_left_indices = left_node.indices_in_rectangle(X_all)
-			self.fit(X_all[X_left_indices], self.root.left)
-
-			right_node = Node(right_rectangle)
-			self.root.right = right_node
-			X_right_indices = right_node.indices_in_rectangle(X_all)
-			self.fit(X_all[X_right_indices], self.root.right)
-			
-
- #  def decision_path(self, X):
-	# paths = []
-	# for i in range(self.trees):
-	#   current_paths = self.estimators_[i].decision_path(X)      
-	#   paths = np.append(paths, current_paths)
-
-	# paths_csr_dim = reduce(lambda s, x: s+x.shape[1], paths, 0)
-	# paths_csr = lil_matrix((np.shape(X)[0], paths_csr_dim),dtype=np.float32)
-	# current_i = 0
-	# for current_paths in paths:
-	#   paths_csr[:, current_i:current_i + current_paths.shape[1]] = current_paths
-	#   current_i += current_paths.shape[1]
-
-	# return paths_csr.tocsr(), []
-  
+		else:
+			left_rectangle = Rectangle(p_left, p_right, (p_up+p_down)/2, p_up)
+			right_rectangle = Rectangle(p_left, p_right, p_down, (p_up+p_down)/2)			
+		
+		import pdb; pdb.set_trace()
+		left_node = Node(left_rectangle, level=new_level, \
+			X_all=X_all, parent_indices=parent_indices)		
+		
+		parent.left = left_node
+		self.nodes.append(left_node)
+		self.fit(X_all[left_node.indices], parent=parent.left)
+		
+		right_node = Node(right_rectangle, level=new_level, \
+			X_all=X_all, parent_indices=parent_indices)
+		parent.right = right_node
+		self.nodes.append(right_node)
+		self.fit(X_all[right_node.indices], parent=parent.right)
 
 
-
-
+	def print_tree(self):
+		for idx, node in enumerate(self.nodes):
+			print(f"Node:{idx}, level:{node.level}, rect:{node.rect.points()}, indices:{node.indices.sum()} ")
