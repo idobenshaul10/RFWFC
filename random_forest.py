@@ -220,55 +220,19 @@ class WaveletsForestRegressor:
 	def fit(self, X_raw, y):
 		'''
 		Fit non-normalized data to simplex labels.
-
-		:X_raw: Non-normalized features, given as a 2D array with each row representing a sample.
-		:y: Labels, each row is given as a vertex on the simplex.
+		
 		'''
 
-		logging.info('Fitting %s samples' % np.shape(X_raw)[0])
-		# import pdb; pdb.set_trace()
-		X = (X_raw - np.min(X_raw, 0))/(np.max(X_raw, 0) - np.min(X_raw, 0))
-		X = np.nan_to_num(X)
-		# X = X_raw
-		
-		self.X = X
+		logging.info('Fitting %s samples' % np.shape(X_raw)[0])		
+		self.X = X_raw
 		self.y = y
 
-		regressor = None
-		if self.regressor == 'decision_tree_with_bagging':
-			regressor = DecisionTreeWithBaggingRegressor(
-				bagging=self.bagging,
-				criterion=self.criterion,
-				depth=self.depth,
-				trees=self.trees,
-				seed=self.seed,
-			)
-		else:
-			# RandomForestRegressor
-			# RandomForestClassifier
-			if self.mode == 'classification':
-				regressor = ensemble.RandomForestClassifier(
-					criterion='gini',
-					n_estimators=self.trees, 
-					max_depth=self.depth,
-					max_features='auto',
-					n_jobs=-1,
-					random_state=self.seed,
-				)
+		regressor = None		
+		regressor = DyadicDecisionTreeModel()
+		rf = regressor.fit(self.X)		
 
-			elif self.mode == 'regression':
-				regressor = ensemble.RandomForestRegressor(
-					n_estimators=self.trees, 
-					max_depth=self.depth,
-					max_features='auto',
-					n_jobs=-1,
-					random_state=self.seed,
-				)
-			else:
-				print("ERROR, WRONG MODE")
-				exit()
+		exit()
 
-		rf = regressor.fit(self.X, self.y)
 		self.rf = rf
 		a = self.rf.estimators_[0].tree_.value[0]       
 
