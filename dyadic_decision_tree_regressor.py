@@ -58,7 +58,8 @@ class DyadicDecisionTreeRegressor:
 	# 	return norm
 
 	def print_regressor(self):
-		print(self.regressor.print_tree())
+		self.regressor.test_tree_indices()
+		# print(self.regressor.print_tree())
 
 	def compute_average_score_from_tree(self, tree_value):
 		if self.mode == 'classification':

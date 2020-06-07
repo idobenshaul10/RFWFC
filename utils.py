@@ -64,7 +64,7 @@ def train_model(x, y, method='RF', mode='classification', trees=5, depth=9, feat
     else:
         raise Exception('Method incorrect - should be either RF or WF')
     # Fit the model
-    model.fit(x, y)
+    model.fit(x, y)    
     model.print_regressor()
     exit()
     import pdb; pdb.set_trace()

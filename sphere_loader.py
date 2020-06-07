@@ -21,7 +21,7 @@ import logging
 # https://baezortega.github.io/2018/10/14/hypersphere-sampling/
 class PointGenerator:
 	ratios_sample = ConstantValues.ratios
-	def __init__(self, dim=2, cube_length=1.25, seed=1, add_noisy_channels=False, donut_distance=0.5):
+	def __init__(self, dim=2, cube_length=1.25, seed=1, add_noisy_channels=False, donut_distance=-1):
 		self.add_noisy_channels = add_noisy_channels
 		self.num_points = 10000
 		self.dim = dim
@@ -41,7 +41,7 @@ class PointGenerator:
 		else:
 			return -1		
 
-	def get_random_point_in_cube(self):
+	def get_random_point_in_cube(self):		
 		if self.donut_distance < 0:			
 			random_point_in_unit_cube = 2 * np.random.rand(1, self.dim)
 			random_point_in_unit_cube -= 1

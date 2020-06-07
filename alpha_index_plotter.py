@@ -95,7 +95,7 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	if not os.path.isdir(output_path):
 		os.mkdir(output_path)
 
-	dataset_size = 10
+	dataset_size = flags.dataset_size
 	x, y = pointGen[dataset_size]	
 
 	mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \
