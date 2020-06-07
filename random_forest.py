@@ -386,7 +386,7 @@ class WaveletsForestRegressor:
 
 	##
 
-	def predict(self, X, m=1000, start_m=0, paths=None):
+	def predict(self, X, m=10, start_m=0, paths=None):
 		'''
 		Predict using a maximum of M-terms
 		:X: Data samples.
@@ -395,13 +395,14 @@ class WaveletsForestRegressor:
 		:paths: Instead of computing decision paths for each sample, the method can receive the indicator matrix. Can be used to evaluate predictions incrementally over terms.
 		:return: Predictions.
 		'''
-
 		sorted_norms = np.argsort(-self.norms)[start_m:m]
 		if paths == None:
 			paths, n_nodes_ptr = self.rf.decision_path(X)
 		pruned = lil_matrix(paths.shape, dtype=np.float32)
+		
 		pruned[:, sorted_norms] = paths[:, sorted_norms]
 		predictions = pruned * self.vals.T / len(self.rf.estimators_)
+		import pdb; pdb.set_trace()
 		return predictions
 
 	def evaluate_smoothness(self, m=1000):
@@ -420,8 +421,9 @@ class WaveletsForestRegressor:
 		predictions = np.zeros(np.shape(self.y))
 		for m_step in range(2, m, step):
 			if m_step > len(self.norms):
-				break
-			predictions += self.predict(self.X, m=m_step, start_m=max(m_step - step, 0), paths=paths)                        
+				break			
+			predictions += self.predict(self.X, m=m_step, start_m=max(m_step - step, 0), paths=paths)
+
 			error_norms = np.power(np.sum(np.power(self.y - predictions, power), 1), 1. / power)
 			total_error = np.sum(np.square(error_norms), 0) / len(self.X)
 			

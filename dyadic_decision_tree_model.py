@@ -33,13 +33,14 @@ class Node:
 	def PrintTree(self):
 		print(self.data)
 
-	def indices_in_rectangle(self, X_all, parent_indices):		
+	def indices_in_rectangle(self, X_all, parent_indices=None):		
 		x, y = X_all[:, 0], X_all[:, 1]
 		rect_points = self.rect.points()
 		result_x = np.logical_and(x < rect_points[1] , x > rect_points[0])
 		result_y = np.logical_and(y < rect_points[3] , y > rect_points[2])
-		result = np.logical_and(result_x, result_y)		
-		result = np.logical_and(result, parent_indices)		
+		result = np.logical_and(result_x, result_y)
+		if parent_indices is not None:
+			result = np.logical_and(result, parent_indices)		
 		return result
 
 class DyadicDecisionTreeModel:
@@ -59,9 +60,9 @@ class DyadicDecisionTreeModel:
 		self.X_all = X_all
 		self.y_all = y_all.squeeze()
 
-	def get_mean_value(self, node_id):		
-		node = self.nodes[node_id]		
-		result = np.dot(self.y_all, node.indices)/ self.y_all.shape[0]
+	def get_mean_value(self, node_id):
+		node = self.nodes[node_id]
+		result = np.dot(self.y_all, node.indices)/ node.num_samples		
 		return result
  
 	def fit(self, X_all, parent=None, indices=None):
@@ -76,6 +77,7 @@ class DyadicDecisionTreeModel:
 		
 		if parent_indices.sum() < 5:			
 			return
+		# there is a problem, when the parent has more than 5, but the child does not
 
 		p_left, p_right, p_down, p_up = parent.rect.points()
 
@@ -85,24 +87,32 @@ class DyadicDecisionTreeModel:
 		else:
 			left_rectangle = Rectangle(p_left, p_right, (p_up+p_down)/2, p_up)
 			right_rectangle = Rectangle(p_left, p_right, p_down, (p_up+p_down)/2)
-
 		
 		left_node = Node(left_rectangle, level=new_level, \
 			X_all=X_all, parent_indices=parent_indices)		
-		
-		parent.left = left_node
-		left_node.id = len(self.nodes)
-		self.nodes.append(left_node)
 
-		self.fit(X_all, parent=parent.left)
-		
+		if left_node.num_samples >= 5:	
+			parent.left = left_node
+			left_node.id = len(self.nodes)
+			self.fit(X_all, parent=parent.left)		
+			self.nodes.append(left_node)		
+
 		right_node = Node(right_rectangle, level=new_level, \
-			X_all=X_all, parent_indices=parent_indices)
-		parent.right = right_node
-		right_node.id = len(self.nodes)
-		self.nodes.append(right_node)
-		self.fit(X_all, parent=parent.right)
+			X_all=X_all, parent_indices=parent_indices)		
+		
+		if right_node.num_samples >= 5:
+			parent.right = right_node
+			right_node.id = len(self.nodes)
+			self.fit(X_all, parent=parent.right)		
+			self.nodes.append(right_node)
+			
 
+	def decision_path(self, X):
+		decision_paths = np.zeros((X.shape[0], len(self.nodes)))		
+		for idx, node in tqdm(enumerate(self.nodes), total=len(self.nodes)):
+			points_in_node = node.indices_in_rectangle(X)
+			decision_paths[:, idx] = points_in_node
+		return decision_paths
 
 	def print_tree(self):
 		for idx, node in enumerate(self.nodes):

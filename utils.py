@@ -65,9 +65,7 @@ def train_model(x, y, method='RF', mode='regression', trees=5, depth=9, features
         raise Exception('Method incorrect - should be either RF or WF')
     # Fit the model
     model.fit(x, y)    
-    model.print_regressor()
-    exit()
-    import pdb; pdb.set_trace()
+    # model.print_regressor()    
     return model
 
 
@@ -87,15 +85,18 @@ def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_de
         X = normalize_data(X)
 
     norm_m_term = 0
-
     model = train_model(X, y, method=t_method, trees=n_trees, \
         depth=m_depth, features=n_features, state=n_state, \
         nnormalization=norm_normalization, cube_length=cube_length)
-    
-    paths, n_nodes_ptr = model.rf.decision_path(X)
-    y_pred = model.predict(X, m=1000, start_m=0, paths=paths)
-    auc = metrics.roc_auc_score(y, y_pred)
-    print(f"AUC on train data: {auc}")
+
+    # try:
+    #     paths, n_nodes_ptr = model.rf.decision_path(X)
+    #     y_pred = model.predict(X, m=num_wavelets, start_m=0, paths=paths)
+    # except:
+    #     y_pred = model.predict(X, m=num_wavelets, start_m=0)
+
+    # auc = metrics.roc_auc_score(y, y_pred)
+    # print(f"AUC on train data: {auc}")
 
     if t_method == 'WF':
         if num_wavelets < 1:
