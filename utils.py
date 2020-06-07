@@ -46,7 +46,7 @@ def plot_vec(x=0, y=None, title='', xaxis='', yaxis=''):
     plt.show()
 
 
-def train_model(x, y, method='RF', mode='classification', trees=5, depth=9, features='auto',
+def train_model(x, y, method='RF', mode='regression', trees=5, depth=9, features='auto',
                 state=2000, threshold=1000, train_vi=False, nnormalization='volume', cube_length=1.):
     # Declare a random/wavelet forest classifier and set the parameters    
     if method == 'RF':

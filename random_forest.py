@@ -12,7 +12,6 @@ import code
 from functools import reduce
 from decision_tree_with_bagging import DecisionTreeWithBaggingRegressor
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 from matplotlib.pyplot import plot, ion, show
 import random
 from sklearn import metrics
@@ -23,9 +22,9 @@ import math
 # f2 = plt.figure(2)
 
 class WaveletsForestRegressor:
-	def __init__(self, regressor='random_forest', mode='regression', criterion='gini', bagging=0.8, train_vi=False,
-				 depth=9, trees=5, features='auto', seed=None, vi_threshold=0.8, norms_normalization='volume', 
-				 cube_length=1.):
+	def __init__(self, regressor='random_forest', mode='classification', criterion='gini', bagging=0.8, train_vi=False,
+				 depth=9, trees=5, features='auto', seed=None, vi_threshold=0.8, \
+				 norms_normalization='volume', cube_length=1.):
 		'''
 		Construct a new 'WaveletsForestRegressor' object.
 
@@ -54,7 +53,6 @@ class WaveletsForestRegressor:
 		self.regressor = regressor
 		self.criterion = criterion
 		self.bagging = bagging
-		self.cube_length = cube_length
 
 		if self.regressor == "random_forest" and depth == -1:
 			self.depth = None
@@ -67,75 +65,33 @@ class WaveletsForestRegressor:
 		self.norms_normalization = norms_normalization
 
 
-	def visualize_classifier(self, ax=None, cmap='rainbow', depth=-1):
-		import matplotlib.cm as cm
-		import matplotlib as mpl
-		from matplotlib.patches import Patch
-		from matplotlib.lines import Line2D
-		# ion()
+	def visualize_classifier(self, ax=None, cmap='rainbow', depth=-1):        
+		# ion()     
 		ax = ax or plt.gca()
 		colors = self.y.reshape(-1)     
 		
-		indices = np.random.choice(self.X.shape[0], 10000)
+		indices = np.random.choice(self.X.shape[0], int(len(self.X)/5))
 		show_X = self.X[indices]
-		# show_X = self.X
-		
 
-		# INTERSECTIONS		
+		# ax.scatter(show_X[:, 0], show_X[:, 1], c=colors[indices], \
+		#   clim=(self.y.min(), self.y.max()), s=0.1, cmap=cmap, zorder=1)
 
-		max_level = self.levels.max()+1
-		norm = mpl.colors.Normalize(vmin=0, vmax=max_level+1)
-		cmap_2 = cm.hsv
-		m = cm.ScalarMappable(norm=norm, cmap=cmap_2)
-		# color_func = lambda x: tuple(list(m.to_rgba(x))[:3] + [0.9])
-		color_func = lambda x: m.to_rgba(x)
-		colors_dict = {k:color_func(k) for k in range(int(max_level)+1)}
-
-		legend_elements = [Patch(facecolor=colors_dict[i], edgecolor='b',label=str(i)) for \
-			i in range(len(list(colors_dict.keys())))]
-		
-		for i in range(self.rectangles.shape[0]):
-			if self.intersections[i] == 0:
-				continue
-			
-			l, r, d, u = self.rectangles[i]
-			# INTERSECTION: [LEFT, RIGHT, DOWN, UP]
-			cur_level = self.levels[i]
-
-			if cur_level > len(list(colors_dict.keys())):				
-				color = (0.,0.,0.,0.)
-				continue
-			else:
-				color = colors_dict[cur_level]
-
-			rect = patches.Rectangle((l,d),r-l,u-d,linewidth=1,\
-				edgecolor='g',facecolor=color)
-			ax.add_patch(rect)
-
-
-		ax.scatter(show_X[:, 0], show_X[:, 1], c=colors[indices], \
-		  clim=(self.y.min(), self.y.max()), s=0.8, cmap=cmap, zorder=10)
-
-		ax.axis('tight')
+		ax.axis('tight')        
 		xlim = ax.get_xlim()
 		ylim = ax.get_ylim()        
 		xx, yy = np.meshgrid(np.linspace(*xlim, num=200),
 							 np.linspace(*ylim, num=200))
 
-
-		new_radius = 1/(self.cube_length)		
-		circle2 = plt.Circle((0.5, 0.5), new_radius, color='b', fill=False, lw=0.25)
-		# circle2 = plt.Circle((0., 0.), 1., color='b', fill=False, lw=0.25)
+		circle2 = plt.Circle((0.5, 0.5), 0.4, color='b', fill=False, lw=0.25)       
 		ax.add_artist(circle2)
+		
+		Z = self.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)       
 
-		# Z = self.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)  
-		# n_classes = len(np.unique(Z))
-		# contours = ax.contourf(xx, yy, Z, alpha=0.3,
-		# 					   levels=np.arange(n_classes + 1) - 0.5,
-		# 					   cmap=cmap, zorder=1)
-
-		ax.set(xlim=xlim, ylim=ylim)
-		ax.legend(handles=legend_elements)
+		n_classes = len(np.unique(Z))
+		contours = ax.contourf(xx, yy, Z, alpha=0.3,
+							   levels=np.arange(n_classes + 1) - 0.5,
+							   cmap=cmap, zorder=1)
+		ax.set(xlim=xlim, ylim=ylim)        
 		plt.show(block=True)
 
 		# dir_path = r"C:\projects\RFWFC\results\decision_tree_with_bagging\visualizations\per_depth"
@@ -143,7 +99,7 @@ class WaveletsForestRegressor:
 		# print(f"save_path:{save_path}")
 		# plt.savefig(save_path, \
 		#     dpi=300, bbox_inches='tight')
-		# plt.clf()	
+		# plt.clf()
 
 	def get_volumes(self, rectangles):
 		result = []
@@ -152,89 +108,110 @@ class WaveletsForestRegressor:
 			result.append(abs(l-r)*abs(d-u))
 		return np.array(result)
 
-	def calculate_level_volumes(self, rectangles, levels, volumes, leaves):
-		# import pdb; pdb.set_trace()
+	def calculate_level_volumes(self, rectangles, levels):
 		levels_volumes = np.zeros(len(np.unique(levels)))
 		intersections = self.find_rectangle_intersection(rectangles)
-
-		# volumes = self.get_volumes(rectangles)
+		volumes = self.get_volumes(rectangles)
 		intersection_volumes = intersections*volumes
-		# import pdb; pdb.set_trace()
-
 		for i in range(len(intersection_volumes)):
-			cur_level = int(levels[i])
-			levels_volumes[cur_level] += intersection_volumes[i]
-			if leaves[i]:
-				for j in range(i+1, len(levels_volumes)):
-					levels_volumes[j] += intersection_volumes[i]					
+			levels_volumes[int(levels[i])] += intersection_volumes[i]
 		
-		return levels_volumes, intersections
+		levels_volumes
+		return levels_volumes
 
-	def copy_numpy_array_to_clipboard(self, array, decimal="."):
-		import win32clipboard as clipboard	    
-		"""
-		Copies an array into a string format acceptable by Excel.
-		Columns separated by \t, rows separated by \n
-		"""
-		# Create string from array
-		try:
-			n, m = np.shape(array)
-		except ValueError:
-			n, m = 1, 0
-		line_strings = []
-		if m > 0:
-			for line in array:
-				if decimal == ",":
-					line_strings.append("\t".join(line.astype(str)).replace(
-						"\t","").replace(".", ","))
-				else:
-					line_strings.append("\t".join(line.astype(str)).replace(
-						"\t",""))
-			array_string = "\t".join(line_strings)
-		else:
-			if decimal == ",":
-				array_string = "\t".join(array.astype(str)).replace(".", ",")
-			else:
-				array_string = "\t".join(array.astype(str))
-		# Put string into clipboard (open, clear, set, close)
-		clipboard.OpenClipboard()
-		clipboard.EmptyClipboard()
-		clipboard.SetClipboardText(array_string)
-		clipboard.CloseClipboard()
+	
+	def collision(self, rleft, rtop, width, height, center_x, center_y, radius):  
+		
+		rright, rbottom = rleft + width/2, rtop + height/2		
+		cleft, ctop     = center_x-radius, center_y-radius
+		cright, cbottom = center_x+radius, center_y+radius
+		
+		if rright < cleft or rleft > cright or rbottom < ctop or rtop > cbottom:
+			return False  
 
-	def rectangle_circle_collision(self, RectX, RectY, RectWidth, RectHeight, \
-			CircleX, CircleY, CircleRadius):
-		DeltaX = CircleX - max(RectX, min(CircleX, RectX + RectWidth))
-		DeltaY = CircleY - max(RectY, min(CircleY, RectY + RectHeight))
-		return (DeltaX * DeltaX + DeltaY * DeltaY) < (CircleRadius * CircleRadius)
+		
+		for x in (rleft, rleft+width):
+			for y in (rtop, rtop+height):				
+				if math.hypot(x-center_x, y-center_y) <= radius:
+					return True  # collision detected
+
+		
+		if rleft <= center_x <= rright and rtop <= center_y <= rbottom:
+			return True
+
+		return False
+
 
 	def find_rectangle_intersection(self, rectangles):
 		# INTERSECTION: [LEFT, RIGHT, DOWN, UP]
 		intersections = np.zeros(rectangles.shape[0])
 		for idx, rectangle in enumerate(rectangles):
 			l, r, d, u = rectangle
-			does_intersect = int(self.rectangle_circle_collision(l, d, r-l, u-d, 0., 0., 1.))			
+			does_intersect = int(self.collision(l, u, r-l, u-d, 0, 0, 1))
 			intersections[idx] = does_intersect
+
+		# intersections = np.zeros(rectangles.shape[0])
+		# for idx, rectangle in enumerate(rectangles):
+		# 	l, r, d, u = rectangle
+		# 	top_right = r*r + u*u > 1
+		# 	top_left = l*l + u*u > 1
+		# 	bottom_right = r*r + d*d > 1
+		# 	bottom_left = l*l + d*d > 1
+		# 	intersections[idx] = int(not(top_right and top_left and bottom_right and bottom_left))
 		return intersections
 
 	def fit(self, X_raw, y):
 		'''
 		Fit non-normalized data to simplex labels.
-		
+
+		:X_raw: Non-normalized features, given as a 2D array with each row representing a sample.
+		:y: Labels, each row is given as a vertex on the simplex.
 		'''
 
-		logging.info('Fitting %s samples' % np.shape(X_raw)[0])		
-		self.X = X_raw
+		logging.info('Fitting %s samples' % np.shape(X_raw)[0])
+		X = (X_raw - np.min(X_raw, 0))/(np.max(X_raw, 0) - np.min(X_raw, 0))
+		X = np.nan_to_num(X)
+		# X = X_raw
+		
+		self.X = X
 		self.y = y
 
-		regressor = None		
-		regressor = DyadicDecisionTreeModel()
-		rf = regressor.fit(self.X)		
+		regressor = None
+		if self.regressor == 'decision_tree_with_bagging':
+			regressor = DecisionTreeWithBaggingRegressor(
+				bagging=self.bagging,
+				criterion=self.criterion,
+				depth=self.depth,
+				trees=self.trees,
+				seed=self.seed,
+			)
+		else:
+			# RandomForestRegressor
+			# RandomForestClassifier
+			if self.mode == 'classification':
+				regressor = ensemble.RandomForestClassifier(
+					criterion='gini',
+					n_estimators=self.trees, 
+					max_depth=self.depth,
+					max_features='auto',
+					n_jobs=-1,
+					random_state=self.seed,
+				)
 
-		exit()
+			elif self.mode == 'regression':
+				regressor = ensemble.RandomForestRegressor(
+					n_estimators=self.trees, 
+					max_depth=self.depth,
+					max_features='auto',
+					n_jobs=-1,
+					random_state=self.seed,
+				)
+			else:
+				print("ERROR, WRONG MODE")
+				exit()
 
+		rf = regressor.fit(self.X, self.y)
 		self.rf = rf
-		a = self.rf.estimators_[0].tree_.value[0]       
 
 		y_pred = self.rf.predict(X)         
 		auc = metrics.roc_auc_score(y, y_pred)
@@ -243,11 +220,10 @@ class WaveletsForestRegressor:
 		try:
 			val_size = np.shape(y)[1]
 		except:
-			val_size = 1        
+			val_size = 1
 		self.norms = np.array([])
 		self.vals = np.zeros((val_size, 0))
 		self.volumes = np.array([])
-		self.intersect_levels = []
 		##
 		self.num_samples = np.array([])
 		self.si_tree = np.zeros((np.shape(X)[1], len(rf.estimators_)))
@@ -266,27 +242,14 @@ class WaveletsForestRegressor:
 			vals = np.zeros((val_size, num_nodes))          
 			
 			# INTERSECTION: [LEFT, RIGHT, DOWN, UP]
-			rectangles = np.zeros((norms.shape[0], 4))
+			rectangles = np.zeros((norms.shape[0], 4))			
 			levels = np.zeros((norms.shape[0]))
 			self.__traverse_nodes(estimator, 0, node_box, norms, vals, rectangles, levels)
-			
+			self.calculate_level_volumes(rectangles, levels)
 
-			# import pdb; pdb.set_trace()
-			volumes = np.product(node_box[:, :, 1] - node_box[:, :, 0], 1)
-			self.volumes = np.append(self.volumes, volumes)
-			leaves = (self.rf.estimators_[i].tree_.feature == -2).astype(np.float64)
 
-			intersect_levels, intersections = \
-				self.calculate_level_volumes(rectangles, levels, volumes, leaves)
-
-			self.intersections = intersections
-			self.rectangles = rectangles
-			self.levels = levels
-
-			intersect_levels = np.expand_dims(intersect_levels, 0)
-			self.intersect_levels.append(intersect_levels)
 			# logging.info('Traversing nodes of tree %s to extract volumes and norms' % i)			
-
+			volumes = np.product(node_box[:, :, 1] - node_box[:, :, 0], 1)
 
 			paths = estimator.decision_path(X)
 			paths_fullmat = paths.todense()
@@ -296,8 +259,9 @@ class WaveletsForestRegressor:
 				norms = np.multiply(norms, np.sqrt(volumes))
 			else:
 				norms = np.multiply(norms, np.sqrt(num_samples))
-
 			# logging.info('Number of wavelets in tree %s: %s' % (i, np.shape(norms)[0]))
+
+
 			self.volumes = np.append(self.volumes, volumes)
 			self.norms = np.append(self.norms, norms)
 			self.num_samples = np.append(self.num_samples, num_samples)         
@@ -310,7 +274,6 @@ class WaveletsForestRegressor:
 					vi_norms = np.zeros(num_nodes)
 					vi_vals = np.zeros((val_size, num_nodes))
 					self.__variable_importance(estimator, 0, vi_node_box, vi_norms, vi_vals, k, self.vi_threshold)
-					
 					if self.norms_normalization == 'volume':
 						vi_norms = np.multiply(vi_norms, np.sqrt(volumes))
 					else:
@@ -322,20 +285,7 @@ class WaveletsForestRegressor:
 		##
 		y_pred_2 = self.predict(X)      
 		auc = metrics.roc_auc_score(y, y_pred_2)
-		print(f"AUC_2:{auc}")
-
-		intersect_levels = np.zeros(max([a.shape[1] for a in self.intersect_levels]))
-		for i in range(len(self.intersect_levels)):			
-			current_values = self.intersect_levels[i].squeeze()			
-			for j in range(current_values.shape[0]):
-				intersect_levels[j] += current_values[j]
-
-		self.intersect_levels = intersect_levels
-		
-		self.copy_numpy_array_to_clipboard(self.intersect_levels)
-		ratios_every_2 = np.array([self.intersect_levels[k+2]/self.intersect_levels[k] for k in range(0, \
-			self.intersect_levels.shape[0]-3, 2)])		
-		print(f"ratios every two levels are {list(ratios_every_2)}")		
+		print(f"AUC_2:{auc}")       
 		return self
 
 	def __compute_norm(self, avg, parent_avg, volume):      
@@ -347,23 +297,23 @@ class WaveletsForestRegressor:
 			y_vec = [-1. , 1.]
 			result = tree_value.dot(y_vec)/tree_value.sum()         
 			return result
-		else:
+		else:			
 			return tree_value[:, 0]
 
 	def __traverse_nodes(self, estimator, base_node_id, node_box, norms, vals, rectangles, levels):
 		# https://stackoverflow.com/questions/47719001/what-does-scikit-learn-decisiontreeclassifier-tree-value-do
 		# https://stackoverflow.com/questions/52376272/getting-the-value-of-a-leaf-node-in-a-decisiontreeregressor
 		
-		# feature - feature used for splitting!
 		# INTERSECTION: [LEFT, RIGHT, DOWN, UP]		
 
 		if base_node_id == 0:
 			vals[:, base_node_id] = self.compute_average_score_from_tree(estimator.tree_.value[base_node_id])
-			norms[base_node_id] = self.__compute_norm(vals[:, base_node_id], 0, 1)			
-			rectangles[base_node_id] = np.array([0., 1., 0., 1.])
+			norms[base_node_id] = self.__compute_norm(vals[:, base_node_id], 0, 1)
+			rectangles[base_node_id] = np.array([-2., 2., -2., 2.])			
 
 		left_id = estimator.tree_.children_left[base_node_id]
-		right_id = estimator.tree_.children_right[base_node_id]		
+		right_id = estimator.tree_.children_right[base_node_id]
+
 
 		if left_id >= 0:			
 			rectangles[left_id] = rectangles[base_node_id]
@@ -378,7 +328,6 @@ class WaveletsForestRegressor:
 				rectangles[left_id][3] = left_threshold			
 
 			node_box[left_id, :, :] = node_box[base_node_id, :, :]			
-			# import pdb; pdb.set_trace()
 			node_box[left_id, estimator.tree_.feature[base_node_id], 1] = np.min(
 				[estimator.tree_.threshold[base_node_id], node_box[left_id, estimator.tree_.feature[base_node_id], 1]])
 			self.__traverse_nodes(estimator, left_id, node_box, norms, vals, rectangles, levels)
@@ -493,7 +442,8 @@ class WaveletsForestRegressor:
 		plt.ylabel('errors')
 		plt.plot(n_wavelets, errors)
 		plt.draw()
-		plt.pause(1)		
+		plt.pause(1)
+		
 
 		plt.figure(2)
 		plt.clf()

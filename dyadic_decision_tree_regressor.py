@@ -38,7 +38,7 @@ class DyadicDecisionTreeRegressor:
 		'''
 
 		self.norms = None
-		self.vals = None		
+		self.vals = None
 		##
 		self.volumes = None
 		self.X = None
@@ -53,82 +53,68 @@ class DyadicDecisionTreeRegressor:
 		self.seed = seed		
 		self.norms_normalization = norms_normalization	
 
-	# def __compute_norm(self, avg, parent_avg, volume):      
-	# 	norm = np.sqrt(np.sum(np.square(avg - parent_avg)) * volume)
-	# 	return norm
-
 	def print_regressor(self):
 		self.regressor.test_tree_indices()
 		# print(self.regressor.print_tree())
 
-	def compute_average_score_from_tree(self, tree_value):
-		if self.mode == 'classification':
-			y_vec = [-1. , 1.]
-			result = tree_value.dot(y_vec)/tree_value.sum()         
-			return result
-		else:
-			return tree_value[:, 0]
+	def fit(self, X_raw, y):
+		self.regressor.add_dataset(X_raw, y)
+		self.regressor.fit(X_raw)
+		try:
+			val_size = np.shape(y)[1]
+		except:
+			val_size = 1
+		# self.regressor.fit(X_raw)
 
-	def __traverse_nodes(self, estimator, base_node_id, node_box, norms, vals, rectangles, levels):
-		# https://stackoverflow.com/questions/47719001/what-does-scikit-learn-decisiontreeclassifier-tree-value-do
-		# https://stackoverflow.com/questions/52376272/getting-the-value-of-a-leaf-node-in-a-decisiontreeregressor
+		num_nodes = len(self.regressor.nodes)
+		num_features = np.shape(X_raw)[1]
+
+		# node_box = np.zeros((num_nodes, num_features, 2))
+		# node_box[:,:,1] = 1
+
+		norms = np.zeros(num_nodes)
+		vals = np.zeros((val_size, num_nodes))
+		self.__traverse_nodes(0, norms, vals)
 		
-		# feature - feature used for splitting!
-		# INTERSECTION: [LEFT, RIGHT, DOWN, UP]		
+		num_samples = np.array([node.num_samples for node in self.regressor.nodes])
+		norms = np.multiply(norms, np.sqrt(num_samples))
+		
+		self.norms = norms
+		self.vals = vals
+	
+	def __compute_norm(self, avg, parent_avg, volume):      
+		norm = np.sqrt(np.sum(np.square(avg - parent_avg)) * volume)
+		return norm
+
+	def __traverse_nodes(self, base_node_id, norms, vals):
+		parent_node = self.regressor.nodes[base_node_id]
+		parent_mean_value = self.regressor.get_mean_value(base_node_id)
 
 		if base_node_id == 0:
-			vals[:, base_node_id] = self.compute_average_score_from_tree(estimator.tree_.value[base_node_id])
-			norms[base_node_id] = self.__compute_norm(vals[:, base_node_id], 0, 1)			
-			rectangles[base_node_id] = np.array([0., 1., 0., 1.])
+			vals[:, base_node_id] = parent_mean_value
+			norms[base_node_id] = self.__compute_norm(vals[:, base_node_id], 0, volume=1)
+		
+		
+		if hasattr(parent_node, 'left'):    		
+			left_id = parent_node.left.id
+			if left_id >= 0:
+				# node_box[left_id, :, :] = node_box[base_node_id, :, :]			
+				# node_box[left_id, estimator.tree_.feature[base_node_id], 1] = \
+				# 	np.min([estimator.tree_.threshold[base_node_id], node_box[left_id, estimator.tree_.feature[base_node_id], 1]])
+				self.__traverse_nodes(left_id, norms, vals)
+				vals[:, left_id] = self.regressor.get_mean_value(left_id) - parent_mean_value
+				norms[left_id] = self.__compute_norm(vals[:, left_id], vals[:, base_node_id], volume=1)
 
-		left_id = estimator.tree_.children_left[base_node_id]
-		right_id = estimator.tree_.children_right[base_node_id]		
-
-		if left_id >= 0:			
-			rectangles[left_id] = rectangles[base_node_id]
-			levels[left_id] = levels[base_node_id] + 1
-			tree = estimator.tree_			
-			left_feature = tree.feature[base_node_id]
-			left_threshold = tree.threshold[base_node_id]
-			
-			if left_feature == 0:
-				rectangles[left_id][1] = left_threshold
-			else:				
-				rectangles[left_id][3] = left_threshold			
-
-			node_box[left_id, :, :] = node_box[base_node_id, :, :]			
-			# import pdb; pdb.set_trace()
-			node_box[left_id, estimator.tree_.feature[base_node_id], 1] = np.min(
-				[estimator.tree_.threshold[base_node_id], node_box[left_id, estimator.tree_.feature[base_node_id], 1]])
-			self.__traverse_nodes(estimator, left_id, node_box, norms, vals, rectangles, levels)
-			vals[:, left_id] = self.compute_average_score_from_tree(estimator.tree_.value[left_id]) - \
-				self.compute_average_score_from_tree(estimator.tree_.value[base_node_id])
-			norms[left_id] = self.__compute_norm(vals[:, left_id], vals[:, base_node_id], 1)
-
-		if right_id >= 0:
-			rectangles[right_id] = rectangles[base_node_id]
-			levels[right_id] = levels[base_node_id] + 1
-			tree = estimator.tree_
-			right_feature = tree.feature[base_node_id]
-			right_threshold = tree.threshold[base_node_id]
-			
-			if left_feature == 0:
-				rectangles[right_id][0] = right_threshold
-			else:
-				rectangles[right_id][2] = right_threshold
-
-			node_box[right_id, :, :] = node_box[base_node_id, :, :]
-			node_box[right_id, estimator.tree_.feature[base_node_id], 0] = np.max(
-				[estimator.tree_.threshold[base_node_id], node_box[right_id, estimator.tree_.feature[base_node_id], 0]])
-			self.__traverse_nodes(estimator, right_id, node_box, norms, vals, rectangles, levels)
-			vals[:, right_id] = self.compute_average_score_from_tree(estimator.tree_.value[right_id]) - \
-				self.compute_average_score_from_tree(estimator.tree_.value[base_node_id])
-			norms[right_id] = self.__compute_norm(vals[:, right_id], vals[:, base_node_id], 1)
-
-	def fit(self, X_raw, y):
-		self.regressor.fit(X_raw)
-
-	##
+		if hasattr(parent_node, 'right'):
+			right_id = parent_node.right.id
+			if right_id >= 0:
+				# node_box[right_id, :, :] = node_box[base_node_id, :, :]
+				# node_box[right_id, estimator.tree_.feature[base_node_id], 0] = \
+				# 	np.max([estimator.tree_.threshold[base_node_id], node_box[right_id, estimator.tree_.feature[base_node_id], 0]])
+				self.__traverse_nodes(right_id, norms, vals)
+				vals[:, right_id] = self.regressor.get_mean_value(right_id) - parent_mean_value
+				norms[right_id] = self.__compute_norm(vals[:, right_id], vals[:, base_node_id], volume=1)
+	
 
 	# def predict(self, X, m=1000, start_m=0, paths=None):
 	# 	'''

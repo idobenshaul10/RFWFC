@@ -24,9 +24,11 @@ class Node:
 	def __init__(self, data, level, X_all=None, parent_indices=None):
 		self.rect = data		
 		self.level = level		
+		self.id = -1
 
 		if parent_indices is not None:
 			self.indices = self.indices_in_rectangle(X_all, parent_indices)
+			self.num_samples = self.indices.sum()
 
 	def PrintTree(self):
 		print(self.data)
@@ -52,11 +54,21 @@ class DyadicDecisionTreeModel:
 			-self.cube_length/2, self.cube_length/2)		
 		self.root = Node(rectangle, level=0)
 		self.nodes.append(self.root)
+
+	def add_dataset(self, X_all, y_all):
+		self.X_all = X_all
+		self.y_all = y_all.squeeze()
+
+	def get_mean_value(self, node_id):		
+		node = self.nodes[node_id]		
+		result = np.dot(self.y_all, node.indices)/ self.y_all.shape[0]
+		return result
  
 	def fit(self, X_all, parent=None, indices=None):
 		if parent is None:
 			parent = self.root			
 			self.root.indices = np.ones(len(X_all)).astype(np.int)
+			self.root.num_samples = self.root.indices.sum()
 
 		parent_indices = parent.indices
 		new_level = parent.level + 1
@@ -79,19 +91,22 @@ class DyadicDecisionTreeModel:
 			X_all=X_all, parent_indices=parent_indices)		
 		
 		parent.left = left_node
+		left_node.id = len(self.nodes)
 		self.nodes.append(left_node)
+
 		self.fit(X_all, parent=parent.left)
 		
 		right_node = Node(right_rectangle, level=new_level, \
 			X_all=X_all, parent_indices=parent_indices)
 		parent.right = right_node
+		right_node.id = len(self.nodes)
 		self.nodes.append(right_node)
 		self.fit(X_all, parent=parent.right)
 
 
 	def print_tree(self):
 		for idx, node in enumerate(self.nodes):
-			print(f"Node:{idx}, level:{node.level}, rect:{node.rect.points()}, indices:{node.indices.sum()} ")
+			print(f"Node:{idx}, level:{node.level}, rect:{node.rect.points()}, indices:{node.num_samples} ")
 
 	def test_tree_indices(self):
 		max_level = np.max([k.level for k in self.nodes])
