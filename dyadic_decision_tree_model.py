@@ -44,12 +44,13 @@ class Node:
 		return result
 
 class DyadicDecisionTreeModel:
-	def __init__(self, depth=9, seed=2000, cube_length=1.):    
+	def __init__(self, depth=9, seed=2000, verbose=False, cube_length=1.):    
 		self.seed = seed		
 		self.random_state = np.random.RandomState(seed=self.seed)
 		self.estimators_ = []
 		self.cube_length = cube_length
 		self.nodes = []
+		self.verbose = verbose
 		
 		rectangle = Rectangle(-self.cube_length/2, self.cube_length/2, \
 			-self.cube_length/2, self.cube_length/2)		
@@ -68,7 +69,8 @@ class DyadicDecisionTreeModel:
 	def init_ids(self):
 		for idx, node in enumerate(self.nodes):
 			node.id = idx
-		print(f"ids:{[k.id for k in self.nodes]}")		
+		if self.verbose:
+			print(f"ids:{[k.id for k in self.nodes]}")		
 
 	def fit(self, X_all, parent=None, indices=None):
 		if parent is None:
@@ -119,10 +121,10 @@ class DyadicDecisionTreeModel:
 
 	def print_tree(self):
 		for idx, node in enumerate(self.nodes):
-			mean_val = self.get_mean_value(node.id)
+			mean_val = self.get_mean_value(node.id)			
 			print(f"Node:{idx}, id:{node.id}, level:{node.level}, mean_val:{mean_val:.4f}, \
 				indices:{node.num_samples} ")
-			
+
 	def test_tree_indices(self):
 		max_level = np.max([k.level for k in self.nodes])
 		levels = np.zeros(max_level + 1)		

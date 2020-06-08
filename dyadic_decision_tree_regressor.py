@@ -44,11 +44,13 @@ class DyadicDecisionTreeRegressor:
 		self.X = None
 		self.y = None
 		self.rf = None
+		self.verbose = False
 
 		self.cube_length = cube_length
 		self.depth = depth
 
-		self.regressor = DyadicDecisionTreeModel(depth=self.depth, cube_length=self.cube_length)
+		self.regressor = DyadicDecisionTreeModel(depth=self.depth, \
+			cube_length=self.cube_length, verbose=self.verbose)
 		
 		self.seed = seed		
 		self.norms_normalization = norms_normalization	
@@ -58,6 +60,8 @@ class DyadicDecisionTreeRegressor:
 		print(self.regressor.print_tree())
 
 	def fit(self, X_raw, y):
+		if self.verbose:
+			self.print_regressor()
 		self.regressor.add_dataset(X_raw, y)
 		self.regressor.fit(X_raw)
 		self.regressor.init_ids()
@@ -129,7 +133,7 @@ class DyadicDecisionTreeRegressor:
 		predictions = pruned * self.vals.T
 		return predictions
 
-	def evaluate_smoothness(self, m=1000):
+	def evaluate_smoothness(self, m=1000, error_TH=0.1):
 		'''
 		Evaluates smoothness for a maximum of M-terms
 		:m: Maximum terms to use. Default is 1000.
@@ -139,7 +143,7 @@ class DyadicDecisionTreeRegressor:
 		errors = []
 		step = 10
 		power = 2
-		print_errors = False
+		print_errors = False		
 
 		paths = self.regressor.decision_path(self.X)		
 		predictions = np.zeros(self.y.shape)
@@ -149,9 +153,18 @@ class DyadicDecisionTreeRegressor:
 				break
 			pred_result = self.predict(self.X, m=m_step, start_m=max(m_step - step, 0), paths=paths)			
 			predictions += pred_result			
-			error_norms = np.power(np.sum(np.power(self.y - predictions, power), 1), 1. / power)
+			error_norms = np.power(np.sum(np.power(self.y - predictions, power), 1), 1. / power)			
 			total_error = np.sum(np.square(error_norms), 0) / len(self.X)
-			print(f"m_step:{m_step}, total_error:{total_error}")
+			
+			if len(errors)> 0:
+				if errors[-1] == total_error:
+					break
+
+			if total_error < error_TH:
+				break				
+
+			if self.verbose:
+				print(f"m_step:{m_step}, total_error:{total_error}")
 			
 			if m_step > 0 and total_error > 0:
 				if print_errors:
@@ -160,35 +173,40 @@ class DyadicDecisionTreeRegressor:
 				errors.append(total_error)
 		logging.info(f"total m_step is {m_step}")
 		
-		plt.figure(1)
-		plt.clf()
+		if self.verbose:
+			plt.figure(1)
+			plt.clf()
 		n_wavelets = np.reshape(n_wavelets, (-1, 1))
 		errors = np.reshape(errors, (-1, 1))
-		plt.title(f'#wavelets to errors')
-		plt.xlabel('#wavelets')
-		plt.ylabel('errors')		
-		plt.plot(n_wavelets, errors)
-		plt.draw()
-		plt.pause(5)
 
-		plt.figure(2)
-		plt.clf()
+		if self.verbose:
+			plt.title(f'#wavelets to errors')
+			plt.xlabel('#wavelets')
+			plt.ylabel('errors')		
+			plt.plot(n_wavelets, errors)
+			plt.draw()
+			plt.pause(2)
+			plt.figure(2)
+			plt.clf()
 		n_wavelets_log = np.log(np.reshape(n_wavelets, (-1, 1)))
 		errors_log = np.log(np.reshape(errors, (-1, 1)))
-		plt.title(f'log(#wavelets) to log(errors)')
-		plt.xlabel('log(#wavelets)')
-		plt.ylabel('log(errors)')
-		plt.plot(n_wavelets_log, errors_log)
+		if self.verbose:
+			plt.title(f'log(#wavelets) to log(errors)')
+			plt.xlabel('log(#wavelets)')
+			plt.ylabel('log(errors)')
+			plt.plot(n_wavelets_log, errors_log)
 		
 		regr = linear_model.LinearRegression()		
 		regr.fit(n_wavelets_log, errors_log)
 
 		y_pred = regr.predict(n_wavelets_log)
-		plt.plot(n_wavelets_log, y_pred, color='blue', linewidth=3)		
-		plt.draw()
-		plt.pause(10)
-
 		alpha = np.abs(regr.coef_[0][0])
+
+		plt.plot(n_wavelets_log, y_pred, color='blue', linewidth=3, label=f'alpha:{alpha}')		
+		plt.legend()
+		plt.draw()
+		plt.pause(2)		
+		
 		# logging.info('Smoothness index: %s' % alpha)
 
 		return alpha, n_wavelets, errors

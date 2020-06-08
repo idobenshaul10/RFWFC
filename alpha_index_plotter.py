@@ -35,8 +35,9 @@ def plot_dataset(X, Y, donut_distance):
 
 
 MIN_SIZE = 1000
-MAX_SIZE = 100001
-STEP = 20000
+MAX_SIZE = 30001
+# MAX_SIZE = 26001
+STEP = 1000
 
 
 def plot_mse_per_donut_distance(flags, data_str, normalize=True, output_path=''):
@@ -89,31 +90,29 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	seed_dict = defaultdict(list)
 	N_wavelets = flags.num_wavelets
 	donut_distance = flags.donut_distance
-	norm_normalization = 'volume'
+	norm_normalization = 'num_samples'
 	normalize = True
 	model = None
 	if not os.path.isdir(output_path):
 		os.mkdir(output_path)
 
-	dataset_size = flags.dataset_size
-	x, y = pointGen[dataset_size]	
+	for dataset_size in tqdm(range(MIN_SIZE, MAX_SIZE, STEP)):		
+		x, y = pointGen[dataset_size]
 
-	mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \
-		run_alpha_smoothness(x, y, t_method="dyadic", \
-			num_wavelets=N_wavelets, m_depth=flags.depth, \
-			n_state=2000, normalize=False, \
-			norm_normalization=norm_normalization, cube_length=pointGen.cube_length)
+		mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \
+			run_alpha_smoothness(x, y, t_method="dyadic", \
+				num_wavelets=N_wavelets, m_depth=flags.depth, \
+				n_state=2000, normalize=False, \
+				norm_normalization=norm_normalization, cube_length=pointGen.cube_length, \
+				error_TH=flags.error_TH)		
 	
-	exit()
-	stds.append(std_alpha)
-	alphas.append(mean_alpha)
-	
-	if True:
-		sizes.append(dataset_size)	
+		stds.append(std_alpha)
+		alphas.append(mean_alpha)	
+		sizes.append(dataset_size)
 
-	print(f'stds:{stds}')	
+	print(f'alphas:{alphas}')
 	plt.figure(1)
-	plt.clf()
+	plt.clf()	
 	plt.plot(sizes, alphas)
 	
 	write_data = {}
@@ -125,17 +124,14 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	write_data['STEP'] = STEP
 	write_data['N_wavelets'] = N_wavelets
 	write_data['norm_normalization'] = norm_normalization
-	write_data['normalize'] = normalize
-	write_data['add_noisy_channels'] = add_noisy_channels
-	write_data['donut_distance'] = donut_distance
+	write_data['normalize'] = normalize		
 
 	desired_value = draw_predictive_line(flags.dimension, p=2)
 	last_alpha = alphas[-1]
 	print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')	
-	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_IsNormalize_{normalize}_noisy_{add_noisy_channels}_"+ \
-		f"donut_distance_{donut_distance}"
-	dir_path = os.path.join(output_path, 'decision_tree_with_bagging', str(flags.dimension))
+	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_errorTH_{flags.error_TH}"
 	
+	dir_path = os.path.join(output_path, str(flags.dimension))	
 	if not os.path.isdir(dir_path):
 		os.mkdir(dir_path)
 	img_file_name =file_name + ".png"
@@ -147,7 +143,6 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	plt.title(data_str)
 	plt.xlabel(f'dataset size')
 	plt.ylabel(f'evaluate_smoothnes index- alpha')
-
 
 	save_graph=True
 	if save_graph:		
@@ -190,15 +185,14 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 				n_features='auto', n_state=2000, normalize=normalize, norm_normalization=norm_normalization)
 		
 		stds.append(std_alpha)
-		alphas.append(mean_alpha)
-		
-		if True:
-			sizes.append(dataset_size)	
+		alphas.append(mean_alpha)		
+		sizes.append(dataset_size)	
 
 	print(f'stds:{stds}')	
 	plt.figure(1)
-	plt.clf()
+	plt.clf()	
 	plt.plot(sizes, alphas)
+
 	
 	write_data = {}
 	write_data['points'] = sizes
@@ -231,7 +225,6 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	plt.title(data_str)
 	plt.xlabel(f'dataset size')
 	plt.ylabel(f'evaluate_smoothnes index- alpha')
-
 
 	save_graph=True
 	if save_graph:		

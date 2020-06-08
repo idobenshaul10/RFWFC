@@ -65,7 +65,6 @@ def train_model(x, y, method='RF', mode='regression', trees=5, depth=9, features
         raise Exception('Method incorrect - should be either RF or WF')
     # Fit the model
     model.fit(x, y)    
-    model.print_regressor()    
     return model
 
 
@@ -79,7 +78,7 @@ def predict_model(x, model, method='RF', m=10):
 
 def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_depth=9,
                          n_features='auto', n_state=2000, normalize=True, \
-                         norm_normalization='volume', cube_length=1.):
+                         norm_normalization='volume', cube_length=1., error_TH=0.1):
     
     if normalize:
         X = normalize_data(X)
@@ -103,7 +102,7 @@ def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_de
             num_wavelets = int(np.round(num_wavelets*len(model.norms)))
             norm_m_term = -np.sort(-model.norms)[num_wavelets-1]
 
-    alpha, n_wavelets, errors = model.evaluate_smoothness(m=num_wavelets) 
+    alpha, n_wavelets, errors = model.evaluate_smoothness(m=num_wavelets, error_TH=error_TH) 
     logging.log(60, 'ALPHA SMOOTHNESS over X: ' + str(alpha))
     return alpha, -1, num_wavelets, norm_m_term, model
 
