@@ -61,15 +61,20 @@ class DyadicDecisionTreeModel:
 		self.y_all = y_all.squeeze()
 
 	def get_mean_value(self, node_id):
-		node = self.nodes[node_id]
-		result = np.dot(self.y_all, node.indices)/ node.num_samples		
+		node = self.nodes[node_id]		
+		result = np.dot(self.y_all, node.indices)/ node.num_samples
 		return result
  
+	def init_ids(self):
+		for idx, node in enumerate(self.nodes):
+			node.id = idx
+		print(f"ids:{[k.id for k in self.nodes]}")		
+
 	def fit(self, X_all, parent=None, indices=None):
 		if parent is None:
 			parent = self.root			
 			self.root.indices = np.ones(len(X_all)).astype(np.int)
-			self.root.num_samples = self.root.indices.sum()
+			self.root.num_samples = self.root.indices.sum()			
 
 		parent_indices = parent.indices
 		new_level = parent.level + 1
@@ -92,17 +97,15 @@ class DyadicDecisionTreeModel:
 			X_all=X_all, parent_indices=parent_indices)		
 
 		if left_node.num_samples >= 5:	
-			parent.left = left_node
-			left_node.id = len(self.nodes)
+			parent.left = left_node			
 			self.fit(X_all, parent=parent.left)		
-			self.nodes.append(left_node)		
+			self.nodes.append(left_node)
 
 		right_node = Node(right_rectangle, level=new_level, \
 			X_all=X_all, parent_indices=parent_indices)		
 		
 		if right_node.num_samples >= 5:
-			parent.right = right_node
-			right_node.id = len(self.nodes)
+			parent.right = right_node			
 			self.fit(X_all, parent=parent.right)		
 			self.nodes.append(right_node)
 			
@@ -116,8 +119,10 @@ class DyadicDecisionTreeModel:
 
 	def print_tree(self):
 		for idx, node in enumerate(self.nodes):
-			print(f"Node:{idx}, level:{node.level}, rect:{node.rect.points()}, indices:{node.num_samples} ")
-
+			mean_val = self.get_mean_value(node.id)
+			print(f"Node:{idx}, id:{node.id}, level:{node.level}, mean_val:{mean_val:.4f}, \
+				indices:{node.num_samples} ")
+			
 	def test_tree_indices(self):
 		max_level = np.max([k.level for k in self.nodes])
 		levels = np.zeros(max_level + 1)		

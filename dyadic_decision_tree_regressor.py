@@ -55,11 +55,12 @@ class DyadicDecisionTreeRegressor:
 
 	def print_regressor(self):
 		self.regressor.test_tree_indices()
-		# print(self.regressor.print_tree())
+		print(self.regressor.print_tree())
 
 	def fit(self, X_raw, y):
 		self.regressor.add_dataset(X_raw, y)
 		self.regressor.fit(X_raw)
+		self.regressor.init_ids()
 
 		self.X = X_raw
 		self.y = y		
@@ -76,7 +77,7 @@ class DyadicDecisionTreeRegressor:
 		vals = np.zeros((val_size, num_nodes))
 		self.__traverse_nodes(0, norms, vals) # 50 		
 		
-		num_samples = np.array([node.num_samples for node in self.regressor.nodes])
+		num_samples = np.array([node.num_samples for node in self.regressor.nodes])		
 		norms = np.multiply(norms, np.sqrt(num_samples))
 		
 		self.norms = norms
@@ -98,14 +99,16 @@ class DyadicDecisionTreeRegressor:
 			left_id = parent_node.left.id
 			if left_id >= 0:
 				self.__traverse_nodes(left_id, norms, vals)	
-				vals[:, left_id] = self.regressor.get_mean_value(left_id) - parent_mean_value
+				mean_left_value = self.regressor.get_mean_value(left_id)				
+				vals[:, left_id] = mean_left_value - parent_mean_value
 				norms[left_id] = self.__compute_norm(vals[:, left_id], vals[:, base_node_id], volume=1)		
 
 		if hasattr(parent_node, 'right'):
 			right_id = parent_node.right.id
 			if right_id >= 0:
 				self.__traverse_nodes(right_id, norms, vals)
-				vals[:, right_id] = self.regressor.get_mean_value(right_id) - parent_mean_value
+				mean_right_value = self.regressor.get_mean_value(right_id)				
+				vals[:, right_id] = mean_right_value - parent_mean_value
 				norms[right_id] = self.__compute_norm(vals[:, right_id], vals[:, base_node_id], volume=1)		
 	
 
@@ -145,28 +148,28 @@ class DyadicDecisionTreeRegressor:
 			if m_step > len(self.norms):
 				break
 			pred_result = self.predict(self.X, m=m_step, start_m=max(m_step - step, 0), paths=paths)			
-			predictions += pred_result
+			predictions += pred_result			
 			error_norms = np.power(np.sum(np.power(self.y - predictions, power), 1), 1. / power)
 			total_error = np.sum(np.square(error_norms), 0) / len(self.X)
+			print(f"m_step:{m_step}, total_error:{total_error}")
 			
 			if m_step > 0 and total_error > 0:
 				if print_errors:
 					logging.info('Error for m=%s: %s' % (m_step - 1, total_error))
 				n_wavelets.append(m_step - 1)
 				errors.append(total_error)
-		logging.info(f"total m_step is {m_step}")        
-
-
+		logging.info(f"total m_step is {m_step}")
+		
 		plt.figure(1)
 		plt.clf()
 		n_wavelets = np.reshape(n_wavelets, (-1, 1))
 		errors = np.reshape(errors, (-1, 1))
 		plt.title(f'#wavelets to errors')
 		plt.xlabel('#wavelets')
-		plt.ylabel('errors')
+		plt.ylabel('errors')		
 		plt.plot(n_wavelets, errors)
 		plt.draw()
-		plt.pause(20)
+		plt.pause(5)
 
 		plt.figure(2)
 		plt.clf()
@@ -181,9 +184,9 @@ class DyadicDecisionTreeRegressor:
 		regr.fit(n_wavelets_log, errors_log)
 
 		y_pred = regr.predict(n_wavelets_log)
-		plt.plot(n_wavelets_log, y_pred, color='blue', linewidth=3)
+		plt.plot(n_wavelets_log, y_pred, color='blue', linewidth=3)		
 		plt.draw()
-		plt.pause(20)
+		plt.pause(10)
 
 		alpha = np.abs(regr.coef_[0][0])
 		# logging.info('Smoothness index: %s' % alpha)

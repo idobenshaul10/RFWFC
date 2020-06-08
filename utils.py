@@ -65,7 +65,7 @@ def train_model(x, y, method='RF', mode='regression', trees=5, depth=9, features
         raise Exception('Method incorrect - should be either RF or WF')
     # Fit the model
     model.fit(x, y)    
-    # model.print_regressor()    
+    model.print_regressor()    
     return model
 
 
