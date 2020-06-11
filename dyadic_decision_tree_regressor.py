@@ -44,7 +44,7 @@ class DyadicDecisionTreeRegressor:
 		self.X = None
 		self.y = None
 		self.rf = None
-		self.verbose = False
+		self.verbose = True
 
 		self.cube_length = cube_length
 		self.depth = depth
@@ -60,8 +60,8 @@ class DyadicDecisionTreeRegressor:
 		print(self.regressor.print_tree())
 
 	def fit(self, X_raw, y):
-		if self.verbose:
-			self.print_regressor()
+		# if self.verbose:
+		# 	self.print_regressor()
 		self.regressor.add_dataset(X_raw, y)
 		self.regressor.fit(X_raw)
 		self.regressor.init_ids()
