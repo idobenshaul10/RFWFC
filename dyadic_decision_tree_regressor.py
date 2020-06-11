@@ -133,7 +133,7 @@ class DyadicDecisionTreeRegressor:
 		predictions = pruned * self.vals.T
 		return predictions
 
-	def evaluate_smoothness(self, m=1000, error_TH=0.1):
+	def evaluate_smoothness(self, m=1000, error_TH=0):
 		'''
 		Evaluates smoothness for a maximum of M-terms
 		:m: Maximum terms to use. Default is 1000.
@@ -171,7 +171,7 @@ class DyadicDecisionTreeRegressor:
 					logging.info('Error for m=%s: %s' % (m_step - 1, total_error))
 				n_wavelets.append(m_step - 1)
 				errors.append(total_error)
-		logging.info(f"total m_step is {m_step}")
+		# logging.info(f"total m_step is {m_step}")
 		
 		if self.verbose:
 			plt.figure(1)
@@ -180,7 +180,7 @@ class DyadicDecisionTreeRegressor:
 		errors = np.reshape(errors, (-1, 1))
 
 		if self.verbose:
-			plt.title(f'#wavelets to errors')
+			plt.title(f'#wavelets to errors, DS size:{self.X.shape[0]}')
 			plt.xlabel('#wavelets')
 			plt.ylabel('errors')		
 			plt.plot(n_wavelets, errors)
@@ -191,18 +191,21 @@ class DyadicDecisionTreeRegressor:
 		n_wavelets_log = np.log(np.reshape(n_wavelets, (-1, 1)))
 		errors_log = np.log(np.reshape(errors, (-1, 1)))
 		if self.verbose:
-			plt.title(f'log(#wavelets) to log(errors)')
+			plt.title(f'log(#wavelets) to log(errors), DS size:{self.X.shape[0]}')
 			plt.xlabel('log(#wavelets)')
 			plt.ylabel('log(errors)')
 			plt.plot(n_wavelets_log, errors_log)
 		
-		regr = linear_model.LinearRegression()		
+		regr = linear_model.LinearRegression()
+
+		# sample_weight = [1/(2*(k+1)) for k in range(errors_log.shape[0])]
+		# regr.fit(n_wavelets_log, errors_log, sample_weight)
 		regr.fit(n_wavelets_log, errors_log)
 
 		y_pred = regr.predict(n_wavelets_log)
 		alpha = np.abs(regr.coef_[0][0])
 
-		plt.plot(n_wavelets_log, y_pred, color='blue', linewidth=3, label=f'alpha:{alpha}')		
+		plt.plot(n_wavelets_log, y_pred, color='blue', linewidth=3, label=f'alpha:{alpha}')
 		plt.legend()
 		plt.draw()
 		plt.pause(2)		

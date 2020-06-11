@@ -35,9 +35,9 @@ def plot_dataset(X, Y, donut_distance):
 
 
 MIN_SIZE = 1000
-MAX_SIZE = 30001
+MAX_SIZE = 30000
 # MAX_SIZE = 26001
-STEP = 1000
+STEP = 2500
 
 
 def plot_mse_per_donut_distance(flags, data_str, normalize=True, output_path=''):
@@ -104,7 +104,7 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 				num_wavelets=N_wavelets, m_depth=flags.depth, \
 				n_state=2000, normalize=False, \
 				norm_normalization=norm_normalization, cube_length=pointGen.cube_length, \
-				error_TH=flags.error_TH)		
+				error_TH=flags.error_TH)
 	
 		stds.append(std_alpha)
 		alphas.append(mean_alpha)	
@@ -169,6 +169,7 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	N_wavelets = flags.num_wavelets
 	donut_distance = flags.donut_distance
 	norm_normalization = 'volume'
+	error_TH = flags.error_TH
 	normalize = True
 	model = None
 	if not os.path.isdir(output_path):
@@ -182,7 +183,8 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 		mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \
 			run_alpha_smoothness(x, y, t_method=flags.regressor, \
 				num_wavelets=N_wavelets, n_trees=flags.trees, m_depth=flags.depth,
-				n_features='auto', n_state=2000, normalize=normalize, norm_normalization=norm_normalization)
+				n_features='auto', n_state=2000, normalize=normalize, norm_normalization=norm_normalization, 
+				error_TH=error_TH)
 		
 		stds.append(std_alpha)
 		alphas.append(mean_alpha)		
@@ -190,7 +192,8 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 
 	print(f'stds:{stds}')	
 	plt.figure(1)
-	plt.clf()	
+	plt.clf()
+	plt.ylim(0.25, 2.)
 	plt.plot(sizes, alphas)
 
 	
@@ -206,13 +209,14 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	write_data['normalize'] = normalize
 	write_data['add_noisy_channels'] = add_noisy_channels
 	write_data['donut_distance'] = donut_distance
+	write_data['error_TH'] = error_TH	
 
 	desired_value = draw_predictive_line(flags.dimension, p=2)
 	last_alpha = alphas[-1]
 	print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')	
-	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_IsNormalize_{normalize}_noisy_{add_noisy_channels}_"+ \
+	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_IsNormalize_{normalize}_error_TH_{error_TH}"+ \
 		f"donut_distance_{donut_distance}"
-	dir_path = os.path.join(output_path, 'decision_tree_with_bagging', str(flags.dimension))
+	dir_path = os.path.join(output_path , str(flags.dimension))
 	
 	if not os.path.isdir(dir_path):
 		os.mkdir(dir_path)

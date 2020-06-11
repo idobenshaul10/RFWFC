@@ -401,21 +401,21 @@ class WaveletsForestRegressor:
 		pruned = lil_matrix(paths.shape, dtype=np.float32)
 		
 		pruned[:, sorted_norms] = paths[:, sorted_norms]
-		predictions = pruned * self.vals.T / len(self.rf.estimators_)
-		import pdb; pdb.set_trace()
+		predictions = pruned * self.vals.T / len(self.rf.estimators_)		
 		return predictions
 
-	def evaluate_smoothness(self, m=1000):
+	def evaluate_smoothness(self, m=1000, error_TH=0.):
 		'''
 		Evaluates smoothness for a maximum of M-terms
 		:m: Maximum terms to use. Default is 1000.
 		:return: Smothness index, n_wavelets, errors.
-		'''
+		'''		
 		n_wavelets = []
 		errors = []
 		step = 10
 		power = 2
-		print_errors = False
+		print_errors = False	
+
 
 		paths, n_nodes_ptr = self.rf.decision_path(self.X)
 		predictions = np.zeros(np.shape(self.y))
@@ -426,6 +426,14 @@ class WaveletsForestRegressor:
 
 			error_norms = np.power(np.sum(np.power(self.y - predictions, power), 1), 1. / power)
 			total_error = np.sum(np.square(error_norms), 0) / len(self.X)
+
+			if len(errors)> 0:
+				if errors[-1] == total_error:
+					break
+
+
+			if total_error < error_TH:
+				break
 			
 			if m_step > 0 and total_error > 0:
 				if print_errors:
@@ -436,10 +444,10 @@ class WaveletsForestRegressor:
 
 
 		plt.figure(1)        
-		plt.clf()
+		plt.clf()		
 		n_wavelets = np.reshape(n_wavelets, (-1, 1))
 		errors = np.reshape(errors, (-1, 1))
-		plt.title(f'#wavelets to errors')
+		plt.title(f'#wavelets to errors, DS size: {self.X.shape[0]}')
 		plt.xlabel('#wavelets')
 		plt.ylabel('errors')
 		plt.plot(n_wavelets, errors)
@@ -451,22 +459,24 @@ class WaveletsForestRegressor:
 		plt.clf()
 		n_wavelets_log = np.log(np.reshape(n_wavelets, (-1, 1)))
 		errors_log = np.log(np.reshape(errors, (-1, 1)))
-		plt.title(f'log(#wavelets) to log(errors)')
+		plt.title(f'log(#wavelets) to log(errors), DS size: {self.X.shape[0]}')
 		plt.xlabel('log(#wavelets)')
 		plt.ylabel('log(errors)')
-		plt.plot(n_wavelets_log, errors_log)
-		
+
 		regr = linear_model.LinearRegression()
 		# regr = linear_model.Ridge(alpha=.8)
 		
 		regr.fit(n_wavelets_log, errors_log)
 
 		y_pred = regr.predict(n_wavelets_log)
-		plt.plot(n_wavelets_log, y_pred, color='blue', linewidth=3)
-		plt.draw()
-		plt.pause(1)
+		plt.plot(n_wavelets_log, y_pred, color='blue', linewidth=3)	
 
 		alpha = np.abs(regr.coef_[0][0])
+
+		plt.plot(n_wavelets_log, errors_log, label=f'alpha:{alpha}')
+		plt.legend()
+		plt.draw()
+		plt.pause(1)		
 		# logging.info('Smoothness index: %s' % alpha)
 
 		return alpha, n_wavelets, errors
