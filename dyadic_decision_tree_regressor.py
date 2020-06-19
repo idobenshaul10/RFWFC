@@ -18,6 +18,7 @@ import random
 from sklearn import metrics
 import math
 from dyadic_decision_tree_model import DyadicDecisionTreeModel
+import json
 # ion() # enables interactive mode
 
 # f1 = plt.figure(1)
@@ -44,7 +45,8 @@ class DyadicDecisionTreeRegressor:
 		self.X = None
 		self.y = None
 		self.rf = None
-		self.verbose = True
+		self.verbose = False
+		self.save_errors = True
 
 		self.cube_length = cube_length
 		self.depth = depth
@@ -169,17 +171,17 @@ class DyadicDecisionTreeRegressor:
 				if print_errors:
 					print(f"m_step:{m_step}, total_error:{total_error}")					
 				n_wavelets.append(m_step - 1)
-				errors.append(total_error)
-		# logging.info(f"total m_step is {m_step}")
+				errors.append(total_error)		
 		
 		if self.verbose:
 			plt.figure(1)
 			plt.clf()
 		n_wavelets = np.reshape(n_wavelets, (-1, 1))
-		errors = np.reshape(errors, (-1, 1))
+		errors = np.reshape(errors, (-1, 1))		
 
 		if self.verbose:
-			plt.title(f'#wavelets to errors, DS size:{self.X.shape[0]}')
+			# plt.title(f'#wavelets to errors, DS size:{self.X.shape[0]}')
+			plt.title(f'#wavelets to errors, Num Wavelets:{m}')
 			plt.xlabel('#wavelets')
 			plt.ylabel('errors')		
 			plt.plot(n_wavelets, errors)
@@ -190,10 +192,24 @@ class DyadicDecisionTreeRegressor:
 		n_wavelets_log = np.log(np.reshape(n_wavelets, (-1, 1)))
 		errors_log = np.log(np.reshape(errors, (-1, 1)))
 		if self.verbose:
-			plt.title(f'log(#wavelets) to log(errors), DS size:{self.X.shape[0]}')
+			# plt.title(f'#wavelets to errors, Num Wavelets:{m}')
+			plt.title(f'log(#wavelets) to log(errors), Num Wavelets:{m}')
 			plt.xlabel('log(#wavelets)')
 			plt.ylabel('log(errors)')
 			plt.plot(n_wavelets_log, errors_log)
+
+		if self.save_errors:
+			def convert(o):
+				if isinstance(o, np.generic): return o.item()  
+				raise TypeError
+
+			dir_path = r"C:\projects\RFWFC\results\dyadic\num_wavelets\2\offline_fit"
+			json_file_name = "20000_points.json"
+			write_data = {}			
+			write_data['n_wavelets'] = list(n_wavelets.squeeze())
+			write_data['errors'] = list(errors.squeeze())			
+			with open(os.path.join(dir_path, json_file_name), "w+") as f:
+				json.dump(write_data, f, default=convert)
 		
 		regr = linear_model.LinearRegression()
 
