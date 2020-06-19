@@ -148,6 +148,8 @@ class DyadicDecisionTreeRegressor:
 		paths = self.regressor.decision_path(self.X)		
 		predictions = np.zeros(self.y.shape)
 
+		# import pdb; pdb.set_trace()
+
 		for m_step in range(2, m, step):
 			if m_step > len(self.norms):
 				break
@@ -161,14 +163,11 @@ class DyadicDecisionTreeRegressor:
 					break
 
 			if total_error < error_TH:
-				break				
-
-			if self.verbose:
-				print(f"m_step:{m_step}, total_error:{total_error}")
+				break
 			
 			if m_step > 0 and total_error > 0:
 				if print_errors:
-					logging.info('Error for m=%s: %s' % (m_step - 1, total_error))
+					print(f"m_step:{m_step}, total_error:{total_error}")					
 				n_wavelets.append(m_step - 1)
 				errors.append(total_error)
 		# logging.info(f"total m_step is {m_step}")
@@ -185,7 +184,7 @@ class DyadicDecisionTreeRegressor:
 			plt.ylabel('errors')		
 			plt.plot(n_wavelets, errors)
 			plt.draw()
-			plt.pause(2)
+			plt.pause(0.5)
 			plt.figure(2)
 			plt.clf()
 		n_wavelets_log = np.log(np.reshape(n_wavelets, (-1, 1)))
@@ -208,7 +207,7 @@ class DyadicDecisionTreeRegressor:
 		plt.plot(n_wavelets_log, y_pred, color='blue', linewidth=3, label=f'alpha:{alpha}')
 		plt.legend()
 		plt.draw()
-		plt.pause(2)		
+		plt.pause(0.5)
 		
 		# logging.info('Smoothness index: %s' % alpha)
 

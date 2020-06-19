@@ -69,8 +69,8 @@ class DyadicDecisionTreeModel:
 	def init_ids(self):
 		for idx, node in enumerate(self.nodes):
 			node.id = idx
-		if self.verbose:
-			print(f"ids:{[k.id for k in self.nodes]}")		
+		# if self.verbose:
+		# 	print(f"ids:{[k.id for k in self.nodes]}")		
 
 	def fit(self, X_all, parent=None, indices=None):
 		if parent is None:

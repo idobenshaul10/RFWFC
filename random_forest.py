@@ -443,7 +443,7 @@ class WaveletsForestRegressor:
 		logging.info(f"total m_step is {m_step}")        
 
 
-		plt.figure(1)        
+		plt.figure(0.5)        
 		plt.clf()		
 		n_wavelets = np.reshape(n_wavelets, (-1, 1))
 		errors = np.reshape(errors, (-1, 1))
@@ -452,7 +452,7 @@ class WaveletsForestRegressor:
 		plt.ylabel('errors')
 		plt.plot(n_wavelets, errors)
 		plt.draw()
-		plt.pause(1)
+		plt.pause(0.5)
 		
 
 		plt.figure(2)

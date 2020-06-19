@@ -112,7 +112,8 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 
 	print(f'alphas:{alphas}')
 	plt.figure(1)
-	plt.clf()	
+	plt.clf()
+	plt.ylim(0.3, 1.)
 	plt.plot(sizes, alphas)
 	
 	write_data = {}
