@@ -133,7 +133,7 @@ class DyadicDecisionTreeRegressor:
 		pruned = lil_matrix(paths.shape, dtype=np.float32)
 		pruned[:, sorted_norms] = paths[:, sorted_norms]		
 		predictions = pruned * self.vals.T
-		return predictions
+		return predictions, sorted_norms
 
 	def evaluate_smoothness(self, m=1000, error_TH=0):
 		'''
@@ -143,6 +143,7 @@ class DyadicDecisionTreeRegressor:
 		'''
 		n_wavelets = []
 		errors = []
+		mean_norms = []
 		step = 10
 		power = 2
 		print_errors = False		
@@ -155,8 +156,10 @@ class DyadicDecisionTreeRegressor:
 		for m_step in range(2, m, step):
 			if m_step > len(self.norms):
 				break
-			pred_result = self.predict(self.X, m=m_step, start_m=max(m_step - step, 0), paths=paths)			
-			predictions += pred_result			
+			
+			start_m = max(m_step - step, 0)
+			pred_result, sorted_norms = self.predict(self.X, m=m_step, start_m=start_m, paths=paths)			
+			predictions += pred_result
 			error_norms = np.power(np.sum(np.power(self.y - predictions, power), 1), 1. / power)			
 			total_error = np.sum(np.square(error_norms), 0) / len(self.X)
 			
@@ -171,7 +174,8 @@ class DyadicDecisionTreeRegressor:
 				if print_errors:
 					print(f"m_step:{m_step}, total_error:{total_error}")					
 				n_wavelets.append(m_step - 1)
-				errors.append(total_error)		
+				errors.append(total_error)
+				mean_norms.append(sorted_norms.mean())
 		
 		if self.verbose:
 			plt.figure(1)
@@ -204,10 +208,11 @@ class DyadicDecisionTreeRegressor:
 				raise TypeError
 
 			dir_path = r"C:\projects\RFWFC\results\dyadic\num_wavelets\2\offline_fit"
-			json_file_name = "20000_points.json"
+			json_file_name = "100000_points.json"
 			write_data = {}			
 			write_data['n_wavelets'] = list(n_wavelets.squeeze())
 			write_data['errors'] = list(errors.squeeze())			
+			write_data['mean_norms'] = list(mean_norms)
 			with open(os.path.join(dir_path, json_file_name), "w+") as f:
 				json.dump(write_data, f, default=convert)
 		

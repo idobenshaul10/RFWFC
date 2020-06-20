@@ -34,8 +34,8 @@ def plot_dataset(X, Y, donut_distance):
 	# 	dpi=300, bbox_inches='tight')	
 
 
-MIN_SIZE = 20000
-MAX_SIZE = 20001
+MIN_SIZE = 50000
+MAX_SIZE = 50001
 # MAX_SIZE = 26001
 STEP = 2500
 
