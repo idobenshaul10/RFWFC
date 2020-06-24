@@ -208,7 +208,7 @@ class DyadicDecisionTreeRegressor:
 				raise TypeError
 
 			dir_path = r"C:\projects\RFWFC\results\dyadic\num_wavelets\2\offline_fit"
-			json_file_name = "100000_points.json"
+			json_file_name = "50000_points_new.json"
 			write_data = {}			
 			write_data['n_wavelets'] = list(n_wavelets.squeeze())
 			write_data['errors'] = list(errors.squeeze())			

@@ -16,6 +16,7 @@ from matplotlib.pyplot import plot, ion, show
 import random
 from sklearn import metrics
 import math
+import json
 # ion() # enables interactive mode
 
 # f1 = plt.figure(1)
@@ -63,6 +64,7 @@ class WaveletsForestRegressor:
 		self.train_vi = train_vi
 		self.vi_threshold = vi_threshold
 		self.norms_normalization = norms_normalization
+		self.save_errors = True
 
 
 	def visualize_classifier(self, ax=None, cmap='rainbow', depth=-1):        
@@ -462,6 +464,20 @@ class WaveletsForestRegressor:
 		plt.title(f'log(#wavelets) to log(errors), DS size: {self.X.shape[0]}')
 		plt.xlabel('log(#wavelets)')
 		plt.ylabel('log(errors)')
+
+		if self.save_errors:
+			def convert(o):
+				if isinstance(o, np.generic): return o.item()  
+				raise TypeError
+
+			dir_path = r"C:\projects\RFWFC\results\offline_fit\RF"
+			json_file_name = "50000_points_20_TREE.json"
+			write_data = {}			
+			write_data['n_wavelets'] = list(n_wavelets.squeeze())
+			write_data['errors'] = list(errors.squeeze())			
+			# write_data['mean_norms'] = list(mean_norms)
+			with open(os.path.join(dir_path, json_file_name), "w+") as f:
+				json.dump(write_data, f, default=convert)
 
 		regr = linear_model.LinearRegression()
 		# regr = linear_model.Ridge(alpha=.8)

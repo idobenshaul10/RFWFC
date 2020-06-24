@@ -36,13 +36,14 @@ def find_best_fit_alpha(errors_data):
 	m_step, cur_m_step = 10, 10
 	errors = errors_data["errors"]
 	n_wavelets = errors_data["n_wavelets"]
-	mean_norms = errors_data["mean_norms"]	
+	# mean_norms = errors_data["mean_norms"]	
 
 	n_wavelets_log = np.log(np.reshape(n_wavelets, (-1, 1)))
 	errors_log = np.log(np.reshape(errors, (-1, 1)))
-	mean_norms = np.reshape(mean_norms, (-1, 1))
+	# mean_norms = np.reshape(mean_norms, (-1, 1))
+	
 	# regr = linear_model.LinearRegression()	
-	regr = linear_model.Ridge(alpha=5.)
+	regr = linear_model.Ridge(alpha=1.5)
 	ax = plt.axes()
 	# ax  = plt.add_subplot(1, 1, 1)
 	plt.title(f'log(#wavelets) to log(errors)')
@@ -57,10 +58,9 @@ def find_best_fit_alpha(errors_data):
 			plt.figure(1)
 			# start_m = 0 
 			
-			pruned_m_step = get_pruned_m_step(cur_m_step, n_wavelets,  errors, error_TH=0.)
+			pruned_m_step = get_pruned_m_step(cur_m_step, n_wavelets,  errors, error_TH=0.05)
 			cur_log_errors = errors_log[start_m:pruned_m_step]
-			cur_log_wavelets = n_wavelets_log[start_m:pruned_m_step]
-			cur_mean_norms = mean_norms[start_m:pruned_m_step]
+			cur_log_wavelets = n_wavelets_log[start_m:pruned_m_step]			
 
 			# import pdb; pdb.set_trace()
 			# regr.fit(cur_log_wavelets, cur_log_errors, cur_mean_norms.squeeze())
@@ -80,7 +80,8 @@ def find_best_fit_alpha(errors_data):
 			ax.lines.pop(-1)
 
 			plt.figure(2)
-			plt.plot(n_wavelets[:cur_m_step], errors[:cur_m_step], color='blue')
+			plt.plot(n_wavelets[:cur_m_step], errors[:cur_m_step], color='g')
+			plt.scatter(n_wavelets[pruned_m_step], errors[pruned_m_step], color='r')
 
 if __name__ == "__main__":
 	json_path = sys.argv[1]
