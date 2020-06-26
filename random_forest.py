@@ -470,7 +470,7 @@ class WaveletsForestRegressor:
 				if isinstance(o, np.generic): return o.item()  
 				raise TypeError
 
-			dir_path = r"C:\projects\RFWFC\results\offline_fit\RF"
+			dir_path = r"C:\projects\RFWFC\results\offline_fit\RF_3"
 			json_file_name = "50000_points_20_TREE.json"
 			write_data = {}			
 			write_data['n_wavelets'] = list(n_wavelets.squeeze())
