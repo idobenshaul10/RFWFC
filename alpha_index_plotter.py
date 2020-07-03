@@ -195,6 +195,9 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 		alphas.append(mean_alpha)	
 		sizes.append(dataset_size)
 
+	if semi_norm:
+		return
+
 	print(f'alphas:{alphas}')
 	plt.figure(1)
 	plt.clf()

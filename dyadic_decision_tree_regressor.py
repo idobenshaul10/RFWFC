@@ -247,7 +247,8 @@ class DyadicDecisionTreeRegressor:
 			idx = domain.id
 			if self.non_zero_norm_indices[idx] == 0:
 				continue
-			volume = np.power(self.norms[idx], 1/p)
+
+			volume = np.power(domain.rect.volume, 1/p)
 			num_samples = domain.num_samples
 			mean_value = self.regressor.get_mean_value(idx)
 			ys = self.regressor.y_all[domain.indices]

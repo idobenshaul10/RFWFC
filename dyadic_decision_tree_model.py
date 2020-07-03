@@ -13,12 +13,10 @@ class Rectangle:
 	# [LEFT, RIGHT, DOWN, UP]
 	def __init__(self, left, right, down, up):
 		self.data = (left, right, down, up)
+		self.volume = (right - left) * (up - down)
 
 	def points(self):
-		return self.data
-
-	def get_volume(self):
-		return (self.right - self.left) * (self.up - self.down)
+		return self.data	
 
 class Node:
 	def __init__(self, data, level, X_all=None, parent_indices=None):
@@ -83,7 +81,7 @@ class DyadicDecisionTreeModel:
 		new_level = parent.level + 1
 		random_state = np.random.RandomState(seed=self.seed)
 		
-		if parent_indices.sum() < 5:			
+		if parent_indices.sum() < 5:	
 			return
 
 		p_left, p_right, p_down, p_up = parent.rect.points()
