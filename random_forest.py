@@ -470,14 +470,16 @@ class WaveletsForestRegressor:
 				if isinstance(o, np.generic): return o.item()  
 				raise TypeError
 
-			dir_path = r"C:\projects\RFWFC\results\offline_fit\RF_3"
-			json_file_name = "50000_points_20_TREE.json"
-			write_data = {}			
+			dir_path = r"C:\projects\RFWFC\results\approximation_methods\RF_50_TREE"
+			json_file_name = "50000_points_50_TREE.json"
+			write_data = {}
 			write_data['n_wavelets'] = list(n_wavelets.squeeze())
 			write_data['errors'] = list(errors.squeeze())			
 			# write_data['mean_norms'] = list(mean_norms)
-			with open(os.path.join(dir_path, json_file_name), "w+") as f:
+			path = os.path.join(dir_path, json_file_name)
+			with open(path, "w+") as f:
 				json.dump(write_data, f, default=convert)
+			print(f"saved errors to {path}")
 
 		regr = linear_model.LinearRegression()
 		# regr = linear_model.Ridge(alpha=.8)

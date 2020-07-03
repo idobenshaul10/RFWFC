@@ -88,23 +88,28 @@ def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_de
         depth=m_depth, features=n_features, state=n_state, \
         nnormalization=norm_normalization, cube_length=cube_length)
 
-    # try:
-    #     paths, n_nodes_ptr = model.rf.decision_path(X)
-    #     y_pred = model.predict(X, m=num_wavelets, start_m=0, paths=paths)
-    # except:
-    #     y_pred = model.predict(X, m=num_wavelets, start_m=0)
-
-    # auc = metrics.roc_auc_score(y, y_pred)
-    # print(f"AUC on train data: {auc}")
-
     if t_method == 'WF':
         if num_wavelets < 1:
             num_wavelets = int(np.round(num_wavelets*len(model.norms)))
             norm_m_term = -np.sort(-model.norms)[num_wavelets-1]
 
-    alpha, n_wavelets, errors = model.evaluate_smoothness(m=num_wavelets, error_TH=error_TH) 
+    alpha, n_wavelets, errors = model.evaluate_smoothness(m=num_wavelets, error_TH=error_TH)    
+
     logging.log(60, 'ALPHA SMOOTHNESS over X: ' + str(alpha))
     return alpha, -1, num_wavelets, norm_m_term, model
+
+def calculate_besove_semi_norm(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_depth=9,
+                         n_features='auto', n_state=2000, normalize=True, \
+                         norm_normalization='volume', cube_length=1.):
+    if normalize:
+        X = normalize_data(X)
+
+    norm_m_term = 0
+    model = train_model(X, y, method=t_method, trees=n_trees, \
+        depth=m_depth, features=n_features, state=n_state, \
+        nnormalization=norm_normalization, cube_length=cube_length)  
+
+    partition_sums = model.calculate_besove_semi_norm()  
 
 
 def kfold_alpha_smoothness(x, y, t_method='RF', num_wavelets=10, n_folds=10, n_trees=5, m_depth=9,

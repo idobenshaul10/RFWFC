@@ -47,7 +47,8 @@ class DyadicDecisionTreeRegressor:
 		self.y = None
 		self.rf = None
 		self.verbose = True
-		self.save_errors = False
+		self.save_errors = True
+		self.save_semi_norm = True
 
 		self.cube_length = cube_length
 		self.depth = depth
@@ -157,9 +158,7 @@ class DyadicDecisionTreeRegressor:
 		print_errors = False		
 
 		paths = self.regressor.decision_path(self.X)		
-		predictions = np.zeros(self.y.shape)
-
-		# import pdb; pdb.set_trace()
+		predictions = np.zeros(self.y.shape)		
 
 		# , total=self.non_zero_norm_indices.sum()
 		num_non_zero_nodes = self.non_zero_norm_indices.sum()
@@ -168,7 +167,6 @@ class DyadicDecisionTreeRegressor:
 				break
 			
 			start_m = max(m_step - step, 0)
-			# import pdb; pdb.set_trace()
 			pred_result, sorted_norms = self.predict(self.X, m=m_step, start_m=start_m, paths=paths)			
 			predictions += pred_result
 			error_norms = np.power(np.sum(np.power(self.y - predictions, power), 1), 1. / power)			
@@ -218,7 +216,7 @@ class DyadicDecisionTreeRegressor:
 				if isinstance(o, np.generic): return o.item()  
 				raise TypeError
 
-			dir_path = r"C:\projects\RFWFC\results\dyadic\num_wavelets\2\offline_fit"
+			dir_path = r"C:\projects\RFWFC\results\approximation_methods\dyadic"
 			json_file_name = "50000_points_new.json"
 			write_data = {}			
 			write_data['n_wavelets'] = list(n_wavelets.squeeze())
@@ -242,6 +240,35 @@ class DyadicDecisionTreeRegressor:
 
 		return alpha, n_wavelets, errors
 
+
+	def calculate_besove_semi_norm(self, p=2):
+		total_domain_scores = []
+		for domain in self.regressor.nodes:
+			idx = domain.id
+			if self.non_zero_norm_indices[idx] == 0:
+				continue
+			volume = np.power(self.norms[idx], 1/p)
+			num_samples = domain.num_samples
+			mean_value = self.regressor.get_mean_value(idx)
+			ys = self.regressor.y_all[domain.indices]
+			diff_from_mean = np.abs(ys - mean_value).sum()
+			diff_from_mean /= num_samples
+			domain_score = volume*diff_from_mean
+			total_domain_scores.append(domain_score)
+
+		def convert(o):
+			if isinstance(o, np.generic): return o.item()  
+			raise TypeError
+
+		dir_path = r"C:\projects\RFWFC\results\approximation_methods\Besov_Semi_Norm"
+		json_file_name = "besov_summands_50000.json"
+		write_data = {}
+		write_data['summands'] = total_domain_scores
+		summands_path = os.path.join(dir_path, json_file_name)
+		with open(summands_path, "w+") as f:
+			json.dump(write_data, f, default=convert)
+		print(f"saved summands to:{summands_path}")
+		
 	def accuracy(self, y_pred, y):
 		'''
 		Evaluates accuracy given predictions and actual labels.

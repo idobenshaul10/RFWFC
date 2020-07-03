@@ -9,7 +9,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from random_forest import WaveletsForestRegressor
 from matplotlib.pyplot import plot, ion, show
 from utils import normalize_data, run_alpha_smoothness, kfold_alpha_smoothness, \
-	kfold_regression_mse, train_model
+	kfold_regression_mse, train_model, calculate_besove_semi_norm
 import logging	
 import time
 import json
@@ -34,7 +34,7 @@ def plot_dataset(X, Y, donut_distance):
 	# 	dpi=300, bbox_inches='tight')	
 
 
-MIN_SIZE = 10000
+MIN_SIZE = 50000
 MAX_SIZE = 50001
 # MAX_SIZE = 26001
 STEP = 2500
@@ -167,6 +167,8 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	donut_distance = flags.donut_distance
 	norm_normalization = 'num_samples'
 	normalize = True
+	semi_norm = True
+
 	model = None
 	if not os.path.isdir(output_path):
 		os.mkdir(output_path)
@@ -174,12 +176,20 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	for dataset_size in tqdm(range(MIN_SIZE, MAX_SIZE, STEP)):		
 		x, y = pointGen[dataset_size]
 
-		mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \
-			run_alpha_smoothness(x, y, t_method="dyadic", \
+		if semi_norm:
+			calculate_besove_semi_norm(x, y, t_method="dyadic", \
 				num_wavelets=N_wavelets, m_depth=flags.depth, \
 				n_state=2000, normalize=False, \
-				norm_normalization=norm_normalization, cube_length=pointGen.cube_length, \
-				error_TH=flags.error_TH)
+				norm_normalization=norm_normalization, cube_length=pointGen.cube_length)
+			continue
+
+		# mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \
+		# 	run_alpha_smoothness(x, y, t_method="dyadic", \
+		# 		num_wavelets=N_wavelets, m_depth=flags.depth, \
+		# 		n_state=2000, normalize=False, \
+		# 		norm_normalization=norm_normalization, cube_length=pointGen.cube_length, \
+		# 		error_TH=flags.error_TH)
+
 	
 		stds.append(std_alpha)
 		alphas.append(mean_alpha)	
