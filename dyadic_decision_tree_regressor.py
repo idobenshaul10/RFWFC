@@ -19,6 +19,7 @@ from sklearn import metrics
 import math
 from dyadic_decision_tree_model import DyadicDecisionTreeModel
 import json
+from tqdm import tqdm
 # ion() # enables interactive mode
 
 # f1 = plt.figure(1)
@@ -45,8 +46,8 @@ class DyadicDecisionTreeRegressor:
 		self.X = None
 		self.y = None
 		self.rf = None
-		self.verbose = False
-		self.save_errors = True
+		self.verbose = True
+		self.save_errors = False
 
 		self.cube_length = cube_length
 		self.depth = depth
@@ -81,11 +82,16 @@ class DyadicDecisionTreeRegressor:
 
 		norms = np.zeros(num_nodes)
 		vals = np.zeros((val_size, num_nodes))
-		self.__traverse_nodes(0, norms, vals) # 50 		
+		self.__traverse_nodes(0, norms, vals) # 50		
 		
 		num_samples = np.array([node.num_samples for node in self.regressor.nodes])		
 		norms = np.multiply(norms, np.sqrt(num_samples))
-		
+
+		self.epsilon = 1e-6
+		# we need to remove the nodes with <epsilon norm!
+		self.non_zero_norm_indices = (norms >= self.epsilon).astype(np.int32)
+		self.regressor.non_zero_norm_indices = self.non_zero_norm_indices
+
 		self.norms = norms
 		self.vals = vals
 	
@@ -130,8 +136,10 @@ class DyadicDecisionTreeRegressor:
 		sorted_norms = np.argsort(-self.norms)[start_m:m]
 		if paths is None:
 			paths = self.regressor.decision_path(X)
+		
 		pruned = lil_matrix(paths.shape, dtype=np.float32)
 		pruned[:, sorted_norms] = paths[:, sorted_norms]		
+
 		predictions = pruned * self.vals.T
 		return predictions, sorted_norms
 
@@ -153,11 +161,14 @@ class DyadicDecisionTreeRegressor:
 
 		# import pdb; pdb.set_trace()
 
-		for m_step in range(2, m, step):
-			if m_step > len(self.norms):
+		# , total=self.non_zero_norm_indices.sum()
+		num_non_zero_nodes = self.non_zero_norm_indices.sum()
+		for m_step in tqdm(range(2, m, step), total=num_non_zero_nodes):
+			if m_step > num_non_zero_nodes:
 				break
 			
 			start_m = max(m_step - step, 0)
+			# import pdb; pdb.set_trace()
 			pred_result, sorted_norms = self.predict(self.X, m=m_step, start_m=start_m, paths=paths)			
 			predictions += pred_result
 			error_norms = np.power(np.sum(np.power(self.y - predictions, power), 1), 1. / power)			
@@ -216,10 +227,7 @@ class DyadicDecisionTreeRegressor:
 			with open(os.path.join(dir_path, json_file_name), "w+") as f:
 				json.dump(write_data, f, default=convert)
 		
-		regr = linear_model.LinearRegression()
-
-		# sample_weight = [1/(2*(k+1)) for k in range(errors_log.shape[0])]
-		# regr.fit(n_wavelets_log, errors_log, sample_weight)
+		regr = linear_model.LinearRegression()		
 		regr.fit(n_wavelets_log, errors_log)
 
 		y_pred = regr.predict(n_wavelets_log)

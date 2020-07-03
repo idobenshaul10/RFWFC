@@ -65,7 +65,7 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True):
 	
 	normalize = True
 	regr = linear_model.LinearRegression(normalize=normalize)
-	# regr = linear_model.Ridge(alpha=0.5, normalize=normalize)
+	# regr = linear_model.Ridge(alpha=0.25, normalize=normalize)
 	# regr = linear_model.HuberRegressor(epsilon=1.5)
 
 	ax = plt.axes()
@@ -90,8 +90,6 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True):
 			cur_log_errors_pred = regr.predict(cur_log_wavelets)
 
 			quality_of_fit = r2_score(cur_log_errors, cur_log_errors_pred)
-
-			# import pdb; pdb.set_trace()
 			try:
 				alpha = np.abs(regr.coef_[0][0])		
 				const = np.exp(regr.intercept_[0])

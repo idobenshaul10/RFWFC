@@ -51,6 +51,7 @@ class DyadicDecisionTreeModel:
 		self.cube_length = cube_length
 		self.nodes = []
 		self.verbose = verbose
+		self.non_zero_norm_indices = None
 		
 		rectangle = Rectangle(-self.cube_length/2, self.cube_length/2, \
 			-self.cube_length/2, self.cube_length/2)		
@@ -70,7 +71,7 @@ class DyadicDecisionTreeModel:
 		for idx, node in enumerate(self.nodes):
 			node.id = idx
 		# if self.verbose:
-		# 	print(f"ids:{[k.id for k in self.nodes]}")		
+		# 	print(f"ids:{[k.id for k in self.nodes]}")
 
 	def fit(self, X_all, parent=None, indices=None):
 		if parent is None:
@@ -84,7 +85,6 @@ class DyadicDecisionTreeModel:
 		
 		if parent_indices.sum() < 5:			
 			return
-		# there is a problem, when the parent has more than 5, but the child does not
 
 		p_left, p_right, p_down, p_up = parent.rect.points()
 
@@ -98,8 +98,8 @@ class DyadicDecisionTreeModel:
 		left_node = Node(left_rectangle, level=new_level, \
 			X_all=X_all, parent_indices=parent_indices)		
 
-		if left_node.num_samples >= 5:	
-			parent.left = left_node			
+		if left_node.num_samples >= 5:
+			parent.left = left_node	
 			self.fit(X_all, parent=parent.left)		
 			self.nodes.append(left_node)
 
@@ -114,7 +114,9 @@ class DyadicDecisionTreeModel:
 
 	def decision_path(self, X):
 		decision_paths = np.zeros((X.shape[0], len(self.nodes)))		
-		for idx, node in tqdm(enumerate(self.nodes), total=len(self.nodes)):
+		for idx, node in tqdm(enumerate(self.nodes), total=len(self.nodes)):			
+			if self.non_zero_norm_indices[idx] == 0:
+				continue
 			points_in_node = node.indices_in_rectangle(X)
 			decision_paths[:, idx] = points_in_node
 		return decision_paths
