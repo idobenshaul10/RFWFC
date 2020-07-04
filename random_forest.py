@@ -230,6 +230,7 @@ class WaveletsForestRegressor:
 		self.num_samples = np.array([])
 		self.si_tree = np.zeros((np.shape(X)[1], len(rf.estimators_)))
 		self.si = np.array([])
+		self.root_nodes = []
 		##
 
 		for i in range(len(rf.estimators_)):
@@ -266,7 +267,12 @@ class WaveletsForestRegressor:
 
 			self.volumes = np.append(self.volumes, volumes)
 			self.norms = np.append(self.norms, norms)
-			self.num_samples = np.append(self.num_samples, num_samples)         
+			if len(self.root_nodes) == 0:
+				self.root_nodes.append(0)
+			else:
+				self.root_nodes.append(self.root_nodes[-1] + num_nodes)
+
+			self.num_samples = np.append(self.num_samples, num_samples)
 			self.vals = np.append(self.vals, vals, axis=1)          
 			##
 			if self.train_vi:
@@ -285,7 +291,7 @@ class WaveletsForestRegressor:
 		self.si = np.append(self.si, np.sum(self.si_tree, 1) / len(rf.estimators_))
 		self.feature_importances_ = self.si
 		##
-		y_pred_2 = self.predict(X)      
+		y_pred_2 = self.predict(X)
 		auc = metrics.roc_auc_score(y, y_pred_2)
 		print(f"AUC_2:{auc}")       
 		return self
@@ -403,7 +409,7 @@ class WaveletsForestRegressor:
 		pruned = lil_matrix(paths.shape, dtype=np.float32)
 		
 		pruned[:, sorted_norms] = paths[:, sorted_norms]
-		predictions = pruned * self.vals.T / len(self.rf.estimators_)		
+		predictions = pruned * self.vals.T / len(self.rf.estimators_)
 		return predictions
 
 	def evaluate_smoothness(self, m=1000, error_TH=0.):
@@ -498,6 +504,29 @@ class WaveletsForestRegressor:
 		# logging.info('Smoothness index: %s' % alpha)
 
 		return alpha, n_wavelets, errors
+
+
+	def save_wavelet_norms(self):
+		result = self.norms
+		result[self.root_nodes] = 0.
+		result = list(result)		
+		# remove root node
+		result = result[1:]
+		
+		def convert(o):
+			if isinstance(o, np.generic): return o.item()
+			raise TypeError
+
+		dir_path = r"C:\projects\RFWFC\results\approximation_methods\Sparsity\RF_5_TREE"
+		json_file_name = "norms_50000.json"
+		write_data = {}		
+		write_data['norms'] = result
+		write_data['num_trees'] = len(self.rf.estimators_)
+		norms_path = os.path.join(dir_path, json_file_name)
+		with open(norms_path, "w+") as f:
+			json.dump(write_data, f, default=convert)
+
+		print(f"saved summands to:{norms_path}")		
 
 	def accuracy(self, y_pred, y):
 		'''

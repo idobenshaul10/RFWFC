@@ -225,7 +225,7 @@ class DyadicDecisionTreeRegressor:
 			with open(os.path.join(dir_path, json_file_name), "w+") as f:
 				json.dump(write_data, f, default=convert)
 		
-		regr = linear_model.LinearRegression()		
+		regr = linear_model.LinearRegression()
 		regr.fit(n_wavelets_log, errors_log)
 
 		y_pred = regr.predict(n_wavelets_log)
@@ -240,8 +240,26 @@ class DyadicDecisionTreeRegressor:
 
 		return alpha, n_wavelets, errors
 
+	def save_wavelet_norms(self):
+		result = list(self.norms[self.non_zero_norm_indices==1])
+		# remove root node
+		result = result[1:]
+		
+		def convert(o):
+			if isinstance(o, np.generic): return o.item()
+			raise TypeError
 
-	def calculate_besove_semi_norm(self, p=2):
+		dir_path = r"C:\projects\RFWFC\results\approximation_methods\Sparsity"
+		json_file_name = "norms_50000.json"
+		write_data = {}		
+		write_data['norms'] = result
+		norms_path = os.path.join(dir_path, json_file_name)
+		with open(norms_path, "w+") as f:
+			json.dump(write_data, f, default=convert)
+
+		print(f"saved summands to:{norms_path}")		
+
+	def calculate_besov_semi_norm(self, p=2):
 		total_domain_scores = []
 		for domain in self.regressor.nodes:
 			idx = domain.id
@@ -263,7 +281,7 @@ class DyadicDecisionTreeRegressor:
 
 		dir_path = r"C:\projects\RFWFC\results\approximation_methods\Besov_Semi_Norm"
 		json_file_name = "besov_summands_50000.json"
-		write_data = {}
+		write_data = {}		
 		write_data['summands'] = total_domain_scores
 		summands_path = os.path.join(dir_path, json_file_name)
 		with open(summands_path, "w+") as f:

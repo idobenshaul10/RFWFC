@@ -9,7 +9,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from random_forest import WaveletsForestRegressor
 from matplotlib.pyplot import plot, ion, show
 from utils import normalize_data, run_alpha_smoothness, kfold_alpha_smoothness, \
-	kfold_regression_mse, train_model, calculate_besove_semi_norm
+	kfold_regression_mse, train_model, calculate_besov_semi_norm, save_wavelet_norms
 import logging	
 import time
 import json
@@ -168,6 +168,7 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	norm_normalization = 'num_samples'
 	normalize = True
 	semi_norm = True
+	wavelet_norms = True
 
 	model = None
 	if not os.path.isdir(output_path):
@@ -176,8 +177,15 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	for dataset_size in tqdm(range(MIN_SIZE, MAX_SIZE, STEP)):		
 		x, y = pointGen[dataset_size]
 
+		if wavelet_norms:
+			save_wavelet_norms(x, y, t_method="dyadic", \
+				num_wavelets=N_wavelets, m_depth=flags.depth, \
+				n_state=2000, normalize=False, \
+				norm_normalization=norm_normalization, cube_length=pointGen.cube_length)
+			continue
+
 		if semi_norm:
-			calculate_besove_semi_norm(x, y, t_method="dyadic", \
+			calculate_besov_semi_norm(x, y, t_method="dyadic", \
 				num_wavelets=N_wavelets, m_depth=flags.depth, \
 				n_state=2000, normalize=False, \
 				norm_normalization=norm_normalization, cube_length=pointGen.cube_length)
@@ -260,6 +268,7 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	norm_normalization = 'volume'
 	error_TH = flags.error_TH
 	normalize = True
+	wavelet_norms = True
 	model = None
 	if not os.path.isdir(output_path):
 		os.mkdir(output_path)
@@ -267,6 +276,14 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	for dataset_size in tqdm(range(MIN_SIZE, MAX_SIZE, STEP)):
 		x, y = pointGen[dataset_size]
 		# plot_dataset(x,y, donut_distance)
+
+		if wavelet_norms:
+			save_wavelet_norms(x, y, t_method=flags.regressor, \
+				num_wavelets=N_wavelets, n_trees=flags.trees, \
+				m_depth=flags.depth, \
+				n_state=2000, normalize=False, \
+				norm_normalization=norm_normalization, cube_length=pointGen.cube_length)
+			continue
 
 		# logging.info(f"LABELS COUNTER: {Counter(y.squeeze())}")		
 		mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \

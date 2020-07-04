@@ -98,7 +98,8 @@ def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_de
     logging.log(60, 'ALPHA SMOOTHNESS over X: ' + str(alpha))
     return alpha, -1, num_wavelets, norm_m_term, model
 
-def calculate_besove_semi_norm(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_depth=9,
+
+def save_wavelet_norms(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_depth=9,
                          n_features='auto', n_state=2000, normalize=True, \
                          norm_normalization='volume', cube_length=1.):
     if normalize:
@@ -109,7 +110,20 @@ def calculate_besove_semi_norm(X, y, t_method='RF', num_wavelets=1000, n_trees=1
         depth=m_depth, features=n_features, state=n_state, \
         nnormalization=norm_normalization, cube_length=cube_length)  
 
-    partition_sums = model.calculate_besove_semi_norm()  
+    model.save_wavelet_norms() 
+
+def calculate_besov_semi_norm(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_depth=9,
+                         n_features='auto', n_state=2000, normalize=True, \
+                         norm_normalization='volume', cube_length=1.):
+    if normalize:
+        X = normalize_data(X)
+
+    norm_m_term = 0
+    model = train_model(X, y, method=t_method, trees=n_trees, \
+        depth=m_depth, features=n_features, state=n_state, \
+        nnormalization=norm_normalization, cube_length=cube_length)  
+
+    model.calculate_besov_semi_norm()  
 
 
 def kfold_alpha_smoothness(x, y, t_method='RF', num_wavelets=10, n_folds=10, n_trees=5, m_depth=9,
