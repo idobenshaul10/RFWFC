@@ -168,7 +168,7 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	norm_normalization = 'num_samples'
 	normalize = True
 	semi_norm = True
-	wavelet_norms = True
+	wavelet_norms = False
 
 	model = None
 	if not os.path.isdir(output_path):

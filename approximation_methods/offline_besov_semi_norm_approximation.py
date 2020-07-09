@@ -47,12 +47,12 @@ def save_graphs(output_path, steps, alphas, consts):
 def find_best_fit_alpha(errors_data, output_path, verbose=True, p=2):
 	m_step, start_m_step = 10, 10
 	summands = np.array(errors_data["summands"])
+	save = True
 
 	save_path = os.path.join(output_path, "besov_semi_norm.png")
 	alphas = np.arange(0.05, 1., 0.01)
 	total_besov_norms = []
 	for alpha in alphas:
-		
 		tau = 1/(alpha + (1/p))
 		tau_summands = np.power(summands, tau)
 		besov_norm_approx = np.power(tau_summands.sum(), 1/tau)
@@ -63,9 +63,10 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True, p=2):
 		plt.title("alpha vs. semi_norm")
 		plt.xlabel('alpha')
 		plt.ylabel('semi_norm')
-		plt.plot(alphas, total_besov_norms)		
-		plt.pause(10)
-		plt.savefig(save_path, dpi=300, bbox_inches='tight')
+		plt.plot(alphas, total_besov_norms)	
+		plt.pause(2)
+		if save:
+			plt.savefig(save_path, dpi=300, bbox_inches='tight')
 		# ax.lines.pop(-1)		
 
 if __name__ == "__main__":

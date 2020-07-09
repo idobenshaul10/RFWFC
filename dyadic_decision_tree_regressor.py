@@ -96,11 +96,11 @@ class DyadicDecisionTreeRegressor:
 		self.norms = norms
 		self.vals = vals
 	
-	def __compute_norm(self, avg, parent_avg, volume):      
+	def __compute_norm(self, avg, parent_avg, volume):		
 		norm = np.sqrt(np.sum(np.square(avg - parent_avg)) * volume)
 		return norm
 
-	def __traverse_nodes(self, base_node_id, norms, vals):
+	def __traverse_nodes(self, base_node_id, norms, vals):		
 		parent_node = self.regressor.nodes[base_node_id]
 		parent_mean_value = self.regressor.get_mean_value(base_node_id)
 
@@ -241,7 +241,7 @@ class DyadicDecisionTreeRegressor:
 		return alpha, n_wavelets, errors
 
 	def save_wavelet_norms(self):
-		result = list(self.norms[self.non_zero_norm_indices==1])
+		result = list(self.norms[self.non_zero_norm_indices==1])		
 		# remove root node
 		result = result[1:]
 		
@@ -251,22 +251,26 @@ class DyadicDecisionTreeRegressor:
 
 		dir_path = r"C:\projects\RFWFC\results\approximation_methods\Sparsity"
 		json_file_name = "norms_50000.json"
-		write_data = {}		
+		write_data = {}
 		write_data['norms'] = result
 		norms_path = os.path.join(dir_path, json_file_name)
 		with open(norms_path, "w+") as f:
 			json.dump(write_data, f, default=convert)
 
-		print(f"saved summands to:{norms_path}")		
+		print(f"saved norms to:{norms_path}")		
 
-	def calculate_besov_semi_norm(self, p=2):
+	def calculate_besov_semi_norm(self, p=2, volume_method="num_samples"):
 		total_domain_scores = []
 		for domain in self.regressor.nodes:
 			idx = domain.id
 			if self.non_zero_norm_indices[idx] == 0:
 				continue
+				
+			if volume_method == "num_samples":				
+				volume = np.power(domain.num_samples, 1/p)
+			else:
+				volume = np.power(domain.rect.volume, 1/p)
 
-			volume = np.power(domain.rect.volume, 1/p)
 			num_samples = domain.num_samples
 			mean_value = self.regressor.get_mean_value(idx)
 			ys = self.regressor.y_all[domain.indices]
@@ -280,7 +284,7 @@ class DyadicDecisionTreeRegressor:
 			raise TypeError
 
 		dir_path = r"C:\projects\RFWFC\results\approximation_methods\Besov_Semi_Norm"
-		json_file_name = "besov_summands_50000.json"
+		json_file_name = f"besov_summands_50000_{volume_method}.json"
 		write_data = {}		
 		write_data['summands'] = total_domain_scores
 		summands_path = os.path.join(dir_path, json_file_name)

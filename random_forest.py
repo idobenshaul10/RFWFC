@@ -526,7 +526,7 @@ class WaveletsForestRegressor:
 		with open(norms_path, "w+") as f:
 			json.dump(write_data, f, default=convert)
 
-		print(f"saved summands to:{norms_path}")		
+		print(f"saved norms to:{norms_path}")
 
 	def accuracy(self, y_pred, y):
 		'''

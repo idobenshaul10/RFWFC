@@ -50,9 +50,9 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True, p=2):
 	tau_save_path = os.path.join(output_path, "tau_sparsity.png")
 	alpha_save_path = os.path.join(output_path, "alpha_sparsity.png")
 
-	taus = np.arange(0.5, 4., 0.01)
+	taus = np.arange(0.5, 1.5, 0.01)
 	alphas = ((1/taus) - 1/p)
-	# import pdb; pdb.set_trace()
+	save = True	
 	total_sparsities, total_alphas = [], []
 	
 	for tau in taus:			
@@ -68,7 +68,8 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True, p=2):
 		plt.plot(taus, total_sparsities)
 		plt.pause(1)
 		
-		plt.savefig(tau_save_path, dpi=300, bbox_inches='tight')
+		if save:
+			plt.savefig(tau_save_path, dpi=300, bbox_inches='tight')
 
 		plt.figure(2)
 		plt.title("alpha vs. sparsity")
@@ -77,7 +78,8 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True, p=2):
 		plt.plot(alphas, total_sparsities)
 		plt.pause(10)
 
-		plt.savefig(alpha_save_path, dpi=300, bbox_inches='tight')
+		if save:
+			plt.savefig(alpha_save_path, dpi=300, bbox_inches='tight')
 
 		
 
@@ -90,5 +92,5 @@ if __name__ == "__main__":
 		output_path = os.path.dirname(sys.argv[1])
 	f = open(json_path)
 	errors_data = json.load(f)
-	find_best_fit_alpha(errors_data, output_path)
+	find_best_fit_alpha(errors_data, output_path, verbose=True)
 

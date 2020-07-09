@@ -43,6 +43,18 @@ def save_graphs(output_path, steps, alphas, consts):
 	plt.ylabel('consts')
 	plt.savefig(consts_path, dpi=300, bbox_inches='tight')
 
+def plot_total_alphas(n_wavelets, total_alpha_consts, alphas, output_path):
+	save_path = os.path.join(output_path, "total_const.png")
+	plt.figure(3)
+	plt.title("Consts vs. Num Wavelets")
+	plt.xlabel('Num Wavelets')
+	plt.ylabel('Consts')	
+	for i in range(0, len(total_alpha_consts), 10):
+		plt.plot(n_wavelets, total_alpha_consts[i], label=f"alpha:{alphas[i]:.2f}")		
+	plt.legend()
+	plt.pause(2)
+	plt.savefig(save_path, dpi=300, bbox_inches='tight')
+
 
 def find_best_fit_alpha(errors_data, output_path, verbose=True):
 	m_step, start_m_step = 10, 10
@@ -54,15 +66,14 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True):
 	mean_path = os.path.join(output_path, "mean_const.png")
 	std_path = os.path.join(output_path, "std_const.png")
 
-	print(f"number of errors:{len(errors)}")	
+	print(f"number of errors:{len(errors)}")
 	alphas = np.arange(0.05, 1., 0.01)
-	total_mean_consts, total_std_consts = [], []
+	total_alpha_consts, total_mean_consts, total_std_consts = [], [], []
 	for alpha in alphas:
-			
 		a_consts = errors * np.power(n_wavelets, alpha)
+		total_alpha_consts.append(a_consts)
 		a_const_mean = a_consts.mean()
 		a_const_std = a_consts.std()
-
 		total_mean_consts.append(a_const_mean)
 		total_std_consts.append(a_const_std)
 
@@ -74,7 +85,8 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True):
 		plt.plot(alphas, total_mean_consts)
 		plt.legend()
 		plt.pause(1)
-		plt.savefig(mean_path, dpi=300, bbox_inches='tight')
+		if save:
+			plt.savefig(mean_path, dpi=300, bbox_inches='tight')
 		# ax.lines.pop(-1)
 
 		plt.figure(2)
@@ -83,7 +95,10 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True):
 		plt.ylabel('std const')
 		plt.plot(alphas, total_std_consts)
 		plt.pause(5)
-		plt.savefig(std_path, dpi=300, bbox_inches='tight')
+		if save:
+			plt.savefig(std_path, dpi=300, bbox_inches='tight')
+
+	plot_total_alphas(n_wavelets, total_alpha_consts, alphas, output_path)
 
 if __name__ == "__main__":
 	json_path = sys.argv[1]
@@ -94,5 +109,5 @@ if __name__ == "__main__":
 		output_path = os.path.dirname(sys.argv[1])
 	f = open(json_path)
 	errors_data = json.load(f)
-	find_best_fit_alpha(errors_data, output_path)
+	find_best_fit_alpha(errors_data, output_path, verbose=False)
 
