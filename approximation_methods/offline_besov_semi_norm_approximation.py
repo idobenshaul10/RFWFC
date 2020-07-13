@@ -23,34 +23,14 @@ from sklearn.metrics import *
 import json
 from tqdm import tqdm
 
-def save_graphs(output_path, steps, alphas, consts):
-	if not os.path.isdir(output_path):
-		os.mkdir(output_path)
-	alphas_path = os.path.join(output_path, "alpha.png")
-	consts_path = os.path.join(output_path, "const.png")
-
-	plt.clf()
-	plt.title("alphas vs. num wavelets")
-	plt.plot(steps, alphas)
-	plt.xlabel('#wavelets')
-	plt.ylabel('alphas')
-	plt.savefig(alphas_path, dpi=300, bbox_inches='tight')
-
-	plt.clf()
-	plt.plot(steps, consts)
-	plt.title("const vs. num wavelets")
-	plt.xlabel('#wavelets')
-	plt.ylabel('consts')
-	plt.savefig(consts_path, dpi=300, bbox_inches='tight')
-
-
 def find_best_fit_alpha(errors_data, output_path, verbose=True, p=2):
 	m_step, start_m_step = 10, 10
 	summands = np.array(errors_data["summands"])
-	save = True
+	save = False
 
 	save_path = os.path.join(output_path, "besov_semi_norm.png")
-	alphas = np.arange(0.05, 1., 0.01)
+	derivative_save_path = os.path.join(output_path, "derivative_besov_semi_norm.png")
+	alphas = np.arange(0.2, 0.65, 0.01)
 	total_besov_norms = []
 	for alpha in alphas:
 		tau = 1/(alpha + (1/p))
@@ -63,10 +43,22 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True, p=2):
 		plt.title("alpha vs. semi_norm")
 		plt.xlabel('alpha')
 		plt.ylabel('semi_norm')
-		plt.plot(alphas, total_besov_norms)	
-		plt.pause(2)
+		plt.plot(alphas, total_besov_norms)
+		plt.pause(1)
 		if save:
 			plt.savefig(save_path, dpi=300, bbox_inches='tight')
+
+		diffs = np.array(total_besov_norms[1:]) - np.array(total_besov_norms[:-1])
+		plt.figure(2)
+		plt.title("alpha vs. semi_norm derivative")
+		plt.xlabel('alpha')
+		plt.ylabel('semi_norm derivative')
+		plt.plot(alphas[1:], diffs)
+		plt.pause(10)
+		if save:
+			plt.savefig(derivative_save_path, dpi=300, bbox_inches='tight')
+
+
 		# ax.lines.pop(-1)		
 
 if __name__ == "__main__":

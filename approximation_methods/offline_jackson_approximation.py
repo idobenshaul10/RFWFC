@@ -44,19 +44,23 @@ def save_graphs(output_path, steps, alphas, consts):
 	plt.savefig(consts_path, dpi=300, bbox_inches='tight')
 
 def plot_total_alphas(n_wavelets, total_alpha_consts, alphas, output_path):
-	save_path = os.path.join(output_path, "total_const.png")
+	save_path = os.path.join(output_path, "total_const_all.png")
 	plt.figure(3)
 	plt.title("Consts vs. Num Wavelets")
 	plt.xlabel('Num Wavelets')
 	plt.ylabel('Consts')	
-	for i in range(0, len(total_alpha_consts), 10):
-		plt.plot(n_wavelets, total_alpha_consts[i], label=f"alpha:{alphas[i]:.2f}")		
+	for i in range(0, len(total_alpha_consts), 3):		
+		# if abs(alphas[i] - 0.5) < 1e-6:
+		plt.plot(n_wavelets, total_alpha_consts[i], label=f"{alphas[i]:.2f}")
+		# else:
+		# 	plt.plot(n_wavelets, total_alpha_consts[i], color='blue', linewidth=1.)
 	plt.legend()
-	plt.pause(2)
-	plt.savefig(save_path, dpi=300, bbox_inches='tight')
+	plt.pause(10)
+	# plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
 
 def find_best_fit_alpha(errors_data, output_path, verbose=True):
+	save = False
 	m_step, start_m_step = 10, 10
 	errors = errors_data["errors"]
 	n_wavelets = errors_data["n_wavelets"]
@@ -71,7 +75,7 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True):
 	total_alpha_consts, total_mean_consts, total_std_consts = [], [], []
 	for alpha in alphas:
 		a_consts = errors * np.power(n_wavelets, alpha)
-		total_alpha_consts.append(a_consts)
+		total_alpha_consts.append(a_consts)		
 		a_const_mean = a_consts.mean()
 		a_const_std = a_consts.std()
 		total_mean_consts.append(a_const_mean)
@@ -86,15 +90,14 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True):
 		plt.legend()
 		plt.pause(1)
 		if save:
-			plt.savefig(mean_path, dpi=300, bbox_inches='tight')
-		# ax.lines.pop(-1)
+			plt.savefig(mean_path, dpi=300, bbox_inches='tight')		
 
 		plt.figure(2)
 		plt.title("wavelet vs. std const")
 		plt.xlabel('alpha')
 		plt.ylabel('std const')
 		plt.plot(alphas, total_std_consts)
-		plt.pause(5)
+		plt.pause(10)
 		if save:
 			plt.savefig(std_path, dpi=300, bbox_inches='tight')
 
@@ -109,5 +112,5 @@ if __name__ == "__main__":
 		output_path = os.path.dirname(sys.argv[1])
 	f = open(json_path)
 	errors_data = json.load(f)
-	find_best_fit_alpha(errors_data, output_path, verbose=False)
+	find_best_fit_alpha(errors_data, output_path, verbose=True)
 
