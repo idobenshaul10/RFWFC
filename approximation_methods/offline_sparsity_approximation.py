@@ -94,7 +94,7 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True, p=2):
 		plt.xlabel('tau')
 		plt.ylabel('sparsity')
 		plt.plot(taus, total_sparsities)
-		plt.pause(1)
+		plt.pause(10)
 		
 		if save:
 			plt.savefig(tau_save_path, dpi=300, bbox_inches='tight')
@@ -109,7 +109,7 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True, p=2):
 		if save:
 			plt.savefig(alpha_save_path, dpi=300, bbox_inches='tight')
 
-	plot_derivatives(taus, alphas, total_sparsities, output_path)
+	# plot_derivatives(taus, alphas, total_sparsities, output_path)
 
 		
 
@@ -122,5 +122,5 @@ if __name__ == "__main__":
 		output_path = os.path.dirname(sys.argv[1])
 	f = open(json_path)
 	errors_data = json.load(f)
-	find_best_fit_alpha(errors_data, output_path, verbose=False)
+	find_best_fit_alpha(errors_data, output_path, verbose=True)
 
