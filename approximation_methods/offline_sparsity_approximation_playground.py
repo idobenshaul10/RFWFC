@@ -64,46 +64,77 @@ def plot_derivatives(taus, alphas, total_sparsities, output_path):
 		# if j < N-2:
 		# 	continue
 
-		diffs /= h
+		# diffs /= h
 
-		# plt.figure(j+4)
-		# plt.title(f"tau vs. sparsity {j+1}-derivative")
-		# plt.xlabel(f'tau')
-		# plt.ylabel(f'sparsity {j+1}-derivative')		
+		plt.figure(j+4)
+		plt.title(f"tau vs. sparsity {j+1}-derivative")
+		plt.xlabel(f'tau')
+		plt.ylabel(f'sparsity {j+1}-derivative')		
 
 		index = np.where(abs(taus[j+1:]-1)<1e-6)[0]
 		# indices = np.where(np.logical_and(abs(taus[j+1:]-1)<0.1, taus[j+1:]>1))
 		# # plt.ylim(-150000, 0)
-		# plt.plot(taus[j+1:], diffs, zorder=1)
+		plt.plot(taus[j+1:], diffs, zorder=1)
+		plt.pause(2000)
 		# plt.scatter([taus[j+1:][indices]], [diffs[indices]], color="r", zorder=2, \
 		# 	s=[2 for k in range(len(indices))])
 		# plt.scatter([taus[j+1:][index]], [diffs[index]], color="b", zorder=3)
 
-		plt.figure(j+1)
+		plt.figure(j+4)
 		plt.title(f"tau vs. sparsity {j+1}-derivative angle")
 		plt.xlabel(f'tau')
 		plt.ylabel(f'sparsity {j+1}-derivative angle')
-		angles = np.rad2deg(np.arctan(diffs))		
+		angles = np.rad2deg(np.arctan(diffs))
 
 		plt.plot(taus[j+1:], angles, zorder=1)
 		plt.scatter([taus[j+1:][index]], [angles[index]], color="r", zorder=2)
-
-		# import pdb; pdb.set_trace()
-		angle_index = np.where(abs(angles+(90. - 0.015))<1e-2)[0][0]
+		
+		epsilon = 0.015
+		angle_index = np.where(abs(angles+(90. - epsilon))<1e-2)[0][0]
 		print(f"[taus[j+1:][angle_index]]:{[taus[j+1:][angle_index]]}")
 		plt.scatter([taus[j+1:][angle_index]], [angles[angle_index]], color="g", zorder=2)
 		
-
-		# plt.title(f"tau vs. sparsity {j+1}-derivative sigmoid")
-		# plt.xlabel(f'tau')
-		# plt.ylabel(f'sparsity {j+1}-derivative sigmoid')
-		# angles = sigmoid(diffs)
-		# plt.plot(taus[j+1:], angles, zorder=1)
-		# plt.scatter([taus[j+1:][index]], [angles[index]], color="r", zorder=2)
+		plt.title(f"tau vs. sparsity {j+1}-derivative sigmoid")
+		plt.xlabel(f'tau')
+		plt.ylabel(f'sparsity {j+1}-derivative sigmoid')
+		angles = sigmoid(diffs)
+		plt.plot(taus[j+1:], angles, zorder=1)
+		plt.scatter([taus[j+1:][index]], [angles[index]], color="r", zorder=2)
 
 
 	plt.pause(2000)
 
+def plot_first_actual_derivative(taus, norms, output_path):
+	N = 1	
+	save = False
+	tau_save_path = os.path.join(output_path, "tau_sparsity_actual_derivative.png")
+	total_sparsities = []
+	# first order
+
+	for tau in taus:		
+		tau_sparsity = np.power(np.power(norms, tau).sum(), ((1/tau)-1))
+		tau_sparsity *= np.power(norms, (tau-1)).sum()
+		total_sparsities.append(tau_sparsity)
+		print(f"tau:{tau}, tau_sparsity:{tau_sparsity}")
+
+	total_sparsities = -np.array(total_sparsities)
+	plt.figure(2)
+	plt.title("tau vs. sparsity derivative")
+	plt.xlabel('tau')
+	plt.ylabel('sparsity derivative')		
+	
+	window = 2500
+	vals = total_sparsities
+
+	plt.plot(taus, vals)
+	index = np.where(abs(taus-1)<1e-6)[0][0]							
+	plt.scatter([taus[index]], vals[index], color="b", zorder=3)
+	
+	if save:
+		plt.savefig(tau_save_path, dpi=300, bbox_inches='tight')	
+
+
+	plt.pause(2000)
 
 def find_best_fit_alpha(errors_data, output_path, verbose=True, p=2):
 	m_step, start_m_step = 10, 10
@@ -111,7 +142,7 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True, p=2):
 	tau_save_path = os.path.join(output_path, "tau_sparsity.png")
 	alpha_save_path = os.path.join(output_path, "alpha_sparsity.png")
 
-	taus = np.arange(0.7, 20., 0.01)
+	taus = np.arange(0.7, 2., 0.01)
 	alphas = ((1/taus) - 1/p)
 	save = True	
 	total_sparsities, total_alphas = [], []
@@ -143,10 +174,10 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True, p=2):
 		plt.scatter([taus[index]], vals[index], color="b", zorder=3)
 
 		# x = np.linspace(50, list(range(50,351,25))[-1], 25)
-		TH = 1000
-		y = [TH for k in taus]
-		plt.plot(taus, y, '-r', label=f'TH:{TH}')
-		plt.pause(1000)
+		# TH = 1000
+		# y = [TH for k in taus]
+		# plt.plot(taus, y, '-r', label=f'TH:{TH}')
+		# plt.pause(1)
 		
 		if save:
 			plt.savefig(tau_save_path, dpi=300, bbox_inches='tight')
@@ -161,7 +192,8 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True, p=2):
 		# if save:
 		# 	plt.savefig(alpha_save_path, dpi=300, bbox_inches='tight')
 
-	plot_derivatives(taus, alphas, total_sparsities, output_path)
+	# plot_derivatives(taus, alphas, total_sparsities, output_path)
+	plot_first_actual_derivative(taus, norms, output_path)
 
 		
 
@@ -174,5 +206,5 @@ if __name__ == "__main__":
 		output_path = os.path.dirname(sys.argv[1])
 	f = open(json_path)
 	errors_data = json.load(f)
-	find_best_fit_alpha(errors_data, output_path, verbose=False)
+	find_best_fit_alpha(errors_data, output_path, verbose=True)
 

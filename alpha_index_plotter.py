@@ -34,8 +34,8 @@ def plot_dataset(X, Y, donut_distance):
 	# 	dpi=300, bbox_inches='tight')	
 
 
-MIN_SIZE = 50000
-MAX_SIZE = 50001
+MIN_SIZE = 1000
+MAX_SIZE = 60001
 # MAX_SIZE = 26001
 STEP = 2500
 
@@ -167,7 +167,7 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	donut_distance = flags.donut_distance
 	norm_normalization = 'num_samples'
 	normalize = True
-	semi_norm = True
+	semi_norm = False
 	wavelet_norms = False
 
 	model = None
@@ -191,12 +191,12 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 				norm_normalization=norm_normalization, cube_length=pointGen.cube_length)
 			continue
 
-		# mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \
-		# 	run_alpha_smoothness(x, y, t_method="dyadic", \
-		# 		num_wavelets=N_wavelets, m_depth=flags.depth, \
-		# 		n_state=2000, normalize=False, \
-		# 		norm_normalization=norm_normalization, cube_length=pointGen.cube_length, \
-		# 		error_TH=flags.error_TH)
+		mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \
+			run_alpha_smoothness(x, y, t_method="dyadic", \
+				num_wavelets=N_wavelets, m_depth=flags.depth, \
+				n_state=2000, normalize=False, \
+				norm_normalization=norm_normalization, cube_length=pointGen.cube_length, \
+				error_TH=flags.error_TH)
 
 	
 		stds.append(std_alpha)
@@ -208,9 +208,12 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 
 	print(f'alphas:{alphas}')
 	plt.figure(1)
-	plt.clf()
-	plt.ylim(0.3, 1.)
-	plt.plot(sizes, alphas)
+	plt.clf()	
+	# plt.plot(sizes, alphas)
+	plt.fill_between(sizes, [k[0] for k in alphas], [k[1] for k in alphas], \
+		alpha=0.2, facecolor='#089FFF', \
+		linewidth=4)
+	plt.plot(sizes, [np.array(k).mean()	 for k in alphas], 'k', color='#1B2ACC')
 	
 	write_data = {}
 	write_data['points'] = sizes
@@ -223,7 +226,7 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	write_data['norm_normalization'] = norm_normalization
 	write_data['normalize'] = normalize		
 
-	desired_value = draw_predictive_line(flags.dimension, p=2)
+	# desired_value = draw_predictive_line(flags.dimension, p=2)
 	last_alpha = alphas[-1]
 	print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')	
 	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_errorTH_{flags.error_TH}"
@@ -268,7 +271,7 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	norm_normalization = 'volume'
 	error_TH = flags.error_TH
 	normalize = True
-	wavelet_norms = True
+	wavelet_norms = False
 	model = None
 	if not os.path.isdir(output_path):
 		os.mkdir(output_path)
@@ -347,7 +350,7 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 			dpi=300, bbox_inches='tight')
 	end = time.time()
 	print(f"total time is {end-start}")
-	plt.show(block=False)
+	plt.show(block=False)	
 
 def plot_alpha_per_depth(flags, \
 	data_str, normalize=True, output_path=''):

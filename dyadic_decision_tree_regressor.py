@@ -144,6 +144,39 @@ class DyadicDecisionTreeRegressor:
 		predictions = pruned * self.vals.T
 		return predictions, sorted_norms
 
+	def evaluate_angle_smoothness(self, m=1000, error_TH=0):
+		'''
+		Evaluate smoothness using sparsity consideration
+		'''
+		norms = list(self.norms[self.non_zero_norm_indices==1])		
+		norms = norms[1:]
+		p = 2
+		h = 0.01
+		epsilon_1 = 0.011
+		epsilon_2 = 0.013
+		taus = np.arange(0.7, 10., h)		
+		total_sparsities, total_alphas = [], []
+		for tau in taus:
+			tau_sparsity = np.power(np.power(norms, tau).sum(), (1/tau))
+			total_sparsities.append(tau_sparsity)
+			# print(f"tau:{tau}, tau_sparsity:{tau_sparsity}")
+		total_sparsities = np.array(total_sparsities)
+		diffs = total_sparsities[1:] - total_sparsities[:-1]
+		diffs /= h
+		angles = np.rad2deg(np.arctan(diffs))
+		
+		angle_index_1 = np.where(abs(angles+(90. - epsilon_1))<1e-2)[0][0]
+		angle_index_2 = np.where(abs(angles+(90. - epsilon_2))<1e-2)[0][0]
+
+		critical_tau_approximation_1 = taus[1:][angle_index_1]
+		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/p)
+
+		critical_tau_approximation_2 = taus[1:][angle_index_2]
+		critical_alpha_approximation_2 = ((1/critical_tau_approximation_2) - 1/p)
+
+		return critical_alpha_approximation_1, critical_alpha_approximation_2
+
+		
 	def evaluate_smoothness(self, m=1000, error_TH=0):
 		'''
 		Evaluates smoothness for a maximum of M-terms
@@ -234,14 +267,13 @@ class DyadicDecisionTreeRegressor:
 		plt.plot(n_wavelets_log, y_pred, color='blue', linewidth=3, label=f'alpha:{alpha}')
 		plt.legend()
 		plt.draw()
-		plt.pause(0.5)
-		
+		plt.pause(0.5)		
 		# logging.info('Smoothness index: %s' % alpha)
 
 		return alpha, n_wavelets, errors
 
 	def save_wavelet_norms(self):
-		result = list(self.norms[self.non_zero_norm_indices==1])		
+		result = list(self.norms[self.non_zero_norm_indices==1])
 		# remove root node
 		result = result[1:]
 		
