@@ -90,10 +90,10 @@ def plot_derivatives(taus, alphas, total_sparsities, output_path):
 		plt.scatter([taus[j+1:][index]], [angles[index]], color="r", zorder=2)
 		
 		epsilon = 0.015
-		angle_index = np.where(abs(angles+(90. - epsilon))<1e-2)[0][0]
+		angle_index = np.where(abs(angles+90.)<1e-2)[0][0]
 		print(f"[taus[j+1:][angle_index]]:{[taus[j+1:][angle_index]]}")
 		plt.scatter([taus[j+1:][angle_index]], [angles[angle_index]], color="g", zorder=2)
-		
+
 		plt.title(f"tau vs. sparsity {j+1}-derivative sigmoid")
 		plt.xlabel(f'tau')
 		plt.ylabel(f'sparsity {j+1}-derivative sigmoid')

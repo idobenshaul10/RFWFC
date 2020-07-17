@@ -148,25 +148,44 @@ class DyadicDecisionTreeRegressor:
 		'''
 		Evaluate smoothness using sparsity consideration
 		'''
+		approx_diff = False
 		norms = list(self.norms[self.non_zero_norm_indices==1])		
 		norms = norms[1:]
 		p = 2
 		h = 0.01
-		epsilon_1 = 0.011
-		epsilon_2 = 0.013
+		diffs = []		
 		taus = np.arange(0.7, 10., h)		
 		total_sparsities, total_alphas = [], []
-		for tau in taus:
-			tau_sparsity = np.power(np.power(norms, tau).sum(), (1/tau))
-			total_sparsities.append(tau_sparsity)
-			# print(f"tau:{tau}, tau_sparsity:{tau_sparsity}")
-		total_sparsities = np.array(total_sparsities)
-		diffs = total_sparsities[1:] - total_sparsities[:-1]
-		diffs /= h
-		angles = np.rad2deg(np.arctan(diffs))
+		if approx_diff:
+			for tau in taus:
+				tau_sparsity = np.power(np.power(norms, tau).sum(), (1/tau))
+				total_sparsities.append(tau_sparsity)
+				# print(f"tau:{tau}, tau_sparsity:{tau_sparsity}")
+			total_sparsities = np.array(total_sparsities)
+			diffs = total_sparsities[1:] - total_sparsities[:-1]
+			diffs /= h
+		else:
+			for tau in taus:		
+				tau_sparsity = np.power(np.power(norms, tau).sum(), ((1/tau)-1))
+				tau_sparsity *= np.power(norms, (tau-1)).sum()
+				diffs.append(tau_sparsity)				
+			diffs = -np.array(diffs)
+
+		angles = np.rad2deg(np.arctan(diffs))		
+		epsilon_1 = 0.075
+		epsilon_2 = 2*epsilon_1
+		# import pdb; pdb.set_trace()
+		# epsilon_1 = 10.*abs(angles+90.).min()
+		# epsilon_2 = 2.*epsilon_1
 		
-		angle_index_1 = np.where(abs(angles+(90. - epsilon_1))<1e-2)[0][0]
-		angle_index_2 = np.where(abs(angles+(90. - epsilon_2))<1e-2)[0][0]
+		epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
+		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]	
+		
+		# angle_index_1 = epsilon_1_indices[-1]
+		# angle_index_2 = epsilon_2_indices[-1]
+
+		angle_index_1 = epsilon_1_indices[int(0.75*len(epsilon_1_indices))]
+		angle_index_2 = epsilon_2_indices[int(0.75*len(epsilon_2_indices))]
 
 		critical_tau_approximation_1 = taus[1:][angle_index_1]
 		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/p)
@@ -176,7 +195,7 @@ class DyadicDecisionTreeRegressor:
 
 		return critical_alpha_approximation_1, critical_alpha_approximation_2
 
-		
+
 	def evaluate_smoothness(self, m=1000, error_TH=0):
 		'''
 		Evaluates smoothness for a maximum of M-terms
