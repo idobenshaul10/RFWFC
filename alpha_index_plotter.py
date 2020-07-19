@@ -35,8 +35,7 @@ def plot_dataset(X, Y, donut_distance):
 
 
 MIN_SIZE = 1000
-MAX_SIZE = 60001
-# MAX_SIZE = 26001
+MAX_SIZE = 31001
 STEP = 2500
 
 
@@ -112,7 +111,7 @@ def plot_dyadic_per_num_wavelets(flags, data_str, normalize=True, output_path=''
 	print(f'alphas:{alphas}')
 	plt.figure(1)
 	plt.clf()
-	plt.ylim(0.4, 0.7)
+	plt.ylim(0.4, 0.6)
 	plt.plot(sizes, alphas)
 	
 	write_data = {}
@@ -208,12 +207,14 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 
 	print(f'alphas:{alphas}')
 	plt.figure(1)
-	plt.clf()	
-	# plt.plot(sizes, alphas)
-	plt.fill_between(sizes, [k[0] for k in alphas], [k[1] for k in alphas], \
-		alpha=0.2, facecolor='#089FFF', \
-		linewidth=4)
-	plt.plot(sizes, [np.array(k).mean()	 for k in alphas], 'k', color='#1B2ACC')
+	plt.clf()		
+	if type(alphas[0]) == list:
+		plt.fill_between(sizes, [k[0] for k in alphas], [k[1] for k in alphas], \
+			alpha=0.2, facecolor='#089FFF', \
+			linewidth=4)
+		plt.plot(sizes, [np.array(k).mean()	 for k in alphas], 'k', color='#1B2ACC')
+	else:
+		plt.plot(sizes, alphas, 'k', color='#1B2ACC')
 	
 	write_data = {}
 	write_data['points'] = sizes
@@ -243,6 +244,7 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	plt.title(data_str)
 	plt.xlabel(f'dataset size')
 	plt.ylabel(f'evaluate_smoothnes index- alpha')
+	plt.ylim(0.4, 0.8)
 
 	save_graph=True
 	if save_graph:		
@@ -302,7 +304,7 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	print(f'stds:{stds}')	
 	plt.figure(1)
 	plt.clf()
-	plt.ylim(0.25, 2.)
+	plt.ylim(0.2, 0.8)
 	plt.plot(sizes, alphas)
 
 	
@@ -379,7 +381,8 @@ def plot_alpha_per_depth(flags, \
 	plt.figure(1)
 	plt.plot(sizes, alphas)	
 def draw_predictive_line(n, p=2):	
-	x = np.linspace(50, list(range(50,351,25))[-1], 25)
+	x = np.linspace(MIN_SIZE, list(range(MIN_SIZE,MAX_SIZE,STEP))[-1], STEP)
+	# x = np.linspace(50, list(range(50,351,25))[-1], 25)
 	desired_value = 1/(p*(n-1))
 	y = [desired_value for k in x]
 	plt.plot(x, y, '-r', label='y=2x+1')

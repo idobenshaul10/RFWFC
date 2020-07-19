@@ -64,7 +64,7 @@ class WaveletsForestRegressor:
 		self.train_vi = train_vi
 		self.vi_threshold = vi_threshold
 		self.norms_normalization = norms_normalization
-		self.save_errors = True
+		self.save_errors = False
 
 
 	def visualize_classifier(self, ax=None, cmap='rainbow', depth=-1):        

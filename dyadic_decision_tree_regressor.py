@@ -47,7 +47,7 @@ class DyadicDecisionTreeRegressor:
 		self.y = None
 		self.rf = None
 		self.verbose = True
-		self.save_errors = True
+		self.save_errors = False
 		self.save_semi_norm = True
 
 		self.cube_length = cube_length
@@ -173,8 +173,7 @@ class DyadicDecisionTreeRegressor:
 
 		angles = np.rad2deg(np.arctan(diffs))		
 		epsilon_1 = 0.075
-		epsilon_2 = 2*epsilon_1
-		# import pdb; pdb.set_trace()
+		epsilon_2 = 2*epsilon_1		
 		# epsilon_1 = 10.*abs(angles+90.).min()
 		# epsilon_2 = 2.*epsilon_1
 		
@@ -206,8 +205,8 @@ class DyadicDecisionTreeRegressor:
 		errors = []
 		mean_norms = []
 		step = 10
-		power = 2
-		print_errors = False		
+		power = 1
+		print_errors = False
 
 		paths = self.regressor.decision_path(self.X)		
 		predictions = np.zeros(self.y.shape)		
@@ -244,14 +243,13 @@ class DyadicDecisionTreeRegressor:
 		n_wavelets = np.reshape(n_wavelets, (-1, 1))
 		errors = np.reshape(errors, (-1, 1))		
 
-		if self.verbose:
-			# plt.title(f'#wavelets to errors, DS size:{self.X.shape[0]}')
+		if self.verbose:			
 			plt.title(f'#wavelets to errors, Num Wavelets:{m}')
 			plt.xlabel('#wavelets')
 			plt.ylabel('errors')		
 			plt.plot(n_wavelets, errors)
 			plt.draw()
-			plt.pause(0.5)
+			plt.pause(2)
 			plt.figure(2)
 			plt.clf()
 		n_wavelets_log = np.log(np.reshape(n_wavelets, (-1, 1)))
@@ -268,7 +266,7 @@ class DyadicDecisionTreeRegressor:
 				if isinstance(o, np.generic): return o.item()  
 				raise TypeError
 
-			dir_path = r"C:\projects\RFWFC\results\approximation_methods\dyadic"
+			dir_path = r"C:\projects\RFWFC\results\Jackson_Round_2"
 			json_file_name = "50000_points_new.json"
 			write_data = {}			
 			write_data['n_wavelets'] = list(n_wavelets.squeeze())
@@ -283,11 +281,12 @@ class DyadicDecisionTreeRegressor:
 		y_pred = regr.predict(n_wavelets_log)
 		alpha = np.abs(regr.coef_[0][0])
 
-		plt.plot(n_wavelets_log, y_pred, color='blue', linewidth=3, label=f'alpha:{alpha}')
-		plt.legend()
-		plt.draw()
-		plt.pause(0.5)		
-		# logging.info('Smoothness index: %s' % alpha)
+		if self.verbose:
+			plt.plot(n_wavelets_log, y_pred, color='blue', linewidth=3, label=f'alpha:{alpha}')
+			plt.legend()
+			plt.draw()
+			plt.pause(0.5)		
+			logging.info('Smoothness index: %s' % alpha)
 
 		return alpha, n_wavelets, errors
 
