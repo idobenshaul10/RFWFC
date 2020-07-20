@@ -227,6 +227,8 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	write_data['norm_normalization'] = norm_normalization
 	write_data['normalize'] = normalize		
 
+	desired_value = draw_predictive_line(flags.dimension, p=2)
+
 	# desired_value = draw_predictive_line(flags.dimension, p=2)
 	last_alpha = alphas[-1]
 	print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')	

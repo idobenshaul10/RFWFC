@@ -50,6 +50,8 @@ class DyadicDecisionTreeRegressor:
 		self.save_errors = False
 		self.save_semi_norm = True
 
+		self.power = 1
+
 		self.cube_length = cube_length
 		self.depth = depth
 
@@ -96,8 +98,9 @@ class DyadicDecisionTreeRegressor:
 		self.norms = norms
 		self.vals = vals
 	
-	def __compute_norm(self, avg, parent_avg, volume):		
-		norm = np.sqrt(np.sum(np.square(avg - parent_avg)) * volume)
+	def __compute_norm(self, avg, parent_avg, volume):
+		# norm = np.sqrt(np.sum(np.square(avg - parent_avg)) * volume)
+		norm = np.power(np.sum(np.power(np.abs(avg - parent_avg), self.power)) * volume, (1/self.power))
 		return norm
 
 	def __traverse_nodes(self, base_node_id, norms, vals):		
@@ -204,8 +207,7 @@ class DyadicDecisionTreeRegressor:
 		n_wavelets = []
 		errors = []
 		mean_norms = []
-		step = 10
-		power = 1
+		step = 10		
 		print_errors = False
 
 		paths = self.regressor.decision_path(self.X)		
@@ -220,8 +222,8 @@ class DyadicDecisionTreeRegressor:
 			start_m = max(m_step - step, 0)
 			pred_result, sorted_norms = self.predict(self.X, m=m_step, start_m=start_m, paths=paths)			
 			predictions += pred_result
-			error_norms = np.power(np.sum(np.power(self.y - predictions, power), 1), 1. / power)			
-			total_error = np.sum(np.square(error_norms), 0) / len(self.X)
+			error_norms = np.power(np.sum(np.power(np.abs(self.y - predictions), self.power), 1), (1./self.power))			
+			total_error = np.sum(np.power(np.abs(error_norms), self.power), 0) / len(self.X)
 			
 			if len(errors)> 0:
 				if errors[-1] == total_error:
@@ -249,7 +251,7 @@ class DyadicDecisionTreeRegressor:
 			plt.ylabel('errors')		
 			plt.plot(n_wavelets, errors)
 			plt.draw()
-			plt.pause(2)
+			plt.pause(0.5)
 			plt.figure(2)
 			plt.clf()
 		n_wavelets_log = np.log(np.reshape(n_wavelets, (-1, 1)))
@@ -285,7 +287,7 @@ class DyadicDecisionTreeRegressor:
 			plt.plot(n_wavelets_log, y_pred, color='blue', linewidth=3, label=f'alpha:{alpha}')
 			plt.legend()
 			plt.draw()
-			plt.pause(0.5)		
+			plt.pause(2)
 			logging.info('Smoothness index: %s' % alpha)
 
 		return alpha, n_wavelets, errors
