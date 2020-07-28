@@ -40,6 +40,7 @@ class WaveletsForestRegressor:
 
 		self.norms = None
 		self.vals = None
+		self.power = 2
 		##
 		self.si_tree = None
 		self.si = None
@@ -215,9 +216,9 @@ class WaveletsForestRegressor:
 		rf = regressor.fit(self.X, self.y)
 		self.rf = rf
 
-		y_pred = self.rf.predict(X)         
-		auc = metrics.roc_auc_score(y, y_pred)
-		print(f"auc:{auc}")     
+		# y_pred = self.rf.predict(X)         
+		# auc = metrics.roc_auc_score(y, y_pred)
+		# print(f"auc:{auc}")     
 
 		try:
 			val_size = np.shape(y)[1]
@@ -259,9 +260,9 @@ class WaveletsForestRegressor:
 			num_samples = np.sum(paths_fullmat, 0)/paths_fullmat.shape[0]
 
 			if self.norms_normalization == 'volume':
-				norms = np.multiply(norms, np.sqrt(volumes))
+				norms = np.multiply(norms, np.power(volumes, 1/self.power))
 			else:
-				norms = np.multiply(norms, np.sqrt(num_samples))
+				norms = np.multiply(norms, np.power(num_samples, 1/self.power))
 			# logging.info('Number of wavelets in tree %s: %s' % (i, np.shape(norms)[0]))
 
 
@@ -292,12 +293,12 @@ class WaveletsForestRegressor:
 		self.feature_importances_ = self.si
 		##
 		y_pred_2 = self.predict(X)
-		auc = metrics.roc_auc_score(y, y_pred_2)
-		print(f"AUC_2:{auc}")       
+		# auc = metrics.roc_auc_score(y, y_pred_2)
+		# print(f"AUC_2:{auc}")       
 		return self
 
-	def __compute_norm(self, avg, parent_avg, volume):      
-		norm = np.sqrt(np.sum(np.square(avg - parent_avg)) * volume)
+	def __compute_norm(self, avg, parent_avg, volume):		
+		norm = np.power(np.sum(np.power(np.abs(avg - parent_avg), self.power)) * volume, (1/self.power))
 		return norm
 
 	def compute_average_score_from_tree(self, tree_value):
@@ -416,26 +417,37 @@ class WaveletsForestRegressor:
 		'''
 		Evaluate smoothness using sparsity consideration
 		'''
-		assert(len(self.rf.estimators_) == 1)
-		norms = list(self.norms)
-		norms = norms[1:]
+		approx_diff = False		
+		norms = self.norms[1:]
 		p = 2
-		h = 0.001
-		epsilon_1 = 0.011
-		epsilon_2 = 0.013
-		taus = np.arange(0.7, 10., h)
+		h = 0.01
+		diffs = []		
+		taus = np.arange(0.7, 10., h)		
 		total_sparsities, total_alphas = [], []
-		for tau in taus:
-			tau_sparsity = np.power(np.power(norms, tau).sum(), (1/tau))
-			total_sparsities.append(tau_sparsity)
-			# print(f"tau:{tau}, tau_sparsity:{tau_sparsity}")
-		total_sparsities = np.array(total_sparsities)
-		diffs = total_sparsities[1:] - total_sparsities[:-1]
-		diffs /= h
-		angles = np.rad2deg(np.arctan(diffs))
+		if approx_diff:
+			for tau in taus:
+				tau_sparsity = np.power(np.power(norms, tau).sum(), (1/tau))
+				total_sparsities.append(tau_sparsity)				
+			total_sparsities = np.array(total_sparsities)
+			diffs = total_sparsities[1:] - total_sparsities[:-1]
+			diffs /= h
+		else:
+			for tau in taus:		
+				tau_sparsity = np.power(np.power(norms, tau).sum(), ((1/tau)-1))
+				tau_sparsity *= np.power(norms, (tau-1)).sum()
+				diffs.append(tau_sparsity)				
+			diffs = -np.array(diffs)
+
+		angles = np.rad2deg(np.arctan(diffs))		
+		print(f"abs(angles+90.).min():{abs(angles+90.).min()}")
+		epsilon_1 = 0.2
+		epsilon_2 = 2*epsilon_1
 		
-		angle_index_1 = np.where(abs(angles+(90. - epsilon_1))<0.01)[0][0]
-		angle_index_2 = np.where(abs(angles+(90. - epsilon_2))<0.01)[0][0]
+		epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
+		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]			
+
+		angle_index_1 = epsilon_1_indices[int(0.75*len(epsilon_1_indices))]
+		angle_index_2 = epsilon_2_indices[int(0.75*len(epsilon_2_indices))]
 
 		critical_tau_approximation_1 = taus[1:][angle_index_1]
 		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/p)
@@ -456,9 +468,7 @@ class WaveletsForestRegressor:
 		errors = []
 		step = 10
 		power = 2
-		print_errors = False	
-
-
+		print_errors = False		
 		paths, n_nodes_ptr = self.rf.decision_path(self.X)
 		predictions = np.zeros(np.shape(self.y))
 		for m_step in range(2, m, step):
@@ -466,6 +476,7 @@ class WaveletsForestRegressor:
 				break			
 			predictions += self.predict(self.X, m=m_step, start_m=max(m_step - step, 0), paths=paths)
 
+			import pdb; pdb.set_trace()
 			error_norms = np.power(np.sum(np.power(self.y - predictions, power), 1), 1. / power)
 			total_error = np.sum(np.square(error_norms), 0) / len(self.X)
 
@@ -531,10 +542,11 @@ class WaveletsForestRegressor:
 
 		alpha = np.abs(regr.coef_[0][0])
 
-		plt.plot(n_wavelets_log, errors_log, label=f'alpha:{alpha}')
-		plt.legend()
-		plt.draw()
-		plt.pause(1)		
+		# plt.plot(n_wavelets_log, errors_log, label=f'alpha:{alpha}')
+		# plt.legend()
+		# plt.draw()
+		# plt.pause(1)		
+
 		# logging.info('Smoothness index: %s' % alpha)
 
 		return alpha, n_wavelets, errors

@@ -46,11 +46,10 @@ class DyadicDecisionTreeRegressor:
 		self.X = None
 		self.y = None
 		self.rf = None
-		self.verbose = True
+		self.verbose = False
 		self.save_errors = False
 		self.save_semi_norm = True
-
-		self.power = 1
+		self.power = 2
 
 		self.cube_length = cube_length
 		self.depth = depth
@@ -88,7 +87,7 @@ class DyadicDecisionTreeRegressor:
 		self.__traverse_nodes(0, norms, vals) # 50		
 		
 		num_samples = np.array([node.num_samples for node in self.regressor.nodes])		
-		norms = np.multiply(norms, np.sqrt(num_samples))
+		norms = np.multiply(norms, np.power(num_samples, 1/self.power))
 
 		self.epsilon = 1e-6
 		# we need to remove the nodes with <epsilon norm!
@@ -100,6 +99,7 @@ class DyadicDecisionTreeRegressor:
 	
 	def __compute_norm(self, avg, parent_avg, volume):
 		# norm = np.sqrt(np.sum(np.square(avg - parent_avg)) * volume)
+		# print(avg - parent_avg, norm)		
 		norm = np.power(np.sum(np.power(np.abs(avg - parent_avg), self.power)) * volume, (1/self.power))
 		return norm
 
@@ -176,9 +176,13 @@ class DyadicDecisionTreeRegressor:
 
 		angles = np.rad2deg(np.arctan(diffs))		
 		epsilon_1 = 0.075
-		epsilon_2 = 2*epsilon_1		
-		# epsilon_1 = 10.*abs(angles+90.).min()
-		# epsilon_2 = 2.*epsilon_1
+		epsilon_2 = 2*epsilon_1
+
+		
+		# epsilon_1 = abs(angles+90.).min() + 0.0001
+		# # epsilon_1 = 0.00063
+		# epsilon_2 = 2*epsilon_1
+		# import pdb; pdb.set_trace()
 		
 		epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
 		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]	
@@ -223,7 +227,8 @@ class DyadicDecisionTreeRegressor:
 			pred_result, sorted_norms = self.predict(self.X, m=m_step, start_m=start_m, paths=paths)			
 			predictions += pred_result
 			error_norms = np.power(np.sum(np.power(np.abs(self.y - predictions), self.power), 1), (1./self.power))			
-			total_error = np.sum(np.power(np.abs(error_norms), self.power), 0) / len(self.X)
+			total_error = np.sum(np.power(np.abs(error_norms), 2), 0) / len(self.X)
+			# total_error = np.sum(np.power(np.abs(error_norms), 1), 0) / len(self.X)
 			
 			if len(errors)> 0:
 				if errors[-1] == total_error:
@@ -287,7 +292,7 @@ class DyadicDecisionTreeRegressor:
 			plt.plot(n_wavelets_log, y_pred, color='blue', linewidth=3, label=f'alpha:{alpha}')
 			plt.legend()
 			plt.draw()
-			plt.pause(2)
+			plt.pause(0.5)
 			logging.info('Smoothness index: %s' % alpha)
 
 		return alpha, n_wavelets, errors

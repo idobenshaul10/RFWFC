@@ -83,7 +83,7 @@ def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_de
     if normalize:
         X = normalize_data(X)
 
-    norm_m_term = 0
+    norm_m_term = 0    
     model = train_model(X, y, method=t_method, trees=n_trees, \
         depth=m_depth, features=n_features, state=n_state, \
         nnormalization=norm_normalization, cube_length=cube_length)
@@ -93,9 +93,9 @@ def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_de
             num_wavelets = int(np.round(num_wavelets*len(model.norms)))
             norm_m_term = -np.sort(-model.norms)[num_wavelets-1]
 
-    alpha, n_wavelets, errors = model.evaluate_smoothness(m=num_wavelets, error_TH=error_TH)    
-    # alpha = model.evaluate_angle_smoothness()
-    # n_wavelets, errors = 0., 0.
+    # alpha, n_wavelets, errors = model.evaluate_smoothness(m=num_wavelets, error_TH=error_TH)    
+    alpha = model.evaluate_angle_smoothness()
+    n_wavelets, errors = 0., 0.
 
     logging.log(60, 'ALPHA SMOOTHNESS over X: ' + str(alpha))
     return alpha, -1, num_wavelets, norm_m_term, model

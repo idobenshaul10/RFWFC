@@ -96,30 +96,35 @@ for k, layer in enumerate(layers):
 
 args = get_args()
 Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()
+N_wavelets = 10000
+norm_normalization = 'num_samples'
+model.eval()
+import pdb; pdb.set_trace()
 
-for k, layer in enumerate(layers):
-	# if k <= 8:
-	# 	continue
-	print(f"LAYER {k}")
-	if type(layer) == torch.nn.modules.pooling.MaxPool2d:	
-		layer_name = f'layer_{k}'
-		handle = layer.register_forward_hook(get_activation(layer_name))
-		for i, (input, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
-			output = model(input)
+with torch.no_grad():
+	for k, layer in enumerate(layers):
+		if k <= 10:
+			continue
+		print(f"LAYER {k}")
+		if type(layer) == torch.nn.modules.pooling.MaxPool2d:	
+			layer_name = f'layer_{k}'
+			handle = layer.register_forward_hook(get_activation(layer_name))
+			for i, (input, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
+				output = model(input)
 
-		X = activation[list(activation.keys())[0]]
-		start = time.time()
-		Y = np.array(Y).reshape(-1, 1)
-		X = np.array(X).squeeze()
-		print(f"Y shape:{Y.shape}")
-		WF = train_model(X, Y, method='WF', trees=args.trees,
-            depth=args.depth, features='auto', state=2000, \
-            nnormalization='volume')
+			X = activation[list(activation.keys())[0]]
+			start = time.time()
+			Y = np.array(Y).reshape(-1, 1)
+			X = np.array(X).squeeze()
+			print(f"Y shape:{Y.shape}")			
+			result = run_alpha_smoothness(X, Y, t_method="WF", \
+				num_wavelets=N_wavelets, m_depth=10, \
+				n_state=2000, normalize=False, \
+				norm_normalization=norm_normalization, error_TH=0.)			
 
-		end = time.time()
-		print(f"time for fitting:{end-start}")
-		alpha, n_wavelets, errors = WF.evaluate_smoothness(m=args.num_wavelets)
-		print(f"time for eval evaluate_smoothness:{time.time()-end}, alpha  is {alpha}")
-		handle.remove()
-		del activation[layer_name]
+			print(f"alpha for layer {k} is {result}")
+			# end = time.time()
+			# print(f"time for fitting:{end-start}")			
+			handle.remove()
+			del activation[layer_name]
 

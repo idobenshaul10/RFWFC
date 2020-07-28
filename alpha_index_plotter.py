@@ -35,8 +35,11 @@ def plot_dataset(X, Y, donut_distance):
 
 
 MIN_SIZE = 1000
-MAX_SIZE = 31001
-STEP = 2500
+MAX_SIZE = 61001
+STEP = 5000
+# MIN_SIZE = 1000
+# MAX_SIZE = 3601
+# STEP = 2500
 
 
 def plot_mse_per_donut_distance(flags, data_str, normalize=True, output_path=''):
@@ -207,8 +210,8 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 
 	print(f'alphas:{alphas}')
 	plt.figure(1)
-	plt.clf()		
-	if type(alphas[0]) == list:
+	plt.clf()	
+	if type(alphas) == list:
 		plt.fill_between(sizes, [k[0] for k in alphas], [k[1] for k in alphas], \
 			alpha=0.2, facecolor='#089FFF', \
 			linewidth=4)
@@ -234,7 +237,8 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')	
 	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_errorTH_{flags.error_TH}"
 	
-	dir_path = os.path.join(output_path, str(flags.dimension))	
+	# dir_path = os.path.join(output_path, str(flags.dimension))
+	dir_path = output_path
 	if not os.path.isdir(dir_path):
 		os.mkdir(dir_path)
 	img_file_name =file_name + ".png"
@@ -246,7 +250,7 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	plt.title(data_str)
 	plt.xlabel(f'dataset size')
 	plt.ylabel(f'evaluate_smoothnes index- alpha')
-	plt.ylim(0.4, 0.8)
+	plt.ylim(0., 1.)
 
 	save_graph=True
 	if save_graph:		
