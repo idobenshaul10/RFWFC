@@ -17,6 +17,7 @@ import random
 from sklearn import metrics
 import math
 import json
+from tqdm import tqdm
 # ion() # enables interactive mode
 
 # f1 = plt.figure(1)
@@ -413,7 +414,7 @@ class WaveletsForestRegressor:
 		predictions = pruned * self.vals.T / len(self.rf.estimators_)
 		return predictions
 
-	def evaluate_angle_smoothness(self, m=1000, error_TH=0):
+	def evaluate_angle_smoothness(self, m=1000, error_TH=0, text=""):
 		'''
 		Evaluate smoothness using sparsity consideration
 		'''
@@ -422,26 +423,43 @@ class WaveletsForestRegressor:
 		p = 2
 		h = 0.01
 		diffs = []		
-		taus = np.arange(0.7, 10., h)		
-		total_sparsities, total_alphas = [], []
-		if approx_diff:
-			for tau in taus:
-				tau_sparsity = np.power(np.power(norms, tau).sum(), (1/tau))
-				total_sparsities.append(tau_sparsity)				
-			total_sparsities = np.array(total_sparsities)
-			diffs = total_sparsities[1:] - total_sparsities[:-1]
-			diffs /= h
-		else:
-			for tau in taus:		
-				tau_sparsity = np.power(np.power(norms, tau).sum(), ((1/tau)-1))
-				tau_sparsity *= np.power(norms, (tau-1)).sum()
-				diffs.append(tau_sparsity)				
-			diffs = -np.array(diffs)
+		taus = np.arange(1., 10., h)		
+		total_sparsities, total_alphas = [], []		
+		for tau in tqdm(taus):
+			tau_sparsity = np.power(np.power(norms, tau).sum(), ((1/tau)-1))
+			tau_sparsity *= np.power(norms, (tau-1)).sum()
+			diffs.append(tau_sparsity)				
+		diffs = -np.array(diffs)
 
-		angles = np.rad2deg(np.arctan(diffs))		
+		angles = np.rad2deg(np.arctan(diffs))
+		
+		plt.figure(1)		
+		plt.title(f"tau vs. angle")
+		plt.xlabel(f'tau')
+		plt.ylabel(f'sparsity angle')
+		plt.plot(taus, angles, zorder=1)
+
+		save_path = os.path.join(r"C:\projects\RFWFC\results\approximation_methods\NEW", f"{text}_derivates.png")
+		print(f"save_path:{save_path}")
+		plt.savefig(save_path, \
+		    dpi=300, bbox_inches='tight')
+		plt.clf()
+
+		plt.figure(2)
+		plt.title(f"tau vs. derivative")
+		plt.xlabel(f'tau')
+		plt.ylabel(f'sparsity derivative')
+		plt.plot(taus, diffs, zorder=1)
+
+		save_path = os.path.join(r"C:\projects\RFWFC\results\approximation_methods\NEW", f"{text}_angles.png")
+		print(f"save_path:{save_path}")
+		plt.savefig(save_path, \
+		    dpi=300, bbox_inches='tight')
+		plt.clf()		
+
 		print(f"abs(angles+90.).min():{abs(angles+90.).min()}")
 		epsilon_1 = 0.2
-		epsilon_2 = 2*epsilon_1
+		epsilon_2 = 2*epsilon_1		
 		
 		epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
 		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]			
@@ -449,10 +467,10 @@ class WaveletsForestRegressor:
 		angle_index_1 = epsilon_1_indices[int(0.75*len(epsilon_1_indices))]
 		angle_index_2 = epsilon_2_indices[int(0.75*len(epsilon_2_indices))]
 
-		critical_tau_approximation_1 = taus[1:][angle_index_1]
+		critical_tau_approximation_1 = taus[angle_index_1]
 		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/p)
 
-		critical_tau_approximation_2 = taus[1:][angle_index_2]
+		critical_tau_approximation_2 = taus[angle_index_2]
 		critical_alpha_approximation_2 = ((1/critical_tau_approximation_2) - 1/p)
 
 		return critical_alpha_approximation_1, critical_alpha_approximation_2

@@ -51,9 +51,7 @@ normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
 									 std=[0.229, 0.224, 0.225])
 
 cifar10_dataset = \
-	torchvision.datasets.CIFAR10(r"C:\datasets\cifar10", train=True, transform=transforms.Compose([
-			transforms.RandomHorizontalFlip(),
-			transforms.RandomCrop(32, 4),
+	torchvision.datasets.CIFAR10(r"C:\datasets\cifar10", train=True, transform=transforms.Compose([			
 			transforms.ToTensor(),
 			normalize,
 		]), target_transform=None, download=False)
@@ -74,7 +72,11 @@ model.load_state_dict(checkpoint)
 activation = {}
 def get_activation(name):
 	def hook(model, input, output):		
-		new_outputs = output.detach().view(BATCH_SIZE, -1).cpu()
+		try:
+			new_outputs = output.detach().view(BATCH_SIZE, -1).cpu()
+		except:
+			new_outputs = output.detach().view(10, -1).cpu()
+
 		if name not in activation:
 			activation[name] = new_outputs
 		else:				
@@ -84,47 +86,81 @@ def get_activation(name):
 			except:				
 				new_outputs = output.detach().view(-1, activation[name].shape[1]).cpu()
 				activation[name] = \
-					torch.cat((activation[name], new_outputs), dim=0)				
+					torch.cat((activation[name], new_outputs), dim=0)
+		
 	return hook
 
-layers = [module for module in model.features.modules() if type(module) != nn.Sequential][1:]
-ctr = 0 
-for k, layer in enumerate(layers):
-	# if type(layer) == torch.nn.modules.activation.ReLU:
-	if type(layer) == torch.nn.modules.pooling.MaxPool2d:
-		ctr += 1
+feature_layers = [module for module in model.features.modules() if type(module) != nn.Sequential][1:]
+classifier_layers = [module for module in model.classifier.modules() if type(module) != nn.Sequential][1:]
+
+layers = feature_layers + classifier_layers
+# ctr = 0
+# for k, layer in enumerate(layers):
+# 	# if type(layer) == torch.nn.modules.activation.ReLU:
+# 	if type(layer) == torch.nn.modules.pooling.MaxPool2d:
+# 		ctr += 1
 
 args = get_args()
 Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()
 N_wavelets = 10000
 norm_normalization = 'num_samples'
 model.eval()
-import pdb; pdb.set_trace()
+sizes, alphas = [], []
 
 with torch.no_grad():
 	for k, layer in enumerate(layers):
-		if k <= 10:
+		if k <= 20:
 			continue
 		print(f"LAYER {k}")
-		if type(layer) == torch.nn.modules.pooling.MaxPool2d:	
+		if type(layer) == torch.nn.ReLU or type(layer) == torch.nn.Linear:
+		# if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:
+		# if type(layer) == torch.nn.ReLU:
+			if type(layer) == torch.nn.modules.pooling.MaxPool2d:
+				layer_str = "MaxPool"
+			if type(layer) == torch.nn.Linear:
+				layer_str = "Linear"
+			if type(layer) == torch.nn.ReLU:
+				layer_str = "ReLU"
+
 			layer_name = f'layer_{k}'
 			handle = layer.register_forward_hook(get_activation(layer_name))
-			for i, (input, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
-				output = model(input)
+			for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
+				model(data)				
 
 			X = activation[list(activation.keys())[0]]
 			start = time.time()
 			Y = np.array(Y).reshape(-1, 1)
-			X = np.array(X).squeeze()
-			print(f"Y shape:{Y.shape}")			
-			result = run_alpha_smoothness(X, Y, t_method="WF", \
-				num_wavelets=N_wavelets, m_depth=10, \
+			X = np.array(X).squeeze()			
+			assert(Y.shape[0] == X.shape[0])
+			print(f"Y shape:{Y.shape}")
+			alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
+				num_wavelets=N_wavelets, m_depth=12, \
 				n_state=2000, normalize=False, \
-				norm_normalization=norm_normalization, error_TH=0.)			
+				norm_normalization=norm_normalization, error_TH=0., text=f"layer_{k}_{layer_str}")
 
-			print(f"alpha for layer {k} is {result}")
-			# end = time.time()
-			# print(f"time for fitting:{end-start}")			
+			print(f"alpha for layer {k} is {alpha_index}")			
 			handle.remove()
 			del activation[layer_name]
+			sizes.append(k)
+			alphas.append(alpha_index)
 
+plt.figure(1)
+plt.clf()
+if type(alphas) == list:
+	plt.fill_between(sizes, [k[0] for k in alphas], [k[1] for k in alphas], \
+		alpha=0.2, facecolor='#089FFF', \
+		linewidth=4)
+	plt.plot(sizes, [np.array(k).mean()	 for k in alphas], 'k', color='#1B2ACC')
+else:
+	plt.plot(sizes, alphas, 'k', color='#1B2ACC')
+
+plt.title("VGG ReLu Angle Smoothness")
+plt.xlabel(f'dataset size')
+plt.ylabel(f'evaluate_smoothnes index- alpha')
+
+save_graph=True
+if save_graph:	
+	save_path = r"C:\projects\RFWFC\results\approximation_methods\NEW\restult.png"
+	print(f"save_path:{save_path}")
+	plt.savefig(save_path, \
+		dpi=300, bbox_inches='tight')

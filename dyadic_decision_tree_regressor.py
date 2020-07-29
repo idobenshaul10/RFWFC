@@ -162,8 +162,7 @@ class DyadicDecisionTreeRegressor:
 		if approx_diff:
 			for tau in taus:
 				tau_sparsity = np.power(np.power(norms, tau).sum(), (1/tau))
-				total_sparsities.append(tau_sparsity)
-				# print(f"tau:{tau}, tau_sparsity:{tau_sparsity}")
+				total_sparsities.append(tau_sparsity)				
 			total_sparsities = np.array(total_sparsities)
 			diffs = total_sparsities[1:] - total_sparsities[:-1]
 			diffs /= h
@@ -177,18 +176,9 @@ class DyadicDecisionTreeRegressor:
 		angles = np.rad2deg(np.arctan(diffs))		
 		epsilon_1 = 0.075
 		epsilon_2 = 2*epsilon_1
-
-		
-		# epsilon_1 = abs(angles+90.).min() + 0.0001
-		# # epsilon_1 = 0.00063
-		# epsilon_2 = 2*epsilon_1
-		# import pdb; pdb.set_trace()
 		
 		epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
-		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]	
-		
-		# angle_index_1 = epsilon_1_indices[-1]
-		# angle_index_2 = epsilon_2_indices[-1]
+		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]			
 
 		angle_index_1 = epsilon_1_indices[int(0.75*len(epsilon_1_indices))]
 		angle_index_2 = epsilon_2_indices[int(0.75*len(epsilon_2_indices))]
