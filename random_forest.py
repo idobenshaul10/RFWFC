@@ -419,12 +419,15 @@ class WaveletsForestRegressor:
 		Evaluate smoothness using sparsity consideration
 		'''
 		approx_diff = False		
-		norms = self.norms[1:]
+		mask = np.ones(len(self.norms), dtype=bool)
+		mask[self.root_nodes] = False
+		norms = self.norms[mask]
+		
 		p = 2
 		h = 0.01
 		diffs = []		
 		taus = np.arange(1., 10., h)		
-		total_sparsities, total_alphas = [], []		
+		total_sparsities, total_alphas = [], []
 		for tau in tqdm(taus):
 			tau_sparsity = np.power(np.power(norms, tau).sum(), ((1/tau)-1))
 			tau_sparsity *= np.power(norms, (tau-1)).sum()
@@ -458,14 +461,16 @@ class WaveletsForestRegressor:
 		plt.clf()		
 
 		print(f"abs(angles+90.).min():{abs(angles+90.).min()}")
-		epsilon_1 = 0.2
-		epsilon_2 = 2*epsilon_1		
+		epsilon_1 = 0.05
+		epsilon_2 = 2*epsilon_1
 		
 		epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
 		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]			
 
-		angle_index_1 = epsilon_1_indices[int(0.75*len(epsilon_1_indices))]
-		angle_index_2 = epsilon_2_indices[int(0.75*len(epsilon_2_indices))]
+		# angle_index_1 = epsilon_1_indices[int(0.75*len(epsilon_1_indices)-1)]
+		# angle_index_2 = epsilon_2_indices[int(0.75*len(epsilon_2_indices)-1)]
+		angle_index_1 = epsilon_1_indices[-1]
+		angle_index_2 = epsilon_2_indices[-1]
 
 		critical_tau_approximation_1 = taus[angle_index_1]
 		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/p)

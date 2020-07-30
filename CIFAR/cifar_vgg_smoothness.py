@@ -29,23 +29,24 @@ import time
 ion()
 
 def get_args():
-	parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
+	parser = argparse.ArgumentParser(description='Network Smoothness Script')
 	# regressor args
 	parser.add_argument('--trees',default=1,type=int,help='Number of trees in the forest.')	
-	parser.add_argument('--depth', default=30, type=int,help='Maximum depth of each tree.Use 0 for unlimited depth.')		
+	parser.add_argument('--depth', default=15, type=int,help='Maximum depth of each tree.Use 0 for unlimited depth.')		
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
-	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
-	parser.add_argument('--save-model', action='store_true', default=False, help='For Saving the current Model')
+	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
 	parser.add_argument('--output_folder', type=str, default=r"C:\projects\LinearEstimators\results", \
 						help='path to save results')
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')
 	parser.add_argument('--dataset', type=str, default="cifar10")
+	parser.add_argument('--batch_size', type=int, default=1024)
 
 	args = parser.parse_args()
 	return args
 
-BATCH_SIZE = 1024
+args = get_args()
+BATCH_SIZE = args.batch_size
 use_cuda = torch.cuda.is_available()
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
 									 std=[0.229, 0.224, 0.225])
@@ -94,13 +95,8 @@ feature_layers = [module for module in model.features.modules() if type(module) 
 classifier_layers = [module for module in model.classifier.modules() if type(module) != nn.Sequential][1:]
 
 layers = feature_layers + classifier_layers
-# ctr = 0
-# for k, layer in enumerate(layers):
-# 	# if type(layer) == torch.nn.modules.activation.ReLU:
-# 	if type(layer) == torch.nn.modules.pooling.MaxPool2d:
-# 		ctr += 1
 
-args = get_args()
+
 Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()
 N_wavelets = 10000
 norm_normalization = 'num_samples'
@@ -109,11 +105,11 @@ sizes, alphas = [], []
 
 with torch.no_grad():
 	for k, layer in enumerate(layers):
-		if k <= 20:
+		if k <= 1:
 			continue
 		print(f"LAYER {k}")
-		if type(layer) == torch.nn.ReLU or type(layer) == torch.nn.Linear:
-		# if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:
+		# if type(layer) == torch.nn.ReLU or type(layer) == torch.nn.Linear:
+		if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:
 		# if type(layer) == torch.nn.ReLU:
 			if type(layer) == torch.nn.modules.pooling.MaxPool2d:
 				layer_str = "MaxPool"
@@ -134,7 +130,8 @@ with torch.no_grad():
 			assert(Y.shape[0] == X.shape[0])
 			print(f"Y shape:{Y.shape}")
 			alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
-				num_wavelets=N_wavelets, m_depth=12, \
+				num_wavelets=N_wavelets, n_trees=args.trees, \
+				m_depth=args.depth, \
 				n_state=2000, normalize=False, \
 				norm_normalization=norm_normalization, error_TH=0., text=f"layer_{k}_{layer_str}")
 
