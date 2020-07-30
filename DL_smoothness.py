@@ -18,11 +18,11 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot, ion, show
 import numpy as np
+import importlib
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
-from models.vgg import *
 from utils import *
 import time
 
@@ -38,9 +38,9 @@ def get_args():
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
 	parser.add_argument('--output_folder', type=str, default=r"C:\projects\LinearEstimators\results", \
 						help='path to save results')
-	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')
-	parser.add_argument('--dataset', type=str, default="cifar10")
+	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
 	parser.add_argument('--batch_size', type=int, default=1024)
+	parser.add_argument('--env_name', type=str, default="cifar10")
 
 	args = parser.parse_args()
 	return args
@@ -48,27 +48,17 @@ def get_args():
 args = get_args()
 BATCH_SIZE = args.batch_size
 use_cuda = torch.cuda.is_available()
-normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-									 std=[0.229, 0.224, 0.225])
 
-cifar10_dataset = \
-	torchvision.datasets.CIFAR10(r"C:\datasets\cifar10", train=True, transform=transforms.Compose([			
-			transforms.ToTensor(),
-			normalize,
-		]), target_transform=None, download=False)
-data_loader = torch.utils.data.DataLoader(cifar10_dataset,
+m = '.'.join(['environments', args.env_name])
+module = importlib.import_module(m)
+dict_input = vars(args)
+environment = eval(f"module.{args.env_name}()")
+
+model, dataset = environment.load_enviorment()
+data_loader = torch.utils.data.DataLoader(dataset,
 	batch_size=BATCH_SIZE,
 	shuffle=True)
 
-device = torch.device("cuda" if use_cuda else "cpu")
-model = vgg19()
-model.features = torch.nn.DataParallel(model.features)
-if use_cuda:
-	model = model.cuda()
-
-model_path = r"C:\projects\LinearEstimators\best_vgg.pth"
-checkpoint = torch.load(model_path)['state_dict']
-model.load_state_dict(checkpoint)
 
 activation = {}
 def get_activation(name):

@@ -422,7 +422,7 @@ class WaveletsForestRegressor:
 		mask = np.ones(len(self.norms), dtype=bool)
 		mask[self.root_nodes] = False
 		norms = self.norms[mask]
-		
+
 		p = 2
 		h = 0.01
 		diffs = []		
@@ -461,7 +461,7 @@ class WaveletsForestRegressor:
 		plt.clf()		
 
 		print(f"abs(angles+90.).min():{abs(angles+90.).min()}")
-		epsilon_1 = 0.05
+		epsilon_1 = 1.2
 		epsilon_2 = 2*epsilon_1
 		
 		epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
