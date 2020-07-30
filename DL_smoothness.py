@@ -36,7 +36,7 @@ def get_args():
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
-	parser.add_argument('--output_folder', type=str, default=r"C:\projects\LinearEstimators\results", \
+	parser.add_argument('--output_folder', type=str, default=r"C:\projects\RFWFC\results\DL_layers", \
 						help='path to save results')
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
 	parser.add_argument('--batch_size', type=int, default=1024)
@@ -83,9 +83,7 @@ def get_activation(name):
 
 feature_layers = [module for module in model.features.modules() if type(module) != nn.Sequential][1:]
 classifier_layers = [module for module in model.classifier.modules() if type(module) != nn.Sequential][1:]
-
 layers = feature_layers + classifier_layers
-
 
 Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()
 N_wavelets = 10000
@@ -93,14 +91,17 @@ norm_normalization = 'num_samples'
 model.eval()
 sizes, alphas = [], []
 
+args.output_folder = f"{args.output_folder}_{args.env_name}_{args.trees}_{args.depth}"
+if not os.path.isdir(args.output_folder):
+	os.mkdir(args.output_folder)
+
 with torch.no_grad():
 	for k, layer in enumerate(layers):
-		if k <= 1:
-			continue
+		# if k <= 1:
+		# 	continue
 		print(f"LAYER {k}")
 		# if type(layer) == torch.nn.ReLU or type(layer) == torch.nn.Linear:
-		if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:
-		# if type(layer) == torch.nn.ReLU:
+		if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:		
 			if type(layer) == torch.nn.modules.pooling.MaxPool2d:
 				layer_str = "MaxPool"
 			if type(layer) == torch.nn.Linear:
@@ -123,7 +124,8 @@ with torch.no_grad():
 				num_wavelets=N_wavelets, n_trees=args.trees, \
 				m_depth=args.depth, \
 				n_state=2000, normalize=False, \
-				norm_normalization=norm_normalization, error_TH=0., text=f"layer_{k}_{layer_str}")
+				norm_normalization=norm_normalization, error_TH=0., 
+				text=f"layer_{k}_{layer_str}", output_folder=args.output_folder)
 
 			print(f"alpha for layer {k} is {alpha_index}")			
 			handle.remove()
@@ -146,8 +148,8 @@ plt.xlabel(f'dataset size')
 plt.ylabel(f'evaluate_smoothnes index- alpha')
 
 save_graph=True
-if save_graph:	
-	save_path = r"C:\projects\RFWFC\results\approximation_methods\NEW\restult.png"
+if save_graph:
+	save_path = os.path.join(args.output_folder, "result.png")	
 	print(f"save_path:{save_path}")
 	plt.savefig(save_path, \
 		dpi=300, bbox_inches='tight')

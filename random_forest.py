@@ -414,7 +414,7 @@ class WaveletsForestRegressor:
 		predictions = pruned * self.vals.T / len(self.rf.estimators_)
 		return predictions
 
-	def evaluate_angle_smoothness(self, m=1000, error_TH=0, text=""):
+	def evaluate_angle_smoothness(self, m=1000, error_TH=0, text='', output_folder=''):
 		'''
 		Evaluate smoothness using sparsity consideration
 		'''
@@ -442,7 +442,7 @@ class WaveletsForestRegressor:
 		plt.ylabel(f'sparsity angle')
 		plt.plot(taus, angles, zorder=1)
 
-		save_path = os.path.join(r"C:\projects\RFWFC\results\approximation_methods\NEW", f"{text}_derivates.png")
+		save_path = os.path.join(output_folder, f"{text}_derivates.png")
 		print(f"save_path:{save_path}")
 		plt.savefig(save_path, \
 		    dpi=300, bbox_inches='tight')
@@ -454,21 +454,19 @@ class WaveletsForestRegressor:
 		plt.ylabel(f'sparsity derivative')
 		plt.plot(taus, diffs, zorder=1)
 
-		save_path = os.path.join(r"C:\projects\RFWFC\results\approximation_methods\NEW", f"{text}_angles.png")
+		save_path = os.path.join(output_folder, f"{text}_angles.png")
 		print(f"save_path:{save_path}")
 		plt.savefig(save_path, \
 		    dpi=300, bbox_inches='tight')
 		plt.clf()		
 
 		print(f"abs(angles+90.).min():{abs(angles+90.).min()}")
-		epsilon_1 = 1.2
-		epsilon_2 = 2*epsilon_1
+		epsilon_1 = 0.8
+		epsilon_2 = 3*epsilon_1
 		
 		epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
-		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]			
-
-		# angle_index_1 = epsilon_1_indices[int(0.75*len(epsilon_1_indices)-1)]
-		# angle_index_2 = epsilon_2_indices[int(0.75*len(epsilon_2_indices)-1)]
+		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]
+		
 		angle_index_1 = epsilon_1_indices[-1]
 		angle_index_2 = epsilon_2_indices[-1]
 
