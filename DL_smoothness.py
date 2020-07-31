@@ -36,12 +36,12 @@ def get_args():
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
-	parser.add_argument('--output_folder', type=str, default=r"C:\projects\RFWFC\results\DL_layers", \
+	parser.add_argument('--output_folder', type=str, default=r"C:\projects\RFWFC\results\DL_layers\analysis", \
 						help='path to save results')
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
 	parser.add_argument('--batch_size', type=int, default=1024)
 	parser.add_argument('--env_name', type=str, default="cifar10")
-	parser.add_argument('--epsilon_1', type=float, default=0.01)
+	parser.add_argument('--epsilon_1', type=float, default=0.1)
 
 	args = parser.parse_args()
 	args.epsilon_2 = 3*args.epsilon_1
@@ -65,23 +65,13 @@ data_loader = torch.utils.data.DataLoader(dataset,
 activation = {}
 def get_activation(name):
 	def hook(model, input, output):		
-		try:
-			new_outputs = output.detach().view(BATCH_SIZE, -1).cpu()
-		except:
-			import pdb; pdb.set_trace()
-			new_outputs = output.detach().view(10, -1).cpu()
-
 		if name not in activation:
-			activation[name] = new_outputs
-		else:				
-			try:	
-				activation[name] = \
-					torch.cat((activation[name], new_outputs), dim=0)
-			except:				
-				new_outputs = output.detach().view(-1, activation[name].shape[1]).cpu()
-				activation[name] = \
-					torch.cat((activation[name], new_outputs), dim=0)
-		
+			activation[name] = output.detach().view(BATCH_SIZE, -1).cpu()
+		else:
+			new_outputs = output.detach().view(-1, activation[name].shape[1]).cpu()
+			activation[name] = \
+				torch.cat((activation[name], new_outputs), dim=0)
+		# print(f"activation[name]:{activation[name].shape}")
 	return hook
 
 Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()
@@ -96,12 +86,12 @@ if not os.path.isdir(args.output_folder):
 	os.mkdir(args.output_folder)
 
 with torch.no_grad():
-	for k, layer in enumerate(layers):
-		# if k <= 1:
-		# 	continue
+	for k, layer in enumerate(layers):		
 		print(f"LAYER {k}")
 		if type(layer) == torch.nn.modules.AvgPool2d or type(layer) == torch.nn.Linear:
-		# if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:
+			# if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:
+			if type(layer) == torch.nn.modules.pooling.AvgPool2d:
+				layer_str = "AvgPool2d"
 			if type(layer) == torch.nn.modules.pooling.MaxPool2d:
 				layer_str = "MaxPool"
 			if type(layer) == torch.nn.Linear:
@@ -114,13 +104,17 @@ with torch.no_grad():
 			for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
 				if use_cuda:
 					data = data.cuda()
-				import pdb; pdb.set_trace()
 				model(data)
 
 			X = activation[list(activation.keys())[0]]
+			handle.remove()
+			del activation[layer_name]
+
 			start = time.time()
 			Y = np.array(Y).reshape(-1, 1)
-			X = np.array(X).squeeze()			
+			X = np.array(X).squeeze()
+
+			print(f"X.shape:{X.shape}")			
 			assert(Y.shape[0] == X.shape[0])
 			print(f"Y shape:{Y.shape}")
 			alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
@@ -130,10 +124,8 @@ with torch.no_grad():
 				norm_normalization=norm_normalization, error_TH=0., 
 				text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
 				epsilon_1=args.epsilon_1, epsilon_2=args.epsilon_2)
-
+			
 			print(f"alpha for layer {k} is {alpha_index}")			
-			handle.remove()
-			del activation[layer_name]
 			sizes.append(k)
 			alphas.append(alpha_index)
 

@@ -23,7 +23,7 @@ class cifar10(BaseEnviorment):
 
 	def get_layers(self, model):
 		feature_layers = [module for module in model.features.modules() if type(module) != nn.Sequential][1:]
-		classifier_layers = [module for module in model.classifier.modules() if type(module) != nn.Sequential][1:]
+		classifier_layers = [module for module in model.classifier.modules() if type(module) != nn.Sequential]		
 		layers = feature_layers + classifier_layers
 		return layers
 
