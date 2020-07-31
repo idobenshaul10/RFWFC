@@ -11,12 +11,15 @@ from environments.base_environment import *
 from models.vgg import *
 from torchvision import datasets, transforms
 from models.LeNet5 import LeNet5
+# https://towardsdatascience.com/implementing-yann-lecuns-lenet-5-in-pytorch-5e05a0911320
 
 class mnist(BaseEnviorment):
     def __init__(self, checkpoint_path=None):
         super().__init__()
         if checkpoint_path is None:
             self.model_path = r"C:\projects\RFWFC\results\DL_layers\trained_models\LeNet5\weights.10.h5"
+        else:
+            self.model_path = checkpoint_path
 
     def get_dataset(self):
         dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
@@ -39,7 +42,7 @@ class mnist(BaseEnviorment):
     def get_model(self):
         model = LeNet5(10)
         if self.use_cuda:
-            model = model.cuda()
+            model = model.cuda()        
         checkpoint = torch.load(self.model_path)['checkpoint']
         model.load_state_dict(checkpoint)
         return model

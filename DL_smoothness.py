@@ -41,7 +41,8 @@ def get_args():
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
 	parser.add_argument('--batch_size', type=int, default=1024)
 	parser.add_argument('--env_name', type=str, default="cifar10")
-	parser.add_argument('--epsilon_1', type=float, default=0.1)
+	parser.add_argument('--checkpoint_path', type=str, default=None)
+	parser.add_argument('--epsilon_1', type=float, default=0.01)
 
 	args = parser.parse_args()
 	args.epsilon_2 = 3*args.epsilon_1
@@ -54,7 +55,10 @@ use_cuda = torch.cuda.is_available()
 m = '.'.join(['environments', args.env_name])
 module = importlib.import_module(m)
 dict_input = vars(args)
-environment = eval(f"module.{args.env_name}()")
+if args.checkpoint_path is not None:
+	environment = eval(f"module.{args.env_name}(r'{args.checkpoint_path}')")
+else:
+	environment = eval(f"module.{args.env_name}()")
 
 model, dataset, layers = environment.load_enviorment()
 data_loader = torch.utils.data.DataLoader(dataset,
@@ -80,16 +84,19 @@ norm_normalization = 'num_samples'
 model.eval()
 sizes, alphas = [], []
 
-args.output_folder = os.path.join(args.output_folder, \
-	f"{args.env_name}_{args.trees}_{args.depth}_{args.epsilon_1}_{args.epsilon_2}")
+addition = f"{args.env_name}_{args.trees}_{args.depth}_{args.epsilon_1}_{args.epsilon_2}"
+if args.checkpoint_path is not None:
+	addition += "_" + args.checkpoint_path.split("\\")[-1]
+args.output_folder = os.path.join(args.output_folder, addition)
+
 if not os.path.isdir(args.output_folder):
 	os.mkdir(args.output_folder)
 
 with torch.no_grad():
 	for k, layer in enumerate(layers):		
 		print(f"LAYER {k}")
-		if type(layer) == torch.nn.modules.AvgPool2d or type(layer) == torch.nn.Linear:
-			# if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:
+		# if type(layer) == torch.nn.modules.AvgPool2d or type(layer) == torch.nn.Linear:
+		if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:
 			if type(layer) == torch.nn.modules.pooling.AvgPool2d:
 				layer_str = "AvgPool2d"
 			if type(layer) == torch.nn.modules.pooling.MaxPool2d:

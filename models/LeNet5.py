@@ -35,4 +35,4 @@ class LeNet5(nn.Module):
         x = torch.flatten(x, 1)
         logits = self.classifier(x)
         probs = F.softmax(logits, dim=1)
-        return probs
+        return logits, probs
