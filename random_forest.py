@@ -414,24 +414,23 @@ class WaveletsForestRegressor:
 		predictions = pruned * self.vals.T / len(self.rf.estimators_)
 		return predictions
 
-	def evaluate_angle_smoothness(self, m=1000, error_TH=0, text='', output_folder=''):
+	def evaluate_angle_smoothness(self, m=1000, error_TH=0, text='', \
+			output_folder='', epsilon_1=None, epsilon_2=None):
 		'''
 		Evaluate smoothness using sparsity consideration
 		'''
 		approx_diff = False		
 		mask = np.ones(len(self.norms), dtype=bool)
 		mask[self.root_nodes] = False
-		norms = self.norms[mask]
-
-		p = 2
+		norms = self.norms[mask]		
 		h = 0.01
-		diffs = []		
+		diffs = []
 		taus = np.arange(1., 10., h)		
 		total_sparsities, total_alphas = [], []
 		for tau in tqdm(taus):
 			tau_sparsity = np.power(np.power(norms, tau).sum(), ((1/tau)-1))
 			tau_sparsity *= np.power(norms, (tau-1)).sum()
-			diffs.append(tau_sparsity)				
+			diffs.append(tau_sparsity)
 		diffs = -np.array(diffs)
 
 		angles = np.rad2deg(np.arctan(diffs))
@@ -440,9 +439,11 @@ class WaveletsForestRegressor:
 		plt.title(f"tau vs. angle")
 		plt.xlabel(f'tau')
 		plt.ylabel(f'sparsity angle')
-		plt.plot(taus, angles, zorder=1)
+		plt.plot(taus, angles, zorder=1)		
 
-		save_path = os.path.join(output_folder, f"{text}_derivates.png")
+		print(f"abs(angles+90.).min():{abs(angles+90.).min()}")		
+
+		save_path = os.path.join(output_folder, f"{text}_{epsilon_1}_{epsilon_2}_derivates.png")
 		print(f"save_path:{save_path}")
 		plt.savefig(save_path, \
 		    dpi=300, bbox_inches='tight')
@@ -454,15 +455,12 @@ class WaveletsForestRegressor:
 		plt.ylabel(f'sparsity derivative')
 		plt.plot(taus, diffs, zorder=1)
 
-		save_path = os.path.join(output_folder, f"{text}_angles.png")
+		save_path = os.path.join(output_folder, f"{text}_{epsilon_1}_{epsilon_2}_angles.png")
 		print(f"save_path:{save_path}")
 		plt.savefig(save_path, \
 		    dpi=300, bbox_inches='tight')
 		plt.clf()		
 
-		print(f"abs(angles+90.).min():{abs(angles+90.).min()}")
-		epsilon_1 = 0.8
-		epsilon_2 = 3*epsilon_1
 		
 		epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
 		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]
@@ -471,10 +469,10 @@ class WaveletsForestRegressor:
 		angle_index_2 = epsilon_2_indices[-1]
 
 		critical_tau_approximation_1 = taus[angle_index_1]
-		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/p)
+		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/self.power)
 
 		critical_tau_approximation_2 = taus[angle_index_2]
-		critical_alpha_approximation_2 = ((1/critical_tau_approximation_2) - 1/p)
+		critical_alpha_approximation_2 = ((1/critical_tau_approximation_2) - 1/self.power)
 
 		return critical_alpha_approximation_1, critical_alpha_approximation_2
 		

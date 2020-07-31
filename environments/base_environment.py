@@ -21,7 +21,11 @@ class BaseEnviorment():
 	def load_enviorment(self):
 		dataset = self.get_dataset()		
 		model = self.get_model()		
-		return model, dataset
+		layers = self.get_layers(model)
+		return model, dataset, layers
+
+	def get_layers(self):
+		pass
 	
 	def get_dataset(self):
 		pass

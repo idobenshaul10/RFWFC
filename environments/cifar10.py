@@ -21,6 +21,12 @@ class cifar10(BaseEnviorment):
 				transform=self.get_eval_transform(), target_transform=None, download=False)
 		return dataset
 
+	def get_layers(self, model):
+		feature_layers = [module for module in model.features.modules() if type(module) != nn.Sequential][1:]
+		classifier_layers = [module for module in model.classifier.modules() if type(module) != nn.Sequential][1:]
+		layers = feature_layers + classifier_layers
+		return layers
+
 	def get_eval_transform(self):
 		normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
 									 std=[0.229, 0.224, 0.225])

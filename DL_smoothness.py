@@ -41,8 +41,10 @@ def get_args():
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
 	parser.add_argument('--batch_size', type=int, default=1024)
 	parser.add_argument('--env_name', type=str, default="cifar10")
+	parser.add_argument('--epsilon_1', type=float, default=0.01)
 
 	args = parser.parse_args()
+	args.epsilon_2 = 3*args.epsilon_1
 	return args
 
 args = get_args()
@@ -54,7 +56,7 @@ module = importlib.import_module(m)
 dict_input = vars(args)
 environment = eval(f"module.{args.env_name}()")
 
-model, dataset = environment.load_enviorment()
+model, dataset, layers = environment.load_enviorment()
 data_loader = torch.utils.data.DataLoader(dataset,
 	batch_size=BATCH_SIZE,
 	shuffle=True)
@@ -66,6 +68,7 @@ def get_activation(name):
 		try:
 			new_outputs = output.detach().view(BATCH_SIZE, -1).cpu()
 		except:
+			import pdb; pdb.set_trace()
 			new_outputs = output.detach().view(10, -1).cpu()
 
 		if name not in activation:
@@ -81,17 +84,14 @@ def get_activation(name):
 		
 	return hook
 
-feature_layers = [module for module in model.features.modules() if type(module) != nn.Sequential][1:]
-classifier_layers = [module for module in model.classifier.modules() if type(module) != nn.Sequential][1:]
-layers = feature_layers + classifier_layers
-
 Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()
 N_wavelets = 10000
 norm_normalization = 'num_samples'
 model.eval()
 sizes, alphas = [], []
 
-args.output_folder = f"{args.output_folder}_{args.env_name}_{args.trees}_{args.depth}"
+args.output_folder = os.path.join(args.output_folder, \
+	f"{args.env_name}_{args.trees}_{args.depth}_{args.epsilon_1}_{args.epsilon_2}")
 if not os.path.isdir(args.output_folder):
 	os.mkdir(args.output_folder)
 
@@ -100,8 +100,8 @@ with torch.no_grad():
 		# if k <= 1:
 		# 	continue
 		print(f"LAYER {k}")
-		# if type(layer) == torch.nn.ReLU or type(layer) == torch.nn.Linear:
-		if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:		
+		if type(layer) == torch.nn.modules.AvgPool2d or type(layer) == torch.nn.Linear:
+		# if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:
 			if type(layer) == torch.nn.modules.pooling.MaxPool2d:
 				layer_str = "MaxPool"
 			if type(layer) == torch.nn.Linear:
@@ -112,7 +112,10 @@ with torch.no_grad():
 			layer_name = f'layer_{k}'
 			handle = layer.register_forward_hook(get_activation(layer_name))
 			for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
-				model(data)				
+				if use_cuda:
+					data = data.cuda()
+				import pdb; pdb.set_trace()
+				model(data)
 
 			X = activation[list(activation.keys())[0]]
 			start = time.time()
@@ -125,7 +128,8 @@ with torch.no_grad():
 				m_depth=args.depth, \
 				n_state=2000, normalize=False, \
 				norm_normalization=norm_normalization, error_TH=0., 
-				text=f"layer_{k}_{layer_str}", output_folder=args.output_folder)
+				text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
+				epsilon_1=args.epsilon_1, epsilon_2=args.epsilon_2)
 
 			print(f"alpha for layer {k} is {alpha_index}")			
 			handle.remove()
