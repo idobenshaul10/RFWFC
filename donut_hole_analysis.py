@@ -51,7 +51,7 @@ def compare_on_folder(args):
 def draw_per_donut_size(args):
 	json_path = args.per_donut_path
 	with open(json_path, "r+") as f:
-			result = json.load(f)		
+		result = json.load(f)
 	points = result["points"]
 	alphas = np.array(result["alphas"])
 	plt.scatter(points, alphas, label = "donut_hole_size", marker='o')

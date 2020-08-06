@@ -25,6 +25,7 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
 from utils import *
 import time
+import json
 
 ion()
 
@@ -36,7 +37,7 @@ def get_args():
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
-	parser.add_argument('--output_folder', type=str, default=r"C:\projects\RFWFC\results\DL_layers\analysis", \
+	parser.add_argument('--output_folder', type=str, default=r"C:\projects\RFWFC\results\DL_layers\analysis\mnist", \
 						help='path to save results')
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
 	parser.add_argument('--batch_size', type=int, default=1024)
@@ -45,7 +46,7 @@ def get_args():
 	parser.add_argument('--epsilon_1', type=float, default=0.01)
 
 	args = parser.parse_args()
-	args.epsilon_2 = 3*args.epsilon_1
+	args.epsilon_2 = 2*args.epsilon_1
 	return args
 
 args = get_args()
@@ -84,7 +85,7 @@ norm_normalization = 'num_samples'
 model.eval()
 sizes, alphas = [], []
 
-addition = f"{args.env_name}_{args.trees}_{args.depth}_{args.epsilon_1}_{args.epsilon_2}"
+addition = f"{args.env_name}_{args.trees}_{args.depth}_{args.epsilon_1}_{args.epsilon_2:.2f}"
 if args.checkpoint_path is not None:
 	addition += "_" + args.checkpoint_path.split("\\")[-1]
 args.output_folder = os.path.join(args.output_folder, addition)
@@ -95,8 +96,8 @@ if not os.path.isdir(args.output_folder):
 with torch.no_grad():
 	for k, layer in enumerate(layers):		
 		print(f"LAYER {k}")
-		# if type(layer) == torch.nn.modules.AvgPool2d or type(layer) == torch.nn.Linear:
-		if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:
+		if type(layer) == torch.nn.modules.AvgPool2d or type(layer) == torch.nn.Linear:
+		# if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:
 			if type(layer) == torch.nn.modules.pooling.AvgPool2d:
 				layer_str = "AvgPool2d"
 			if type(layer) == torch.nn.modules.pooling.MaxPool2d:
@@ -152,7 +153,19 @@ plt.ylabel(f'evaluate_smoothnes index- alpha')
 
 save_graph=True
 if save_graph:
-	save_path = os.path.join(args.output_folder, "result.png")	
+	save_path = os.path.join(args.output_folder, "result.png")
 	print(f"save_path:{save_path}")
 	plt.savefig(save_path, \
 		dpi=300, bbox_inches='tight')
+
+def convert(o):
+	if isinstance(o, np.generic): return o.item()
+	raise TypeError
+
+json_file_name = os.path.join(args.output_folder, "result.json")
+write_data = {}
+write_data['alphas'] = alphas
+write_data['sizes'] = sizes
+norms_path = os.path.join(args.output_folder, json_file_name)
+with open(norms_path, "w+") as f:
+	json.dump(write_data, f, default=convert)

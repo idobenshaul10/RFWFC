@@ -56,6 +56,7 @@ class WaveletsForestRegressor:
 		self.regressor = regressor
 		self.criterion = criterion
 		self.bagging = bagging
+		self.verbose = False
 
 		if self.regressor == "random_forest" and depth == -1:
 			self.depth = None
@@ -209,12 +210,13 @@ class WaveletsForestRegressor:
 					max_features='auto',
 					n_jobs=-1,
 					random_state=self.seed,
+					verbose=2
 				)
 			else:
 				print("ERROR, WRONG MODE")
 				exit()
 
-		rf = regressor.fit(self.X, self.y)
+		rf = regressor.fit(self.X, self.y.ravel())
 		self.rf = rf
 
 		# y_pred = self.rf.predict(X)         
@@ -307,7 +309,7 @@ class WaveletsForestRegressor:
 			y_vec = [-1. , 1.]
 			result = tree_value.dot(y_vec)/tree_value.sum()         
 			return result
-		else:			
+		else:
 			return tree_value[:, 0]
 
 	def __traverse_nodes(self, estimator, base_node_id, node_box, norms, vals, rectangles, levels):
@@ -435,35 +437,35 @@ class WaveletsForestRegressor:
 
 		angles = np.rad2deg(np.arctan(diffs))
 		
-		plt.figure(1)		
-		plt.title(f"tau vs. angle")
-		plt.xlabel(f'tau')
-		plt.ylabel(f'sparsity angle')
-		plt.plot(taus, angles, zorder=1)		
+		if self.verbose:
+			plt.figure(1)		
+			plt.title(f"tau vs. angle")
+			plt.xlabel(f'tau')
+			plt.ylabel(f'sparsity angle')
+			plt.plot(taus, angles, zorder=1)		
 
-		print(f"abs(angles+90.).min():{abs(angles+90.).min()}")		
+			print(f"abs(angles+90.).min():{abs(angles+90.).min()}")		
 
-		save_path = os.path.join(output_folder, f"{text}_{epsilon_1}_{epsilon_2}_derivates.png")
-		print(f"save_path:{save_path}")
-		plt.savefig(save_path, \
-		    dpi=300, bbox_inches='tight')
-		plt.clf()
+			save_path = os.path.join(output_folder, f"{text}_{epsilon_1}_{epsilon_2}_derivates.png")
+			print(f"save_path:{save_path}")
+			plt.savefig(save_path, \
+			    dpi=300, bbox_inches='tight')
+			plt.clf()
 
-		plt.figure(2)
-		plt.title(f"tau vs. derivative")
-		plt.xlabel(f'tau')
-		plt.ylabel(f'sparsity derivative')
-		plt.plot(taus, diffs, zorder=1)
+			plt.figure(2)
+			plt.title(f"tau vs. derivative")
+			plt.xlabel(f'tau')
+			plt.ylabel(f'sparsity derivative')
+			plt.plot(taus, diffs, zorder=1)
 
-		save_path = os.path.join(output_folder, f"{text}_{epsilon_1}_{epsilon_2}_angles.png")
-		print(f"save_path:{save_path}")
-		plt.savefig(save_path, \
-		    dpi=300, bbox_inches='tight')
-		plt.clf()		
+			save_path = os.path.join(output_folder, f"{text}_{epsilon_1}_{epsilon_2}_angles.png")
+			print(f"save_path:{save_path}")
+			plt.savefig(save_path, \
+			    dpi=300, bbox_inches='tight')
+			plt.clf()
 
-		
 		epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
-		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]
+		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]		
 		
 		angle_index_1 = epsilon_1_indices[-1]
 		angle_index_2 = epsilon_2_indices[-1]

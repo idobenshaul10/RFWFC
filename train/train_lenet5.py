@@ -26,7 +26,7 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 RANDOM_SEED = 42
 LEARNING_RATE = 0.001
 BATCH_SIZE = 32
-N_EPOCHS = 100
+N_EPOCHS = 11
 IMG_SIZE = 32
 N_CLASSES = 10
 output_path = os.path.join(args.output_path, "LeNet5")
@@ -80,7 +80,7 @@ def get_accuracy(model, data_loader, device):
 	return correct_pred.float() / n
 
 def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
-		epochs, device, print_every=1, save_every=5):
+		epochs, device, print_every=1, save_every=1):
 	best_loss = 1e10
 	train_losses = []
 	valid_losses = [] 
