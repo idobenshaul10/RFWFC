@@ -37,7 +37,7 @@ def get_args():
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
-	parser.add_argument('--output_folder', type=str, default=r"C:\projects\RFWFC\results\DL_layers\analysis\mnist", \
+	parser.add_argument('--output_folder', type=str, default=r"C:\projects\RFWFC\results\DL_layers\analysis\cifar10_simple", \
 						help='path to save results')
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
 	parser.add_argument('--batch_size', type=int, default=1024)
@@ -73,7 +73,11 @@ def get_activation(name):
 		if name not in activation:
 			activation[name] = output.detach().view(BATCH_SIZE, -1).cpu()
 		else:
-			new_outputs = output.detach().view(-1, activation[name].shape[1]).cpu()
+			try:
+				new_outputs = output.detach().view(-1, activation[name].shape[1]).cpu()
+			except:
+				new_outputs = output.detach().view(BATCH_SIZE, -1).cpu()
+
 			activation[name] = \
 				torch.cat((activation[name], new_outputs), dim=0)
 		# print(f"activation[name]:{activation[name].shape}")
@@ -90,14 +94,14 @@ if args.checkpoint_path is not None:
 	addition += "_" + args.checkpoint_path.split("\\")[-1]
 args.output_folder = os.path.join(args.output_folder, addition)
 
-if not os.path.isdir(args.output_folder):
+if not os.path.isdir(args.output_folder):	
 	os.mkdir(args.output_folder)
 
 with torch.no_grad():
 	for k, layer in enumerate(layers):		
 		print(f"LAYER {k}")
-		if type(layer) == torch.nn.modules.AvgPool2d or type(layer) == torch.nn.Linear:
-		# if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:
+		# if type(layer) == torch.nn.modules.AvgPool2d or type(layer) == torch.nn.Linear:
+		if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:
 			if type(layer) == torch.nn.modules.pooling.AvgPool2d:
 				layer_str = "AvgPool2d"
 			if type(layer) == torch.nn.modules.pooling.MaxPool2d:
