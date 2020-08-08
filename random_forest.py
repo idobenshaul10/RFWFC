@@ -56,7 +56,7 @@ class WaveletsForestRegressor:
 		self.regressor = regressor
 		self.criterion = criterion
 		self.bagging = bagging
-		self.verbose = False
+		self.verbose = True
 
 		if self.regressor == "random_forest" and depth == -1:
 			self.depth = None
@@ -427,7 +427,7 @@ class WaveletsForestRegressor:
 		norms = self.norms[mask]		
 		h = 0.01
 		diffs = []
-		taus = np.arange(1., 10., h)		
+		taus = np.arange(1., self.power + 1., h)
 		total_sparsities, total_alphas = [], []
 		for tau in tqdm(taus):
 			tau_sparsity = np.power(np.power(norms, tau).sum(), ((1/tau)-1))
@@ -437,14 +437,30 @@ class WaveletsForestRegressor:
 
 		angles = np.rad2deg(np.arctan(diffs))
 		
+		epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
+		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]		
+		
+		angle_index_1 = epsilon_1_indices[-1]
+		angle_index_2 = epsilon_2_indices[-1]
+
+		critical_tau_approximation_1 = taus[angle_index_1]
+		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/self.power)
+
+		critical_tau_approximation_2 = taus[angle_index_2]
+		critical_alpha_approximation_2 = ((1/critical_tau_approximation_2) - 1/self.power)
+
+		
 		if self.verbose:
 			plt.figure(1)		
 			plt.title(f"tau vs. angle")
 			plt.xlabel(f'tau')
 			plt.ylabel(f'sparsity angle')
-			plt.plot(taus, angles, zorder=1)		
+			plt.plot(taus, angles, zorder=1)
+			s = [0.5 for n in range(len(epsilon_2_indices))]
+			plt.scatter(taus[epsilon_2_indices], angles[epsilon_2_indices], color="r", zorder=2, s=s)
+			plt.scatter(taus[epsilon_1_indices], angles[epsilon_1_indices], color="g", zorder=2, s=s)
 
-			print(f"abs(angles+90.).min():{abs(angles+90.).min()}")		
+			print(f"abs(angles+90.).min():{abs(angles+90.).min()}")
 
 			save_path = os.path.join(output_folder, f"{text}_{epsilon_1}_{epsilon_2}_derivates.png")
 			print(f"save_path:{save_path}")
@@ -457,24 +473,15 @@ class WaveletsForestRegressor:
 			plt.xlabel(f'tau')
 			plt.ylabel(f'sparsity derivative')
 			plt.plot(taus, diffs, zorder=1)
+			s = [0.5 for n in range(len(epsilon_2_indices))]
+			plt.scatter(taus[epsilon_2_indices], diffs[epsilon_2_indices], color="r", zorder=2, s=s)
+			plt.scatter(taus[epsilon_1_indices], diffs[epsilon_1_indices], color="g", zorder=2, s=s)
 
 			save_path = os.path.join(output_folder, f"{text}_{epsilon_1}_{epsilon_2}_angles.png")
 			print(f"save_path:{save_path}")
 			plt.savefig(save_path, \
 			    dpi=300, bbox_inches='tight')
-			plt.clf()
-
-		epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
-		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]		
-		
-		angle_index_1 = epsilon_1_indices[-1]
-		angle_index_2 = epsilon_2_indices[-1]
-
-		critical_tau_approximation_1 = taus[angle_index_1]
-		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/self.power)
-
-		critical_tau_approximation_2 = taus[angle_index_2]
-		critical_alpha_approximation_2 = ((1/critical_tau_approximation_2) - 1/self.power)
+			plt.clf()		
 
 		return critical_alpha_approximation_1, critical_alpha_approximation_2
 		

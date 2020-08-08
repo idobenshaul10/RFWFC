@@ -37,8 +37,9 @@ def get_args():
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
-	parser.add_argument('--output_folder', type=str, default=r"C:\projects\RFWFC\results\DL_layers\analysis\cifar10_simple", \
-						help='path to save results')
+	parser.add_argument('--output_folder', type=str, \
+		default=r"C:\projects\RFWFC\results\DL_layers\analysis\results\fashion_mnist", \
+		help='path to save results')
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
 	parser.add_argument('--batch_size', type=int, default=1024)
 	parser.add_argument('--env_name', type=str, default="cifar10")
@@ -46,7 +47,7 @@ def get_args():
 	parser.add_argument('--epsilon_1', type=float, default=0.01)
 
 	args = parser.parse_args()
-	args.epsilon_2 = 2*args.epsilon_1
+	args.epsilon_2 = 4*args.epsilon_1
 	return args
 
 args = get_args()
@@ -70,16 +71,17 @@ data_loader = torch.utils.data.DataLoader(dataset,
 activation = {}
 def get_activation(name):
 	def hook(model, input, output):		
+		# print(f"layer:{name}, output:{output.shape}")		
 		if name not in activation:
 			activation[name] = output.detach().view(BATCH_SIZE, -1).cpu()
 		else:
 			try:
 				new_outputs = output.detach().view(-1, activation[name].shape[1]).cpu()
+				activation[name] = \
+					torch.cat((activation[name], new_outputs), dim=0)
 			except:
-				new_outputs = output.detach().view(BATCH_SIZE, -1).cpu()
-
-			activation[name] = \
-				torch.cat((activation[name], new_outputs), dim=0)
+				pass
+			
 		# print(f"activation[name]:{activation[name].shape}")
 	return hook
 
@@ -98,10 +100,14 @@ if not os.path.isdir(args.output_folder):
 	os.mkdir(args.output_folder)
 
 with torch.no_grad():
-	for k, layer in enumerate(layers):		
+	for k, layer in enumerate(layers):
 		print(f"LAYER {k}")
 		# if type(layer) == torch.nn.modules.AvgPool2d or type(layer) == torch.nn.Linear:
-		if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear:
+		if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear or \
+			type(layer) == torch.nn.Conv2d or type(layer) == torch.nn.modules.AvgPool2d:
+
+			if type(layer) == torch.nn.Conv2d:
+				layer_str = "Conv2d"
 			if type(layer) == torch.nn.modules.pooling.AvgPool2d:
 				layer_str = "AvgPool2d"
 			if type(layer) == torch.nn.modules.pooling.MaxPool2d:

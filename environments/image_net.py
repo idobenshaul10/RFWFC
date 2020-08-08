@@ -12,37 +12,35 @@ import time
 from environments.base_environment import *
 from models.simple_cifar10_model import Simple_CIFAR10
 
-class cifar10_simple(BaseEnviorment):
-	def __init__(self, checkpoint_path):
+class tiny_image_net(BaseEnviorment):
+	def __init__(self, model_name="resnet18"):
 		super().__init__()
-		if checkpoint_path is None:
-			self.model_path = r"C:\projects\RFWFC\results\DL_layers\trained_models\cifar10_simple\weights.0.h5"
-		else:
-			self.model_path = checkpoint_path
+		self.model_name = model_name
 
 	def get_dataset(self):
+		root = r"C:\datasets\imagenet"
 		dataset = \
-			torchvision.datasets.CIFAR10(r"C:\datasets\cifar10", train=True, \
-				transform=self.get_eval_transform(), target_transform=None, download=False)
+			torchvision.datasets.ImageNet(root, \
+				split='train', download=True)
 		return dataset
 
-	def get_layers(self, model):		
+	def get_layers(self, model):
+		import pdb; pdb.set_trace()		
 		layers = [module for module in model.modules()][1:]		
 		return layers
 
 	def get_eval_transform(self):
+		normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
+
 		transform = transforms.Compose(
 			[transforms.ToTensor(),
-			 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+			 normalize])
 		return transform
 
 	def get_model(self):
-		model = Simple_CIFAR10()
+		model = eval(f"{model_name}(pretrained=True)")
 		if self.use_cuda:
 			model = model.cuda()		
-
-		checkpoint = torch.load(self.model_path)['checkpoint']
-		print(f"loading checkpoint:{self.model_path}")
-		model.load_state_dict(checkpoint)
 		return model
 
