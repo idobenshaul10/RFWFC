@@ -25,7 +25,7 @@ from tqdm import tqdm
 
 class WaveletsForestRegressor:
 	def __init__(self, regressor='random_forest', mode='classification', criterion='gini', bagging=0.8, train_vi=False,
-				 depth=9, trees=5, features='auto', seed=None, vi_threshold=0.8, \
+				 depth=9, trees=5, features='auto', seed=2000, vi_threshold=0.8, \
 				 norms_normalization='volume', cube_length=1.):
 		'''
 		Construct a new 'WaveletsForestRegressor' object.
@@ -38,6 +38,8 @@ class WaveletsForestRegressor:
 		:features: Features to consider in each split. Same options as sklearn\'s DecisionTreeRegressor.
 		:seed: Seed for random operations. Default is 2000.
 		'''
+
+		np.random.seed(2000)
 
 		self.norms = None
 		self.vals = None
@@ -139,7 +141,6 @@ class WaveletsForestRegressor:
 			for y in (rtop, rtop+height):				
 				if math.hypot(x-center_x, y-center_y) <= radius:
 					return True  # collision detected
-
 		
 		if rleft <= center_x <= rright and rtop <= center_y <= rbottom:
 			return True
@@ -192,7 +193,7 @@ class WaveletsForestRegressor:
 			)
 		else:
 			# RandomForestRegressor
-			# RandomForestClassifier
+			# RandomForestClassifier			
 			if self.mode == 'classification':
 				regressor = ensemble.RandomForestClassifier(
 					criterion='gini',
@@ -426,14 +427,20 @@ class WaveletsForestRegressor:
 		mask[self.root_nodes] = False
 		norms = self.norms[mask]		
 		h = 0.01
+		
 		diffs = []
-		taus = np.arange(1., self.power + 1., h)
+		# taus = np.arange(1.5, self.power + 1., h)
+		taus = np.arange(0.75, 3., h)
 		total_sparsities, total_alphas = [], []
+		J = len(self.rf.estimators_)
+
 		for tau in tqdm(taus):
-			tau_sparsity = np.power(np.power(norms, tau).sum(), ((1/tau)-1))
-			tau_sparsity *= np.power(norms, (tau-1)).sum()
+			# tau_sparsity = (1/J)*np.power(np.power(norms, tau).sum(), ((1/tau)-1))
+			# tau_sparsity *= np.power(norms, (tau-1)).sum()
+			tau_sparsity = (1/J)*np.power(np.power(norms, tau).sum(), (1/tau))
 			diffs.append(tau_sparsity)
 		diffs = -np.array(diffs)
+
 
 		angles = np.rad2deg(np.arctan(diffs))
 		
@@ -442,6 +449,8 @@ class WaveletsForestRegressor:
 		
 		angle_index_1 = epsilon_1_indices[-1]
 		angle_index_2 = epsilon_2_indices[-1]
+		# angle_index_1 = 0
+		# angle_index_2 = 0
 
 		critical_tau_approximation_1 = taus[angle_index_1]
 		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/self.power)
@@ -502,9 +511,7 @@ class WaveletsForestRegressor:
 		for m_step in range(2, m, step):
 			if m_step > len(self.norms):
 				break			
-			predictions += self.predict(self.X, m=m_step, start_m=max(m_step - step, 0), paths=paths)
-
-			import pdb; pdb.set_trace()
+			predictions += self.predict(self.X, m=m_step, start_m=max(m_step - step, 0), paths=paths)			
 			error_norms = np.power(np.sum(np.power(self.y - predictions, power), 1), 1. / power)
 			total_error = np.sum(np.square(error_norms), 0) / len(self.X)
 

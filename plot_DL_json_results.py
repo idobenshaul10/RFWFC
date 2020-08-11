@@ -22,8 +22,8 @@ for file_path in Path(main_dir).glob('**/*.json'):
 	eps = file_path.split('\\')[-2].split('.')[1]
 	# if eps != '05_0':
 	# 	continue
-	if int(epoch)%5 != 0:
-		continue
+	# if int(epoch)%5 != 0:
+	# 	continue
 	with open(file_path, "r+") as f:
 		result = json.load(f)	
 	sizes = result["sizes"]

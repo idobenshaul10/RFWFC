@@ -17,7 +17,7 @@ class fashion_mnist(BaseEnviorment):
     def __init__(self, checkpoint_path=None):
         super().__init__()
         if checkpoint_path is None:
-            self.model_path = r"C:\projects\RFWFC\results\DL_layers\trained_models\fahsion_mnist_model\weights.10.h5"
+            self.model_path = r"C:\projects\RFWFC\results\DL_layers\trained_models\fahsion_mnist_model\weights.0.h5"
         else:
             self.model_path = checkpoint_path
 

@@ -38,7 +38,7 @@ def get_args():
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
 	parser.add_argument('--output_folder', type=str, \
-		default=r"C:\projects\RFWFC\results\DL_layers\analysis\results\fashion_mnist", \
+		default=r"C:\projects\RFWFC\results\DL_layers\analysis\results\actual_angle\test\fashion", \
 		help='path to save results')
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
 	parser.add_argument('--batch_size', type=int, default=1024)
@@ -63,10 +63,10 @@ else:
 	environment = eval(f"module.{args.env_name}()")
 
 model, dataset, layers = environment.load_enviorment()
-data_loader = torch.utils.data.DataLoader(dataset,
-	batch_size=BATCH_SIZE,
-	shuffle=True)
+data_loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False)
 
+torch.manual_seed(0)
+np.random.seed(0)
 
 activation = {}
 def get_activation(name):
@@ -101,10 +101,10 @@ if not os.path.isdir(args.output_folder):
 
 with torch.no_grad():
 	for k, layer in enumerate(layers):
-		print(f"LAYER {k}")
-		# if type(layer) == torch.nn.modules.AvgPool2d or type(layer) == torch.nn.Linear:
+		print(f"LAYER {k}")		
+		# type(layer) == torch.nn.Conv2d
 		if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear or \
-			type(layer) == torch.nn.Conv2d or type(layer) == torch.nn.modules.AvgPool2d:
+			type(layer) == torch.nn.modules.AvgPool2d:
 
 			if type(layer) == torch.nn.Conv2d:
 				layer_str = "Conv2d"
@@ -157,7 +157,7 @@ if type(alphas) == list:
 else:
 	plt.plot(sizes, alphas, 'k', color='#1B2ACC')
 
-plt.title("VGG ReLu Angle Smoothness")
+plt.title(f"{args.env_name} Angle Smoothness")
 plt.xlabel(f'dataset size')
 plt.ylabel(f'evaluate_smoothnes index- alpha')
 

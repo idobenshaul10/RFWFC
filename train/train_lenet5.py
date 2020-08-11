@@ -42,7 +42,7 @@ def train(train_loader, model, criterion, optimizer, device):
 		y_true = y_true.to(device)
 		y_hat, _ = model(X) 
 		loss = criterion(y_hat, y_true) 
-		running_loss += loss.item() * X.size(0)		
+		running_loss += loss.item() * X.size(0)
 		loss.backward()
 		optimizer.step()
 		
