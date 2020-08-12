@@ -434,10 +434,13 @@ class WaveletsForestRegressor:
 		total_sparsities, total_alphas = [], []
 		J = len(self.rf.estimators_)
 
+		use_derivatives = True
 		for tau in tqdm(taus):
-			# tau_sparsity = (1/J)*np.power(np.power(norms, tau).sum(), ((1/tau)-1))
-			# tau_sparsity *= np.power(norms, (tau-1)).sum()
-			tau_sparsity = (1/J)*np.power(np.power(norms, tau).sum(), (1/tau))
+			if use_derivatives:				
+				tau_sparsity = (1/J)*np.power(np.power(norms, tau).sum(), ((1/tau)-1))
+				tau_sparsity *= np.power(norms, (tau-1)).sum()
+			else:
+				tau_sparsity = (1/J)*np.power(np.power(norms, tau).sum(), (1/tau))
 			diffs.append(tau_sparsity)
 		diffs = -np.array(diffs)
 

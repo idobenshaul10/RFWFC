@@ -38,7 +38,7 @@ def get_args():
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
 	parser.add_argument('--output_folder', type=str, \
-		default=r"C:\projects\RFWFC\results\DL_layers\analysis\results\actual_angle\test\fashion", \
+		default=r"C:\projects\RFWFC\results\DL_layers\analysis\results\derivative_angle\mnist", \
 		help='path to save results')
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
 	parser.add_argument('--batch_size', type=int, default=1024)
