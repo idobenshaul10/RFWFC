@@ -34,9 +34,12 @@ class mnist(BaseEnviorment):
         return transform
 
     def get_layers(self, model):
-        feature_layers = [module for module in model.feature_extractor.modules() if type(module) != nn.Sequential]
-        classifier_layers = [module for module in model.classifier.modules() if type(module) != nn.Sequential]
+        feature_layers = np.array([module for module in model.feature_extractor.modules() if type(module) != nn.Sequential])
+        classifier_layers = np.array([module for module in model.classifier.modules() if type(module) != nn.Sequential])        
+        feature_layers = list(feature_layers[[2, 5, 7]])        
+        classifier_layers = list(classifier_layers[[1, 2]])
         layers = feature_layers + classifier_layers
+        
         return layers
 
     def get_model(self):

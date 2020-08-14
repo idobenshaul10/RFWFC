@@ -23,6 +23,7 @@ import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
+from clustering import kmeans_cluster
 from utils import *
 import time
 import json
@@ -38,13 +39,14 @@ def get_args():
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
 	parser.add_argument('--output_folder', type=str, \
-		default=r"C:\projects\RFWFC\results\DL_layers\analysis\results\derivative_angle\mnist", \
+		default=r"C:\projects\RFWFC\results\DL_layers\analysis\right_layers\mnist", \
 		help='path to save results')
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
 	parser.add_argument('--batch_size', type=int, default=1024)
 	parser.add_argument('--env_name', type=str, default="cifar10")
 	parser.add_argument('--checkpoint_path', type=str, default=None)
 	parser.add_argument('--epsilon_1', type=float, default=0.01)
+	parser.add_argument('--use_clustering', action='store_true', default=False)
 
 	args = parser.parse_args()
 	args.epsilon_2 = 4*args.epsilon_1
@@ -80,10 +82,42 @@ def get_activation(name):
 				activation[name] = \
 					torch.cat((activation[name], new_outputs), dim=0)
 			except:
-				pass
-			
-		# print(f"activation[name]:{activation[name].shape}")
+				pass		
 	return hook
+
+def save_alphas_plot(args, alphas, sizes):
+	plt.figure(1)
+	plt.clf()
+	if type(alphas) == list:
+		plt.fill_between(sizes, [k[0] for k in alphas], [k[1] for k in alphas], \
+			alpha=0.2, facecolor='#089FFF', \
+			linewidth=4)
+		plt.plot(sizes, [np.array(k).mean()	 for k in alphas], 'k', color='#1B2ACC')
+	else:
+		plt.plot(sizes, alphas, 'k', color='#1B2ACC')
+
+	plt.title(f"{args.env_name} Angle Smoothness")
+	plt.xlabel(f'dataset size')
+	plt.ylabel(f'evaluate_smoothnes index- alpha')
+
+	save_graph=True
+	if save_graph:
+		save_path = os.path.join(args.output_folder, "result.png")
+		print(f"save_path:{save_path}")
+		plt.savefig(save_path, \
+			dpi=300, bbox_inches='tight')
+
+	def convert(o):
+		if isinstance(o, np.generic): return o.item()
+		raise TypeError
+
+	json_file_name = os.path.join(args.output_folder, "result.json")
+	write_data = {}
+	write_data['alphas'] = alphas
+	write_data['sizes'] = sizes
+	norms_path = os.path.join(args.output_folder, json_file_name)
+	with open(norms_path, "w+") as f:
+		json.dump(write_data, f, default=convert)
 
 Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()
 N_wavelets = 10000
@@ -101,8 +135,10 @@ if not os.path.isdir(args.output_folder):
 
 with torch.no_grad():
 	for k, layer in enumerate(layers):
+		import pdb; pdb.set_trace()
+		if k < 2:
+			continue
 		print(f"LAYER {k}")		
-		# type(layer) == torch.nn.Conv2d
 		if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear or \
 			type(layer) == torch.nn.modules.AvgPool2d:
 
@@ -135,47 +171,23 @@ with torch.no_grad():
 			print(f"X.shape:{X.shape}")			
 			assert(Y.shape[0] == X.shape[0])
 			print(f"Y shape:{Y.shape}")
-			alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
-				num_wavelets=N_wavelets, n_trees=args.trees, \
-				m_depth=args.depth, \
-				n_state=2000, normalize=False, \
-				norm_normalization=norm_normalization, error_TH=0., 
-				text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
-				epsilon_1=args.epsilon_1, epsilon_2=args.epsilon_2)
-			
-			print(f"alpha for layer {k} is {alpha_index}")			
-			sizes.append(k)
-			alphas.append(alpha_index)
 
-plt.figure(1)
-plt.clf()
-if type(alphas) == list:
-	plt.fill_between(sizes, [k[0] for k in alphas], [k[1] for k in alphas], \
-		alpha=0.2, facecolor='#089FFF', \
-		linewidth=4)
-	plt.plot(sizes, [np.array(k).mean()	 for k in alphas], 'k', color='#1B2ACC')
-else:
-	plt.plot(sizes, alphas, 'k', color='#1B2ACC')
+			if not args.use_clustering:
+				alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
+					num_wavelets=N_wavelets, n_trees=args.trees, \
+					m_depth=args.depth, \
+					n_state=2000, normalize=False, \
+					norm_normalization=norm_normalization, error_TH=0., 
+					text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
+					epsilon_1=args.epsilon_1, epsilon_2=args.epsilon_2)
+				
+				print(f"alpha for layer {k} is {alpha_index}")			
+				sizes.append(k)
+				alphas.append(alpha_index)
+			else:
+				kmeans_cluster(X, Y, args.output_folder)
 
-plt.title(f"{args.env_name} Angle Smoothness")
-plt.xlabel(f'dataset size')
-plt.ylabel(f'evaluate_smoothnes index- alpha')
-
-save_graph=True
-if save_graph:
-	save_path = os.path.join(args.output_folder, "result.png")
-	print(f"save_path:{save_path}")
-	plt.savefig(save_path, \
-		dpi=300, bbox_inches='tight')
-
-def convert(o):
-	if isinstance(o, np.generic): return o.item()
-	raise TypeError
-
-json_file_name = os.path.join(args.output_folder, "result.json")
-write_data = {}
-write_data['alphas'] = alphas
-write_data['sizes'] = sizes
-norms_path = os.path.join(args.output_folder, json_file_name)
-with open(norms_path, "w+") as f:
-	json.dump(write_data, f, default=convert)
+if not args.use_clustering:	
+	save_alphas_plot(args, alphas, sizes)
+# else:
+# 	save_alphas_plot(args, alphas, sizes)
