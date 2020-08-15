@@ -2,9 +2,10 @@ from __future__ import print_function
 import os 
 import sys
 import argparse
+import torch
 import numpy as np
 from tqdm import tqdm
-import torch
+
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -28,6 +29,8 @@ from utils import *
 import time
 import json
 
+#  python .\DL_smoothness.py --env_name mnist --checkpoint_path "C:\projects\RFWFC\results\trained_models\weights.80.h5" --use_clustering
+
 ion()
 
 def get_args():
@@ -39,7 +42,7 @@ def get_args():
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
 	parser.add_argument('--output_folder', type=str, \
-		default=r"C:\projects\RFWFC\results\DL_layers\analysis\right_layers\mnist", \
+		default=r"C:\projects\RFWFC\results\mnist", \
 		help='path to save results')
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
 	parser.add_argument('--batch_size', type=int, default=1024)
@@ -134,58 +137,42 @@ if not os.path.isdir(args.output_folder):
 	os.mkdir(args.output_folder)
 
 with torch.no_grad():
-	for k, layer in enumerate(layers):
-		import pdb; pdb.set_trace()
-		if k < 2:
-			continue
+	for k, layer in enumerate(layers):		
 		print(f"LAYER {k}")		
-		if type(layer) == torch.nn.modules.pooling.MaxPool2d or type(layer) == torch.nn.Linear or \
-			type(layer) == torch.nn.modules.AvgPool2d:
+		layer_str = str(layer)
+		layer_name = f'layer_{k}'
+		handle = layer.register_forward_hook(get_activation(layer_name))
+		for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
+			if use_cuda:
+				data = data.cuda()
+			model(data)
 
-			if type(layer) == torch.nn.Conv2d:
-				layer_str = "Conv2d"
-			if type(layer) == torch.nn.modules.pooling.AvgPool2d:
-				layer_str = "AvgPool2d"
-			if type(layer) == torch.nn.modules.pooling.MaxPool2d:
-				layer_str = "MaxPool"
-			if type(layer) == torch.nn.Linear:
-				layer_str = "Linear"
-			if type(layer) == torch.nn.ReLU:
-				layer_str = "ReLU"
+		X = activation[list(activation.keys())[0]]
+		handle.remove()
+		del activation[layer_name]
 
-			layer_name = f'layer_{k}'
-			handle = layer.register_forward_hook(get_activation(layer_name))
-			for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
-				if use_cuda:
-					data = data.cuda()
-				model(data)
+		start = time.time()
+		Y = np.array(Y).reshape(-1, 1)
+		X = np.array(X).squeeze()
 
-			X = activation[list(activation.keys())[0]]
-			handle.remove()
-			del activation[layer_name]
+		print(f"X.shape:{X.shape}")			
+		assert(Y.shape[0] == X.shape[0])
+		print(f"Y shape:{Y.shape}")
 
-			start = time.time()
-			Y = np.array(Y).reshape(-1, 1)
-			X = np.array(X).squeeze()
-
-			print(f"X.shape:{X.shape}")			
-			assert(Y.shape[0] == X.shape[0])
-			print(f"Y shape:{Y.shape}")
-
-			if not args.use_clustering:
-				alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
-					num_wavelets=N_wavelets, n_trees=args.trees, \
-					m_depth=args.depth, \
-					n_state=2000, normalize=False, \
-					norm_normalization=norm_normalization, error_TH=0., 
-					text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
-					epsilon_1=args.epsilon_1, epsilon_2=args.epsilon_2)
-				
-				print(f"alpha for layer {k} is {alpha_index}")			
-				sizes.append(k)
-				alphas.append(alpha_index)
-			else:
-				kmeans_cluster(X, Y, args.output_folder)
+		if not args.use_clustering:
+			alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
+				num_wavelets=N_wavelets, n_trees=args.trees, \
+				m_depth=args.depth, \
+				n_state=2000, normalize=False, \
+				norm_normalization=norm_normalization, error_TH=0., 
+				text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
+				epsilon_1=args.epsilon_1, epsilon_2=args.epsilon_2)
+			
+			print(f"alpha for layer {k} is {alpha_index}")			
+			sizes.append(k)
+			alphas.append(alpha_index)
+		else:			
+			kmeans_cluster(X, Y, args.output_folder, f"layer {k}")
 
 if not args.use_clustering:	
 	save_alphas_plot(args, alphas, sizes)
