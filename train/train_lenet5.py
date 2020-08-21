@@ -20,6 +20,7 @@ import albumentations as A
 from PIL import Image
 from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
+from utils import visualize_augmentation
 
 parser = argparse.ArgumentParser(description='train lenet5 on mnist dataset')
 parser.add_argument('--output_path', default=r"C:\projects\RFWFC\results\DL_layers\trained_models", 
@@ -29,7 +30,8 @@ parser.add_argument('--lr', default=0.001, type=float, help='lr for train')
 parser.add_argument('--batch_size', default=32, type=int, help='batch_size for train/test')
 parser.add_argument('--epochs', default=100, type=int, help='num epochs for train')
 parser.add_argument('--num_classes', default=10, type=int, help='num categories in output of model')
-parser.add_argument('--enrichment_factor', default=1., type=float, help='num categories in output of model')
+parser.add_argument('--visualize_dataset', action="store_true", help='if True, will show sample images from DS')
+parser.add_argument('--enrich_factor', default=1., type=float, help='num categories in output of model')
 args, _ = parser.parse_known_args()
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -38,7 +40,7 @@ LEARNING_RATE = args.lr
 BATCH_SIZE = args.batch_size
 N_EPOCHS = args.epochs
 N_CLASSES = args.num_classes
-ENRICH_FACTOR = args.enrichment_factor
+ENRICH_FACTOR = args.enrich_factor
 
 output_path = os.path.join(args.output_path, "LeNet5")
 if not os.path.isdir(output_path):
@@ -47,10 +49,10 @@ if not os.path.isdir(output_path):
 
 AUG = A.Compose({
 	A.Resize(32, 32),	
-	A.HorizontalFlip(p=0.5),
-	A.Rotate(limit=(-90, 90)),
-	A.VerticalFlip(p=0.5),
-	A.Normalize((0.5), (0.5)), 
+	# A.HorizontalFlip(p=0.5),
+	A.Rotate(limit=(-25, 25)),
+	# A.VerticalFlip(p=0.5),
+	# A.Normalize((0.5), (0.5))
 	A.OpticalDistortion()
 })
 
@@ -59,13 +61,13 @@ def transform(image):
 	image = torch.tensor(image, dtype=torch.float)	
 	return image
 
-def enrich_dataset(dataset, factor=0.1):
+def enrich_dataset(dataset, factor=1.):
 	new_dataset_size = int(len(dataset) * factor)		
 	indices = np.random.choice(len(dataset), new_dataset_size)
 	transformed_images = []
 	for index in tqdm(indices):
 		image = dataset[index][0]
-		image = transform(image)
+		image = transform(image)/255.
 		transformed_images.append(image.view(1, 1, 32, 32))
 
 	labels = [dataset[i][1] for i in indices]		
@@ -165,9 +167,18 @@ transforms = transforms.Compose([transforms.Resize((32, 32)),
 # download and create datasets
 train_dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
 							   train=True,							   
-							   download=True)
+							   download=True)#, transform=transforms)
 
 train_dataset = enrich_dataset(train_dataset, factor=ENRICH_FACTOR)
+if args.visualize_dataset:
+	random_indices = np.random.choice(len(train_dataset), 16)
+	to_show_images = []
+	for i in random_indices:
+		image = train_dataset[i][0]
+		to_show_images.append(image)
+
+	visualize_augmentation(to_show_images)
+	# exit()
 
 valid_dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
 							   train=False, 
