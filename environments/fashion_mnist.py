@@ -8,7 +8,6 @@ from matplotlib.pyplot import plot, ion, show
 from utils import *
 import time
 from environments.base_environment import *
-from models.vgg import *
 from torchvision import datasets, transforms
 from models.fashion_mnist_model import FashionMnistModel
 # https://www.arunprakash.org/2018/12/cnn-fashion-mnist-dataset-pytorch.html

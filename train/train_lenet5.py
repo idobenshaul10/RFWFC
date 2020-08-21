@@ -16,22 +16,63 @@ sys.path.insert(0,parentdir)
 from models.LeNet5 import LeNet5
 import argparse
 from collections import OrderedDict
+import albumentations as A
+from PIL import Image
+from torch.utils.data import TensorDataset, DataLoader
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description='train lenet5 on mnist dataset')
 parser.add_argument('--output_path', default=r"C:\projects\RFWFC\results\DL_layers\trained_models", 
 	help='output_path for checkpoints')
+parser.add_argument('--seed', default=0, type=int, help='seed')
+parser.add_argument('--lr', default=0.001, type=float, help='lr for train')
+parser.add_argument('--batch_size', default=32, type=int, help='batch_size for train/test')
+parser.add_argument('--epochs', default=100, type=int, help='num epochs for train')
+parser.add_argument('--num_classes', default=10, type=int, help='num categories in output of model')
+parser.add_argument('--enrichment_factor', default=1., type=float, help='num categories in output of model')
 args, _ = parser.parse_known_args()
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-RANDOM_SEED = 42
-LEARNING_RATE = 0.001
-BATCH_SIZE = 32
-N_EPOCHS = 11
-IMG_SIZE = 32
-N_CLASSES = 10
+RANDOM_SEED = args.seed
+LEARNING_RATE = args.lr
+BATCH_SIZE = args.batch_size
+N_EPOCHS = args.epochs
+N_CLASSES = args.num_classes
+ENRICH_FACTOR = args.enrichment_factor
+
 output_path = os.path.join(args.output_path, "LeNet5")
 if not os.path.isdir(output_path):
 	os.mkdir(output_path)
+
+
+AUG = A.Compose({
+	A.Resize(32, 32),	
+	A.HorizontalFlip(p=0.5),
+	A.Rotate(limit=(-90, 90)),
+	A.VerticalFlip(p=0.5),
+	A.Normalize((0.5), (0.5)), 
+	A.OpticalDistortion()
+})
+
+def transform(image):		
+	image = AUG(image=np.array(image))['image']		
+	image = torch.tensor(image, dtype=torch.float)	
+	return image
+
+def enrich_dataset(dataset, factor=0.1):
+	new_dataset_size = int(len(dataset) * factor)		
+	indices = np.random.choice(len(dataset), new_dataset_size)
+	transformed_images = []
+	for index in tqdm(indices):
+		image = dataset[index][0]
+		image = transform(image)
+		transformed_images.append(image.view(1, 1, 32, 32))
+
+	labels = [dataset[i][1] for i in indices]		
+	labels = torch.tensor(labels)		
+	transformed_images = torch.cat(transformed_images)		
+	new_dataset = TensorDataset(transformed_images, labels)	
+	return new_dataset
 
 def train(train_loader, model, criterion, optimizer, device):
 	model.train()
@@ -48,7 +89,6 @@ def train(train_loader, model, criterion, optimizer, device):
 		
 	epoch_loss = running_loss / len(train_loader.dataset)
 	return model, optimizer, epoch_loss
-
 
 def validate(valid_loader, model, criterion, device):	
 	model.eval()
@@ -86,7 +126,7 @@ def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
 	valid_losses = [] 
 	for epoch in range(0, epochs):
 
-		model, optimizer, train_loss = train(train_loader, model, criterion, optimizer, device)
+		model, optimizer, train_loss = train(train_loader, model, criterion, optimizer, device)		
 		train_losses.append(train_loss)
 
 		with torch.no_grad():
@@ -124,9 +164,10 @@ transforms = transforms.Compose([transforms.Resize((32, 32)),
 
 # download and create datasets
 train_dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
-							   train=True, 
-							   transform=transforms,
+							   train=True,							   
 							   download=True)
+
+train_dataset = enrich_dataset(train_dataset, factor=ENRICH_FACTOR)
 
 valid_dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
 							   train=False, 

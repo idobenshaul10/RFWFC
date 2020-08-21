@@ -86,7 +86,6 @@ def get_activation(name):
 			except:
 				pass		
 	return hook
-
 def save_alphas_plot(args, alphas, sizes):
 	plt.figure(1)
 	plt.clf()
@@ -136,9 +135,10 @@ if not os.path.isdir(args.output_folder):
 	os.mkdir(args.output_folder)
 
 with torch.no_grad():
-	for k, layer in enumerate(layers):		
-		print(f"LAYER {k}")		
-		layer_str = str(layer)
+	for k, layer in enumerate(layers):
+		
+		layer_str = str(type(layer))
+		print(f"LAYER {k}, type:{layer_str}")		
 		layer_name = f'layer_{k}'
 		handle = layer.register_forward_hook(get_activation(layer_name))
 		for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
@@ -154,9 +154,8 @@ with torch.no_grad():
 		Y = np.array(Y).reshape(-1, 1)
 		X = np.array(X).squeeze()
 
-		print(f"X.shape:{X.shape}")			
-		assert(Y.shape[0] == X.shape[0])
-		print(f"Y shape:{Y.shape}")
+		print(f"X.shape:{X.shape}, Y shape:{Y.shape}")
+		assert(Y.shape[0] == X.shape[0])		
 
 		if not args.use_clustering:
 			alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
@@ -175,5 +174,3 @@ with torch.no_grad():
 
 if not args.use_clustering:	
 	save_alphas_plot(args, alphas, sizes)
-# else:
-# 	save_alphas_plot(args, alphas, sizes)

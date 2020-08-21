@@ -64,9 +64,7 @@ def find_best_fit_alpha(errors_data, output_path, verbose=True):
 	errors_log = np.log(np.reshape(errors, (-1, 1)))	
 	
 	normalize = True
-	regr = linear_model.LinearRegression(normalize=normalize)
-	# regr = linear_model.Ridge(alpha=0.25, normalize=normalize)
-	# regr = linear_model.HuberRegressor(epsilon=1.5)
+	regr = linear_model.LinearRegression(normalize=normalize)	
 
 	ax = plt.axes()
 	plt.title(f'log(#wavelets) to log(errors)')
