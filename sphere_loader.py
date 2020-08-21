@@ -68,7 +68,6 @@ class PointGenerator:
 		return vec, label
 
 
-
 	def __getitem__(self, index):		
 		if index > len(self.points):
 			print("requested datasize is not available!")
@@ -83,13 +82,7 @@ class PointGenerator:
 		for i in tqdm(range(self.num_points)):
 			new_point, new_label = self.get_data_point()			
 			points.append(new_point)
-			labels.append(new_label)
-
-		
-		# labels_counter = Counter(labels)
-		# logging.info(f"LABELS COUNTER: {labels_counter}")
-		# logging.info(f"cube vol:{pow(self.cube_length, self.dim)}, \
-		# 	ball_vol:{self.get_n_ball_volume(self.dim)}")
+			labels.append(new_label)	
 
 
 		logging.info("done making dataset")

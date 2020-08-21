@@ -76,7 +76,6 @@ np.random.seed(0)
 activation = {}
 def get_activation(name):
 	def hook(model, input, output):		
-		# print(f"layer:{name}, output:{output.shape}")		
 		if name not in activation:
 			activation[name] = output.detach().view(BATCH_SIZE, -1).cpu()
 		else:
