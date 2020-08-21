@@ -27,6 +27,14 @@ class mnist(BaseEnviorment):
            download=True)
         return dataset
 
+    def get_test_dataset(self):
+        dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
+           train=False, 
+           transform=self.get_eval_transform(),
+           download=True)
+        
+        return dataset
+
     def get_eval_transform(self):
         transform = transforms.Compose([transforms.Resize((32, 32)),        	
             transforms.ToTensor()])
@@ -37,7 +45,8 @@ class mnist(BaseEnviorment):
         classifier_layers = np.array([module for module in model.classifier.modules() if type(module) != nn.Sequential])        
         feature_layers = list(feature_layers[[2, 5, 7]])        
         classifier_layers = list(classifier_layers[[1, 2]])
-        layers = feature_layers + classifier_layers + [model.softmax]        
+        # layers = feature_layers + classifier_layers + [model.softmax]
+        layers = [model.softmax]
         return layers
 
     def get_model(self):

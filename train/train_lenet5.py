@@ -30,8 +30,11 @@ parser.add_argument('--lr', default=0.001, type=float, help='lr for train')
 parser.add_argument('--batch_size', default=32, type=int, help='batch_size for train/test')
 parser.add_argument('--epochs', default=100, type=int, help='num epochs for train')
 parser.add_argument('--num_classes', default=10, type=int, help='num categories in output of model')
-parser.add_argument('--visualize_dataset', action="store_true", help='if True, will show sample images from DS')
+
 parser.add_argument('--enrich_factor', default=1., type=float, help='num categories in output of model')
+parser.add_argument('--enrich_dataset', action="store_true", help='if True, will show sample images from DS')
+parser.add_argument('--visualize_dataset', action="store_true", help='if True, will show sample images from DS')
+
 args, _ = parser.parse_known_args()
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -45,7 +48,6 @@ ENRICH_FACTOR = args.enrich_factor
 output_path = os.path.join(args.output_path, "LeNet5")
 if not os.path.isdir(output_path):
 	os.mkdir(output_path)
-
 
 AUG = A.Compose({
 	A.Resize(32, 32),	
@@ -159,32 +161,30 @@ def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
 	
 	return model, optimizer, (train_losses, valid_losses)
 
-
-# define transforms
 transforms = transforms.Compose([transforms.Resize((32, 32)),
 								 transforms.ToTensor()])
 
-# download and create datasets
-train_dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
+if args.enrich_dataset:
+	train_dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
 							   train=True,							   
-							   download=True)#, transform=transforms)
+							   download=True)
+	train_dataset = enrich_dataset(train_dataset, factor=ENRICH_FACTOR)
+	if args.visualize_dataset:
+		random_indices = np.random.choice(len(train_dataset), 16)
+		to_show_images = []
+		for i in random_indices:
+			image = train_dataset[i][0]
+			to_show_images.append(image)
 
-train_dataset = enrich_dataset(train_dataset, factor=ENRICH_FACTOR)
-if args.visualize_dataset:
-	random_indices = np.random.choice(len(train_dataset), 16)
-	to_show_images = []
-	for i in random_indices:
-		image = train_dataset[i][0]
-		to_show_images.append(image)
+		visualize_augmentation(to_show_images)	
+else:
+	train_dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
+	   train=True, download=True, transform=transforms)
 
-	visualize_augmentation(to_show_images)
-	# exit()
 
 valid_dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
-							   train=False, 
-							   transform=transforms)
+	train=False, transform=transforms)
 
-# define the data loaders
 train_loader = DataLoader(dataset=train_dataset, 
 						  batch_size=BATCH_SIZE, 
 						  shuffle=True)

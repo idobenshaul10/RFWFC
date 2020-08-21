@@ -19,10 +19,15 @@ class BaseEnviorment():
 		self.use_cuda = torch.cuda.is_available()
 
 	def load_enviorment(self):
-		dataset = self.get_dataset()		
-		model = self.get_model()		
+		train_dataset = self.get_dataset()
+		test_dataset = None
+		try:
+			test_dataset = self.get_test_dataset()
+		except:
+			print("test_dataset not availbale!")
+		model = self.get_model()
 		layers = self.get_layers(model)
-		return model, dataset, layers
+		return model, train_dataset, test_dataset, layers
 
 	def get_layers(self):
 		pass
