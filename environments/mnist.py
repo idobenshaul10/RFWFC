@@ -8,7 +8,6 @@ from matplotlib.pyplot import plot, ion, show
 from utils import *
 import time
 from environments.base_environment import *
-from models.vgg import *
 from torchvision import datasets, transforms
 from models.LeNet5 import LeNet5
 # https://towardsdatascience.com/implementing-yann-lecuns-lenet-5-in-pytorch-5e05a0911320
@@ -29,7 +28,7 @@ class mnist(BaseEnviorment):
         return dataset
 
     def get_eval_transform(self):
-        transform = transforms.Compose([transforms.Resize((32, 32)),
+        transform = transforms.Compose([transforms.Resize((32, 32)),        	
             transforms.ToTensor()])
         return transform
 
@@ -38,8 +37,7 @@ class mnist(BaseEnviorment):
         classifier_layers = np.array([module for module in model.classifier.modules() if type(module) != nn.Sequential])        
         feature_layers = list(feature_layers[[2, 5, 7]])        
         classifier_layers = list(classifier_layers[[1, 2]])
-        layers = feature_layers + classifier_layers
-        
+        layers = feature_layers + classifier_layers + [model.softmax]        
         return layers
 
     def get_model(self):
@@ -49,4 +47,3 @@ class mnist(BaseEnviorment):
         checkpoint = torch.load(self.model_path)['checkpoint']
         model.load_state_dict(checkpoint)
         return model
-

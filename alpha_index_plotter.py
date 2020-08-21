@@ -41,7 +41,6 @@ STEP = 5000
 # MAX_SIZE = 3601
 # STEP = 2500
 
-
 def plot_mse_per_donut_distance(flags, data_str, normalize=True, output_path=''):
 	results = defaultdict(list)
 	donut_sizes = np.concatenate((np.array([-1, 0.001, 0.01, 0.05]), np.arange(0.1, 0.51, 0.2)))
@@ -159,7 +158,6 @@ def plot_dyadic_per_num_wavelets(flags, data_str, normalize=True, output_path=''
 	print(f"total time is {end-start}")
 	plt.show(block=False)
 
-
 def plot_dyadic(flags, data_str, normalize=True, output_path=''):		
 	start = time.time()
 	sizes ,alphas, stds = [], [], []
@@ -264,7 +262,6 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	end = time.time()
 	print(f"total time is {end-start}")
 	plt.show(block=False)
-	
 
 def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_path=''):
 	n_folds = 5
@@ -386,6 +383,7 @@ def plot_alpha_per_depth(flags, \
 	print(f'stds:{stds}')
 	plt.figure(1)
 	plt.plot(sizes, alphas)	
+
 def draw_predictive_line(n, p=2):	
 	x = np.linspace(MIN_SIZE, list(range(MIN_SIZE,MAX_SIZE,STEP))[-1], STEP)
 	# x = np.linspace(50, list(range(50,351,25))[-1], 25)
@@ -393,7 +391,6 @@ def draw_predictive_line(n, p=2):
 	y = [desired_value for k in x]
 	plt.plot(x, y, '-r', label='y=2x+1')
 	return desired_value
-
 def plot_alpha_per_donut_size(flags, data_str, output_path):
 	n_folds = 5
 	add_noisy_channels = False
@@ -475,7 +472,6 @@ def plot_alpha_per_donut_size(flags, data_str, output_path):
 			dpi=300, bbox_inches='tight')
 	end = time.time()
 	print(f"total time is {end-start}")
-
 def save_results(sizes, alphas, X, y, data_str, output_path):
 	folder_path = os.path.join(output_path, data_str)
 	if not os.path.isdir(folder_path):

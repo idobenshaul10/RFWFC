@@ -14,7 +14,6 @@ import json
 
 main_dir = sys.argv[1]
 # paths = Path('src').rglob('*.json')
-
 # indices = [5, 10, 20, 30]
 for file_path in Path(main_dir).glob('**/*.json'):	
 	file_path = str(file_path)	

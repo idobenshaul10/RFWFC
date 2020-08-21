@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.model_selection import KFold
 from random_forest import WaveletsForestRegressor
 from dyadic_decision_tree_regressor import DyadicDecisionTreeRegressor
+import torchvision
 
 
 def normalize_data(x_raw):
@@ -197,13 +198,9 @@ def kfold_regression_mse(x, y, t_method='RF', num_wavelets=10, n_folds=5, n_tree
             if num_wavelets < 1:
                 num_wavelets = int(np.round(num_wavelets*len(model.norms)))
                 norm_m_term = -np.sort(-model.norms)[num_wavelets-1]
-        y_pred = predict_model(x_test, model, method=t_method, m=num_wavelets)
-        # Calculate the MSE accuracy and append it to the accuracies vector
+        y_pred = predict_model(x_test, model, method=t_method, m=num_wavelets)        
         mse.append(metrics.mean_squared_error(y_test, y_pred))
-        # logging.log(20, '   Fold accuracy: '+str(mse[-1]))
-
-    # logging.log(60, '   Mean of MSE over all folds: ' + str(np.mean(mse)) +
-    #             '   Standard deviation: ' + str(np.std(mse)))
+        
     return np.mean(mse), np.std(mse), num_wavelets, norm_m_term
 
 
@@ -246,11 +243,16 @@ def kfold_error_one_by_one_feature(x, y, method='RF', trees=5, depth=9, features
                                         norm_normalization=nnormalization)[0])
     return mse
 
+def imshow(img):
+    # img = img / 2 + 0.5
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.show()    
 
+def visualize_augmentation(images):    
+    imshow(torchvision.utils.make_grid(images))
 
-if __name__ == '__main__':
-    # set_name = "sonar"
-    # a = read_data(set_name)
+if __name__ == '__main__':    
     from sklearn.datasets import make_moons, make_circles, make_classification
     X, y = make_classification(n_features=2, n_redundant=0, n_informative=2,
                            random_state=1, n_clusters_per_class=1)

@@ -34,8 +34,7 @@ import json
 ion()
 
 def get_args():
-	parser = argparse.ArgumentParser(description='Network Smoothness Script')
-	# regressor args
+	parser = argparse.ArgumentParser(description='Network Smoothness Script')	
 	parser.add_argument('--trees',default=1,type=int,help='Number of trees in the forest.')	
 	parser.add_argument('--depth', default=15, type=int,help='Maximum depth of each tree.Use 0 for unlimited depth.')		
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
@@ -69,7 +68,6 @@ else:
 
 model, dataset, layers = environment.load_enviorment()
 data_loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False)
-
 torch.manual_seed(0)
 np.random.seed(0)
 
@@ -120,6 +118,20 @@ def save_alphas_plot(args, alphas, sizes):
 	with open(norms_path, "w+") as f:
 		json.dump(write_data, f, default=convert)
 
+def get_top_1_accuracy(model, data_loader, device):	
+	correct_pred = 0
+	n = 0
+	with torch.no_grad():
+		model.eval()
+		for X, y_true in data_loader:
+			X = X.to(device)
+			y_true = y_true.to(device)
+			_, y_prob = model(X)
+			_, predicted_labels = torch.max(y_prob, 1)
+			n += y_true.size(0)
+			correct_pred += (predicted_labels == y_true).sum()
+	return correct_pred.float() / n
+
 Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()
 N_wavelets = 10000
 norm_normalization = 'num_samples'
@@ -135,9 +147,8 @@ if not os.path.isdir(args.output_folder):
 	os.mkdir(args.output_folder)
 
 with torch.no_grad():
-	for k, layer in enumerate(layers):
-		
-		layer_str = str(type(layer))
+	for k, layer in enumerate(layers):		
+		layer_str = str(layer)
 		print(f"LAYER {k}, type:{layer_str}")		
 		layer_name = f'layer_{k}'
 		handle = layer.register_forward_hook(get_activation(layer_name))
