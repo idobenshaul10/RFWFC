@@ -10,7 +10,7 @@ from scipy.sparse import csr_matrix, lil_matrix
 import operator
 import code
 from functools import reduce
-from decision_tree_with_bagging import DecisionTreeWithBaggingRegressor
+from tree_models.decision_tree_with_bagging import DecisionTreeWithBaggingRegressor
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot, ion, show
 import random
@@ -18,10 +18,6 @@ from sklearn import metrics
 import math
 import json
 from tqdm import tqdm
-# ion() # enables interactive mode
-
-# f1 = plt.figure(1)
-# f2 = plt.figure(2)
 
 class WaveletsForestRegressor:
 	def __init__(self, regressor='random_forest', mode='classification', criterion='gini', bagging=0.8, train_vi=False,

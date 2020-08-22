@@ -13,7 +13,7 @@ import logging
 from collections import Counter
 from tqdm import tqdm
 import math
-from global_values import ConstantValues
+from sphere_experiment.global_values import ConstantValues
 from tqdm import tqdm 
 import logging
 

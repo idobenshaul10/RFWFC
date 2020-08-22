@@ -3,13 +3,12 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from sphere_loader import PointGenerator
+from sphere_experiment.sphere_loader import PointGenerator
 from collections import Counter, defaultdict
 from mpl_toolkits.mplot3d import Axes3D
-from random_forest import WaveletsForestRegressor
+from tree_models.random_forest import WaveletsForestRegressor
 from matplotlib.pyplot import plot, ion, show
-from utils import normalize_data, run_alpha_smoothness, kfold_alpha_smoothness, \
-	kfold_regression_mse, train_model, calculate_besov_semi_norm, save_wavelet_norms
+from utils.utils import *
 import logging	
 import time
 import json
@@ -226,16 +225,14 @@ def plot_dyadic(flags, data_str, normalize=True, output_path=''):
 	write_data['STEP'] = STEP
 	write_data['N_wavelets'] = N_wavelets
 	write_data['norm_normalization'] = norm_normalization
-	write_data['normalize'] = normalize		
+	write_data['normalize'] = normalize
 
 	desired_value = draw_predictive_line(flags.dimension, p=2)
-
-	# desired_value = draw_predictive_line(flags.dimension, p=2)
+	
 	last_alpha = alphas[-1]
 	print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')	
-	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_errorTH_{flags.error_TH}"
+	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_errorTH_{flags.error_TH}"	
 	
-	# dir_path = os.path.join(output_path, str(flags.dimension))
 	dir_path = output_path
 	if not os.path.isdir(dir_path):
 		os.mkdir(dir_path)
@@ -283,8 +280,6 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 
 	for dataset_size in tqdm(range(MIN_SIZE, MAX_SIZE, STEP)):
 		x, y = pointGen[dataset_size]
-		# plot_dataset(x,y, donut_distance)
-
 		if wavelet_norms:
 			save_wavelet_norms(x, y, t_method=flags.regressor, \
 				num_wavelets=N_wavelets, n_trees=flags.trees, \
@@ -292,8 +287,7 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 				n_state=2000, normalize=False, \
 				norm_normalization=norm_normalization, cube_length=pointGen.cube_length)
 			continue
-
-		# logging.info(f"LABELS COUNTER: {Counter(y.squeeze())}")		
+			
 		mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \
 			run_alpha_smoothness(x, y, t_method=flags.regressor, \
 				num_wavelets=N_wavelets, n_trees=flags.trees, m_depth=flags.depth,
@@ -355,42 +349,15 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 			dpi=300, bbox_inches='tight')
 	end = time.time()
 	print(f"total time is {end-start}")
-	plt.show(block=False)	
-
-def plot_alpha_per_depth(flags, \
-	data_str, normalize=True, output_path=''):
-	n_folds = 5
-	add_noisy_channels = False
-	start = time.time()
-	sizes ,alphas, stds = [], [], []
-	pointGen = PointGenerator(dim=flags.dimension, seed=flags.seed, \
-		add_noisy_channels=add_noisy_channels)	
-	seed_dict = defaultdict(list)
-	N_wavelets = flags.num_wavelets
-	norm_normalization = 'volume'
-	normalize = True
-	if not os.path.isdir(output_path):
-		os.mkdir(output_path)
-
-	dataset_size = 30000
-	x, y = pointGen[dataset_size]
-	logging.info(f"LABELS COUNTER: {Counter(y.squeeze())}")
-	for depth in tqdm(range(1, 20)):
-		kfold_alpha_smoothness(x, y, t_method=flags.regressor, \
-			num_wavelets=N_wavelets, n_folds=n_folds, n_trees=1, m_depth=depth,
-			n_features='auto', n_state=2000, normalize=normalize, norm_normalization=norm_normalization)		
-
-	print(f'stds:{stds}')
-	plt.figure(1)
-	plt.plot(sizes, alphas)	
+	plt.show(block=False)
 
 def draw_predictive_line(n, p=2):	
-	x = np.linspace(MIN_SIZE, list(range(MIN_SIZE,MAX_SIZE,STEP))[-1], STEP)
-	# x = np.linspace(50, list(range(50,351,25))[-1], 25)
+	x = np.linspace(MIN_SIZE, list(range(MIN_SIZE,MAX_SIZE,STEP))[-1], STEP)	
 	desired_value = 1/(p*(n-1))
 	y = [desired_value for k in x]
 	plt.plot(x, y, '-r', label='y=2x+1')
 	return desired_value
+
 def plot_alpha_per_donut_size(flags, data_str, output_path):
 	n_folds = 5
 	add_noisy_channels = False
@@ -472,6 +439,7 @@ def plot_alpha_per_donut_size(flags, data_str, output_path):
 			dpi=300, bbox_inches='tight')
 	end = time.time()
 	print(f"total time is {end-start}")
+
 def save_results(sizes, alphas, X, y, data_str, output_path):
 	folder_path = os.path.join(output_path, data_str)
 	if not os.path.isdir(folder_path):

@@ -10,20 +10,16 @@ from scipy.sparse import csr_matrix, lil_matrix
 import operator
 import code
 from functools import reduce
-from decision_tree_with_bagging import DecisionTreeWithBaggingRegressor
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.pyplot import plot, ion, show
 import random
 from sklearn import metrics
 import math
-from dyadic_decision_tree_model import DyadicDecisionTreeModel
+from tree_models.decision_tree_with_bagging import DecisionTreeWithBaggingRegressor
+from tree_models.dyadic_decision_tree_model import DyadicDecisionTreeModel
 import json
 from tqdm import tqdm
-# ion() # enables interactive mode
-
-# f1 = plt.figure(1)
-# f2 = plt.figure(2)
 
 class DyadicDecisionTreeRegressor:
 	def __init__(self, depth=9, seed=None, norms_normalization='volume', cube_length=1.):
