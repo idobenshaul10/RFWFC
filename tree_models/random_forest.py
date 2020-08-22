@@ -68,8 +68,7 @@ class WaveletsForestRegressor:
 		self.save_errors = False
 
 
-	def visualize_classifier(self, ax=None, cmap='rainbow', depth=-1):        
-		# ion()     
+	def visualize_classifier(self, ax=None, cmap='rainbow', depth=-1):		  
 		ax = ax or plt.gca()
 		colors = self.y.reshape(-1)     
 		
@@ -121,14 +120,12 @@ class WaveletsForestRegressor:
 		
 		levels_volumes
 		return levels_volumes
-
 	
 	def collision(self, rleft, rtop, width, height, center_x, center_y, radius):  
 		
 		rright, rbottom = rleft + width/2, rtop + height/2		
 		cleft, ctop     = center_x-radius, center_y-radius
-		cright, cbottom = center_x+radius, center_y+radius
-		
+		cright, cbottom = center_x+radius, center_y+radius		
 		if rright < cleft or rleft > cright or rbottom < ctop or rtop > cbottom:
 			return False  
 
@@ -143,7 +140,6 @@ class WaveletsForestRegressor:
 
 		return False
 
-
 	def find_rectangle_intersection(self, rectangles):
 		# INTERSECTION: [LEFT, RIGHT, DOWN, UP]
 		intersections = np.zeros(rectangles.shape[0])
@@ -152,14 +148,6 @@ class WaveletsForestRegressor:
 			does_intersect = int(self.collision(l, u, r-l, u-d, 0, 0, 1))
 			intersections[idx] = does_intersect
 
-		# intersections = np.zeros(rectangles.shape[0])
-		# for idx, rectangle in enumerate(rectangles):
-		# 	l, r, d, u = rectangle
-		# 	top_right = r*r + u*u > 1
-		# 	top_left = l*l + u*u > 1
-		# 	bottom_right = r*r + d*d > 1
-		# 	bottom_left = l*l + d*d > 1
-		# 	intersections[idx] = int(not(top_right and top_left and bottom_right and bottom_left))
 		return intersections
 
 	def fit(self, X_raw, y):
@@ -216,14 +204,11 @@ class WaveletsForestRegressor:
 		rf = regressor.fit(self.X, self.y.ravel())
 		self.rf = rf
 
-		# y_pred = self.rf.predict(X)         
-		# auc = metrics.roc_auc_score(y, y_pred)
-		# print(f"auc:{auc}")     
-
 		try:
 			val_size = np.shape(y)[1]
 		except:
 			val_size = 1
+
 		self.norms = np.array([])
 		self.vals = np.zeros((val_size, 0))
 		self.volumes = np.array([])
@@ -235,7 +220,6 @@ class WaveletsForestRegressor:
 		##
 
 		for i in range(len(rf.estimators_)):
-			# logging.info('Working on tree %s' % i)
 			estimator = rf.estimators_[i]
 			num_nodes = len(estimator.tree_.value)
 			num_features = np.shape(X)[1]
@@ -251,8 +235,6 @@ class WaveletsForestRegressor:
 			self.__traverse_nodes(estimator, 0, node_box, norms, vals, rectangles, levels)
 			self.calculate_level_volumes(rectangles, levels)
 
-
-			# logging.info('Traversing nodes of tree %s to extract volumes and norms' % i)			
 			volumes = np.product(node_box[:, :, 1] - node_box[:, :, 0], 1)
 
 			paths = estimator.decision_path(X)
@@ -263,7 +245,6 @@ class WaveletsForestRegressor:
 				norms = np.multiply(norms, np.power(volumes, 1/self.power))
 			else:
 				norms = np.multiply(norms, np.power(num_samples, 1/self.power))
-			# logging.info('Number of wavelets in tree %s: %s' % (i, np.shape(norms)[0]))
 
 
 			self.volumes = np.append(self.volumes, volumes)
@@ -275,6 +256,7 @@ class WaveletsForestRegressor:
 
 			self.num_samples = np.append(self.num_samples, num_samples)
 			self.vals = np.append(self.vals, vals, axis=1)          
+			
 			##
 			if self.train_vi:
 				for k in range(0, num_features):
@@ -290,11 +272,7 @@ class WaveletsForestRegressor:
 					self.si_tree[k, i] = np.sum(vi_norms)
 
 		self.si = np.append(self.si, np.sum(self.si_tree, 1) / len(rf.estimators_))
-		self.feature_importances_ = self.si
-		##
-		y_pred_2 = self.predict(X)
-		# auc = metrics.roc_auc_score(y, y_pred_2)
-		# print(f"AUC_2:{auc}")       
+		self.feature_importances_ = self.si		
 		return self
 
 	def __compute_norm(self, avg, parent_avg, volume):		
@@ -311,9 +289,8 @@ class WaveletsForestRegressor:
 
 	def __traverse_nodes(self, estimator, base_node_id, node_box, norms, vals, rectangles, levels):
 		# https://stackoverflow.com/questions/47719001/what-does-scikit-learn-decisiontreeclassifier-tree-value-do
-		# https://stackoverflow.com/questions/52376272/getting-the-value-of-a-leaf-node-in-a-decisiontreeregressor
-		
-		# INTERSECTION: [LEFT, RIGHT, DOWN, UP]		
+		# https://stackoverflow.com/questions/52376272/getting-the-value-of-a-leaf-node-in-a-decisiontreeregressor		
+		# INTERSECTION: [LEFT, RIGHT, DOWN, UP]
 
 		if base_node_id == 0:
 			vals[:, base_node_id] = self.compute_average_score_from_tree(estimator.tree_.value[base_node_id])
@@ -362,9 +339,8 @@ class WaveletsForestRegressor:
 			self.__traverse_nodes(estimator, right_id, node_box, norms, vals, rectangles, levels)
 			vals[:, right_id] = self.compute_average_score_from_tree(estimator.tree_.value[right_id]) - \
 				self.compute_average_score_from_tree(estimator.tree_.value[base_node_id])
-			norms[right_id] = self.__compute_norm(vals[:, right_id], vals[:, base_node_id], 1)
+			norms[right_id] = self.__compute_norm(vals[:, right_id], vals[:, base_node_id], 1)	
 
-	##
 	def __variable_importance(self, estimator, base_node_id, vi_node_box, vi_norms, vi_vals, feature, threshod):        
 		if base_node_id == 0:
 			vi_vals[:, base_node_id] = estimator.tree_.value[base_node_id][:, 0]
@@ -393,8 +369,6 @@ class WaveletsForestRegressor:
 			if estimator.tree_.feature[estimator.tree_.children_right[base_node_id]] == feature and tnorm > threshod:
 				vi_norms[right_id] = tnorm
 
-	##
-
 	def predict(self, X, m=10, start_m=0, paths=None):
 		'''
 		Predict using a maximum of M-terms
@@ -421,11 +395,10 @@ class WaveletsForestRegressor:
 		approx_diff = False		
 		mask = np.ones(len(self.norms), dtype=bool)
 		mask[self.root_nodes] = False
-		norms = self.norms[mask]		
+		norms = self.norms[mask]
 		h = 0.01
 		
-		diffs = []
-		# taus = np.arange(1.5, self.power + 1., h)
+		diffs = []		
 		taus = np.arange(0.75, 3., h)
 		total_sparsities, total_alphas = [], []
 		J = len(self.rf.estimators_)
@@ -441,15 +414,16 @@ class WaveletsForestRegressor:
 		diffs = -np.array(diffs)
 
 
-		angles = np.rad2deg(np.arctan(diffs))		
-		epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
-		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]		
-
+		angles = np.rad2deg(np.arctan(diffs))
+		try:
+			epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
+			epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]
+		except Exception as e:
+			print("high range epsilon indices are empty, try considering a bigger epsilon")
+			exit()
 		
 		angle_index_1 = epsilon_1_indices[-1]
-		angle_index_2 = epsilon_2_indices[-1]
-		# angle_index_1 = 0
-		# angle_index_2 = 0
+		angle_index_2 = epsilon_2_indices[-1]		
 
 		critical_tau_approximation_1 = taus[angle_index_1]
 		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/self.power)
@@ -489,7 +463,7 @@ class WaveletsForestRegressor:
 			print(f"save_path:{save_path}")
 			plt.savefig(save_path, \
 			    dpi=300, bbox_inches='tight')
-			plt.clf()		
+			plt.clf()
 
 		return critical_alpha_approximation_1, critical_alpha_approximation_2
 		
@@ -585,28 +559,26 @@ class WaveletsForestRegressor:
 
 		return alpha, n_wavelets, errors
 
-
-	def save_wavelet_norms(self):
-		result = self.norms
-		result[self.root_nodes] = 0.
-		result = list(result)		
-		# TODO: IMPLEMENT FOR MORE THAN ONE TREE!
-		# remove root node
-		result = result[1:]
+	def save_wavelet_norms(self, dir_path=''):
+		mask = np.ones(len(self.norms), dtype=bool)
+		mask[self.root_nodes] = False
+		norms = self.norms[mask]
 		
 		def convert(o):
 			if isinstance(o, np.generic): return o.item()
 			raise TypeError
 
-		dir_path = r"C:\projects\RFWFC\results\approximation_methods\Sparsity\RF_5_TREE"
-		json_file_name = "norms_50000.json"
+		if not os.path.isdir(dir_path):
+			print(f"directory {dir_path} does not exist!")
+			exit()
+		
+		json_file_name = "wavelet_norms.json"
 		write_data = {}		
-		write_data['norms'] = result
+		write_data['norms'] = norms
 		write_data['num_trees'] = len(self.rf.estimators_)
 		norms_path = os.path.join(dir_path, json_file_name)
 		with open(norms_path, "w+") as f:
 			json.dump(write_data, f, default=convert)
-
 		print(f"saved norms to:{norms_path}")
 
 	def accuracy(self, y_pred, y):
@@ -627,19 +599,3 @@ class WaveletsForestRegressor:
 		ret = np.zeros((len(argmax), np.shape(y_pred)[1]))
 		ret[np.arange(len(argmax)), argmax] = 1
 		return ret
-
-
-if __name__ == '__main__':
-	from sklearn.ensemble import RandomForestClassifier
-	from sklearn.datasets import make_classification
-	# X, y = make_classification(n_samples=1000, n_features=2,
-	#                   n_informative=2, n_redundant=0,
-	#                   random_state=0, shuffle=False)
-	# clf = RandomForestClassifier(max_depth=2, random_state=0)
-	# clf.fit(X, y)
-	# ax = plt.gca()    
-	from sklearn import tree
-	X = [[0, 0], [1, 1]]
-	Y = [0, 1]  
-	clf = tree.DecisionTreeClassifier()
-	clf = clf.fit(X, Y)

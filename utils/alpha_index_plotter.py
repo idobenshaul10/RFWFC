@@ -34,11 +34,8 @@ def plot_dataset(X, Y, donut_distance):
 
 
 MIN_SIZE = 1000
-MAX_SIZE = 61001
+MAX_SIZE = 12000
 STEP = 5000
-# MIN_SIZE = 1000
-# MAX_SIZE = 3601
-# STEP = 2500
 
 def plot_mse_per_donut_distance(flags, data_str, normalize=True, output_path=''):
 	results = defaultdict(list)
@@ -82,184 +79,6 @@ def plot_mse_per_donut_distance(flags, data_str, normalize=True, output_path='')
 			dpi=300, bbox_inches='tight')	
 	plt.show(block=False)
 
-def plot_dyadic_per_num_wavelets(flags, data_str, normalize=True, output_path=''):		
-	start = time.time()
-	sizes ,alphas, stds = [], [], []
-	pointGen = PointGenerator(dim=flags.dimension, seed=flags.seed)
-	seed_dict = defaultdict(list)	
-	donut_distance = flags.donut_distance
-	norm_normalization = 'num_samples'
-	normalize = True
-	model = None
-	dataset_size = 20000
-	if not os.path.isdir(output_path):
-		os.mkdir(output_path)
-
-	x, y = pointGen[dataset_size]
-
-	for N_wavelets in tqdm(range(50, 351, 25)):
-		mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \
-			run_alpha_smoothness(x, y, t_method="dyadic", \
-				num_wavelets=N_wavelets, m_depth=flags.depth, \
-				n_state=2000, normalize=False, \
-				norm_normalization=norm_normalization, cube_length=pointGen.cube_length, \
-				error_TH=flags.error_TH)
-	
-		stds.append(std_alpha)
-		alphas.append(mean_alpha)	
-		sizes.append(N_wavelets)
-
-	print(f'alphas:{alphas}')
-	plt.figure(1)
-	plt.clf()
-	plt.ylim(0.4, 0.6)
-	plt.plot(sizes, alphas)
-	
-	write_data = {}
-	write_data['points'] = sizes
-	write_data['alphas'] = alphas	
-	write_data['flags'] = vars(flags)
-	write_data['MIN_SIZE'] = MIN_SIZE
-	write_data['MAX_SIZE'] = MAX_SIZE
-	write_data['STEP'] = STEP
-	write_data['N_wavelets'] = N_wavelets
-	write_data['norm_normalization'] = norm_normalization
-	write_data['normalize'] = normalize		
-
-	desired_value = draw_predictive_line(flags.dimension, p=2)
-	last_alpha = alphas[-1]
-	print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')	
-	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_errorTH_{flags.error_TH}"
-	
-	dir_path = os.path.join(output_path, str(flags.dimension))	
-	if not os.path.isdir(dir_path):
-		os.mkdir(dir_path)
-	img_file_name =file_name + ".png"
-	json_file_name = file_name + ".json"
-	
-	with open(os.path.join(dir_path, json_file_name), "w+") as f:
-		json.dump(write_data, f)
-
-	plt.title(data_str)
-	plt.xlabel(f'Num Wavelets')
-	plt.ylabel(f'evaluate_smoothnes index- alpha')
-
-	save_graph=True
-	if save_graph:		
-		if not os.path.isdir(dir_path):
-			os.mkdir(dir_path)
-		
-		save_path = os.path.join(dir_path, img_file_name)
-		print(f"save_path:{save_path}")
-		plt.savefig(save_path, \
-			dpi=300, bbox_inches='tight')
-	end = time.time()
-	print(f"total time is {end-start}")
-	plt.show(block=False)
-
-def plot_dyadic(flags, data_str, normalize=True, output_path=''):		
-	start = time.time()
-	sizes ,alphas, stds = [], [], []
-	pointGen = PointGenerator(dim=flags.dimension, seed=flags.seed)
-	seed_dict = defaultdict(list)
-	N_wavelets = flags.num_wavelets
-	donut_distance = flags.donut_distance
-	norm_normalization = 'num_samples'
-	normalize = True
-	semi_norm = False
-	wavelet_norms = False
-
-	model = None
-	if not os.path.isdir(output_path):
-		os.mkdir(output_path)
-
-	for dataset_size in tqdm(range(MIN_SIZE, MAX_SIZE, STEP)):		
-		x, y = pointGen[dataset_size]
-
-		if wavelet_norms:
-			save_wavelet_norms(x, y, t_method="dyadic", \
-				num_wavelets=N_wavelets, m_depth=flags.depth, \
-				n_state=2000, normalize=False, \
-				norm_normalization=norm_normalization, cube_length=pointGen.cube_length)
-			continue
-
-		if semi_norm:
-			calculate_besov_semi_norm(x, y, t_method="dyadic", \
-				num_wavelets=N_wavelets, m_depth=flags.depth, \
-				n_state=2000, normalize=False, \
-				norm_normalization=norm_normalization, cube_length=pointGen.cube_length)
-			continue
-
-		mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \
-			run_alpha_smoothness(x, y, t_method="dyadic", \
-				num_wavelets=N_wavelets, m_depth=flags.depth, \
-				n_state=2000, normalize=False, \
-				norm_normalization=norm_normalization, cube_length=pointGen.cube_length, \
-				error_TH=flags.error_TH)
-
-	
-		stds.append(std_alpha)
-		alphas.append(mean_alpha)	
-		sizes.append(dataset_size)
-
-	if semi_norm:
-		return
-
-	print(f'alphas:{alphas}')
-	plt.figure(1)
-	plt.clf()	
-	if type(alphas) == list:
-		plt.fill_between(sizes, [k[0] for k in alphas], [k[1] for k in alphas], \
-			alpha=0.2, facecolor='#089FFF', \
-			linewidth=4)
-		plt.plot(sizes, [np.array(k).mean()	 for k in alphas], 'k', color='#1B2ACC')
-	else:
-		plt.plot(sizes, alphas, 'k', color='#1B2ACC')
-	
-	write_data = {}
-	write_data['points'] = sizes
-	write_data['alphas'] = alphas
-	write_data['flags'] = vars(flags)
-	write_data['MIN_SIZE'] = MIN_SIZE
-	write_data['MAX_SIZE'] = MAX_SIZE
-	write_data['STEP'] = STEP
-	write_data['N_wavelets'] = N_wavelets
-	write_data['norm_normalization'] = norm_normalization
-	write_data['normalize'] = normalize
-
-	desired_value = draw_predictive_line(flags.dimension, p=2)
-	
-	last_alpha = alphas[-1]
-	print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')	
-	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_errorTH_{flags.error_TH}"	
-	
-	dir_path = output_path
-	if not os.path.isdir(dir_path):
-		os.mkdir(dir_path)
-	img_file_name =file_name + ".png"
-	json_file_name = file_name + ".json"
-	
-	with open(os.path.join(dir_path, json_file_name), "w+") as f:
-		json.dump(write_data, f)
-
-	plt.title(data_str)
-	plt.xlabel(f'dataset size')
-	plt.ylabel(f'evaluate_smoothnes index- alpha')
-	plt.ylim(0., 1.)
-
-	save_graph=True
-	if save_graph:		
-		if not os.path.isdir(dir_path):
-			os.mkdir(dir_path)
-		
-		save_path = os.path.join(dir_path, img_file_name)
-		print(f"save_path:{save_path}")
-		plt.savefig(save_path, \
-			dpi=300, bbox_inches='tight')
-	end = time.time()
-	print(f"total time is {end-start}")
-	plt.show(block=False)
-
 def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_path=''):
 	n_folds = 5
 	add_noisy_channels = False
@@ -270,11 +89,12 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	seed_dict = defaultdict(list)
 	N_wavelets = flags.num_wavelets
 	donut_distance = flags.donut_distance
-	norm_normalization = 'volume'
-	error_TH = flags.error_TH
+	norm_normalization = 'num_samples'
+	error_TH = flags.error_TH		
 	normalize = True
+	semi_norm = False
 	wavelet_norms = False
-	model = None
+
 	if not os.path.isdir(output_path):
 		os.mkdir(output_path)
 
@@ -282,17 +102,24 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 		x, y = pointGen[dataset_size]
 		if wavelet_norms:
 			save_wavelet_norms(x, y, t_method=flags.regressor, \
-				num_wavelets=N_wavelets, n_trees=flags.trees, \
-				m_depth=flags.depth, \
+				num_wavelets=N_wavelets, m_depth=flags.depth, \
 				n_state=2000, normalize=False, \
 				norm_normalization=norm_normalization, cube_length=pointGen.cube_length)
 			continue
-			
+
+		if semi_norm:
+			calculate_besov_semi_norm(x, y, t_method=flags.regressor, \
+				num_wavelets=N_wavelets, m_depth=flags.depth, \
+				n_state=2000, normalize=False, \
+				norm_normalization=norm_normalization, cube_length=pointGen.cube_length)
+			continue
+		
 		mean_alpha, std_alpha, num_wavelets, norm_m_term, model = \
 			run_alpha_smoothness(x, y, t_method=flags.regressor, \
-				num_wavelets=N_wavelets, n_trees=flags.trees, m_depth=flags.depth,
-				n_features='auto', n_state=2000, normalize=normalize, norm_normalization=norm_normalization, 
-				error_TH=error_TH)
+				num_wavelets=N_wavelets, m_depth=flags.depth, \
+				n_state=2000, normalize=False, \
+				norm_normalization=norm_normalization, cube_length=pointGen.cube_length, \
+				error_TH=flags.error_TH, output_folder=output_path)
 		
 		stds.append(std_alpha)
 		alphas.append(mean_alpha)		
@@ -301,8 +128,14 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	print(f'stds:{stds}')	
 	plt.figure(1)
 	plt.clf()
-	plt.ylim(0.2, 0.8)
-	plt.plot(sizes, alphas)
+	plt.ylim(0., 1.)	
+	if type(alphas) == list:
+		plt.fill_between(sizes, [k[0] for k in alphas], [k[1] for k in alphas], \
+			alpha=0.2, facecolor='#089FFF', \
+			linewidth=4)
+		plt.plot(sizes, [np.array(k).mean()	 for k in alphas], 'k', color='#1B2ACC')
+	else:
+		plt.plot(sizes, alphas, 'k', color='#1B2ACC')
 
 	
 	write_data = {}
@@ -323,9 +156,9 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	last_alpha = alphas[-1]
 	print_data_str = data_str.replace(':', '_').replace(' ', '').replace(',', '_')	
 	file_name = f"STEP_{STEP}_MIN_{MIN_SIZE}_MAX_{MAX_SIZE}_{print_data_str}_Wavelets_{N_wavelets}_Norm_{norm_normalization}_IsNormalize_{normalize}_error_TH_{error_TH}"+ \
-		f"donut_distance_{donut_distance}"
-	dir_path = os.path.join(output_path , str(flags.dimension))
-	
+		f"donut_distance_{donut_distance}"	
+
+	dir_path = output_path
 	if not os.path.isdir(dir_path):
 		os.mkdir(dir_path)
 	img_file_name =file_name + ".png"
@@ -341,8 +174,7 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	save_graph=True
 	if save_graph:		
 		if not os.path.isdir(dir_path):
-			os.mkdir(dir_path)
-		
+			os.mkdir(dir_path)		
 		save_path = os.path.join(dir_path, img_file_name)
 		print(f"save_path:{save_path}")
 		plt.savefig(save_path, \

@@ -62,10 +62,10 @@ def main():
 
 	# plot_alpha_per_donut_size(flags, data_str, output_path=flags.output_path)
 
-	plot_dyadic(flags, data_str, output_path=flags.output_path)
+	# plot_dyadic(flags, data_str, output_path=flags.output_path)
 
 	# plot_dyadic_per_num_wavelets(flags, data_str, output_path=flags.output_path)
-	# plot_alpha_per_num_sample_points(flags, data_str, output_path=flags.output_path)
+	plot_alpha_per_num_sample_points(flags, data_str, output_path=flags.output_path)
 
 	# plot_mse_per_donut_distance(flags, data_str, output_path=flags.output_path)		
 	# plot_intersection_volumes(flags, data_str, dataset_size=flags.dataset_size,  normalize=True)

@@ -46,7 +46,7 @@ class DyadicDecisionTreeRegressor:
 		self.save_errors = False
 		self.save_semi_norm = True
 		self.power = 2
-
+		self.verbose = True
 		self.cube_length = cube_length
 		self.depth = depth
 
@@ -55,14 +55,13 @@ class DyadicDecisionTreeRegressor:
 		
 		self.seed = seed		
 		self.norms_normalization = norms_normalization	
+		print("using DyadicDecisionTreeRegressor, this is implemented for a single tree.")
 
 	def print_regressor(self):
 		self.regressor.test_tree_indices()
 		print(self.regressor.print_tree())
 
-	def fit(self, X_raw, y):
-		# if self.verbose:
-		# 	self.print_regressor()
+	def fit(self, X_raw, y):		
 		self.regressor.add_dataset(X_raw, y)
 		self.regressor.fit(X_raw)
 		self.regressor.init_ids()
@@ -80,22 +79,19 @@ class DyadicDecisionTreeRegressor:
 
 		norms = np.zeros(num_nodes)
 		vals = np.zeros((val_size, num_nodes))
-		self.__traverse_nodes(0, norms, vals) # 50		
+		self.__traverse_nodes(0, norms, vals)	
 		
 		num_samples = np.array([node.num_samples for node in self.regressor.nodes])		
 		norms = np.multiply(norms, np.power(num_samples, 1/self.power))
 
 		self.epsilon = 1e-6
-		# we need to remove the nodes with <epsilon norm!
 		self.non_zero_norm_indices = (norms >= self.epsilon).astype(np.int32)
 		self.regressor.non_zero_norm_indices = self.non_zero_norm_indices
 
 		self.norms = norms
 		self.vals = vals
 	
-	def __compute_norm(self, avg, parent_avg, volume):
-		# norm = np.sqrt(np.sum(np.square(avg - parent_avg)) * volume)
-		# print(avg - parent_avg, norm)		
+	def __compute_norm(self, avg, parent_avg, volume):		
 		norm = np.power(np.sum(np.power(np.abs(avg - parent_avg), self.power)) * volume, (1/self.power))
 		return norm
 
@@ -124,15 +120,7 @@ class DyadicDecisionTreeRegressor:
 				norms[right_id] = self.__compute_norm(vals[:, right_id], vals[:, base_node_id], volume=1)		
 	
 
-	def predict(self, X, m=1000, start_m=0, paths=None):
-		'''
-		Predict using a maximum of M-terms
-		:X: Data samples.
-		:m: Maximum of M-terms.
-		:start_m: The index of the starting term. Can be used to evaluate predictions incrementally over terms.paths.shape
-		:paths: Instead of computing decision paths for each sample, the method can receive the indicator matrix. Can be used to evaluate predictions incrementally over terms.
-		:return: Predictions.
-		'''		
+	def predict(self, X, m=1000, start_m=0, paths=None):		
 		sorted_norms = np.argsort(-self.norms)[start_m:m]
 		if paths is None:
 			paths = self.regressor.decision_path(X)
@@ -143,17 +131,18 @@ class DyadicDecisionTreeRegressor:
 		predictions = pruned * self.vals.T
 		return predictions, sorted_norms
 
-	def evaluate_angle_smoothness(self, m=1000, error_TH=0):
+	
+	def evaluate_angle_smoothness(self, m=1000, error_TH=0, text='', \
+			output_folder='', epsilon_1=None, epsilon_2=None):
 		'''
 		Evaluate smoothness using sparsity consideration
 		'''
 		approx_diff = False
 		norms = list(self.norms[self.non_zero_norm_indices==1])		
-		norms = norms[1:]
-		p = 2
+		norms = norms[1:]		
 		h = 0.01
-		diffs = []		
-		taus = np.arange(0.7, 10., h)		
+		diffs = []
+		taus = np.arange(0.75, 3., h)		
 		total_sparsities, total_alphas = [], []
 		if approx_diff:
 			for tau in taus:
@@ -180,10 +169,44 @@ class DyadicDecisionTreeRegressor:
 		angle_index_2 = epsilon_2_indices[int(0.75*len(epsilon_2_indices))]
 
 		critical_tau_approximation_1 = taus[1:][angle_index_1]
-		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/p)
+		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/self.power)
 
 		critical_tau_approximation_2 = taus[1:][angle_index_2]
-		critical_alpha_approximation_2 = ((1/critical_tau_approximation_2) - 1/p)
+		critical_alpha_approximation_2 = ((1/critical_tau_approximation_2) - 1/self.power)
+		if self.verbose:
+			plt.figure(1)		
+			plt.title(f"tau vs. angle")
+			plt.xlabel(f'tau')
+			plt.ylabel(f'sparsity angle')
+			plt.plot(taus, angles, zorder=1)
+			s = [0.5 for n in range(len(epsilon_2_indices))]
+			plt.scatter(taus[epsilon_2_indices], angles[epsilon_2_indices], color="r", zorder=2, s=s)
+			plt.scatter(taus[epsilon_1_indices], angles[epsilon_1_indices], color="g", zorder=2, s=s)
+
+			print(f"abs(angles+90.).min():{abs(angles+90.).min()}")
+
+
+			save_path = os.path.join(output_folder, f"{text}_{epsilon_1}_{epsilon_2}_derivates.png")
+			print(f"save_path:{save_path}")
+			plt.savefig(save_path, \
+			    dpi=300, bbox_inches='tight')
+			plt.clf()
+
+			plt.figure(2)
+			plt.title(f"tau vs. derivative")
+			plt.xlabel(f'tau')
+			plt.ylabel(f'sparsity derivative')
+			plt.plot(taus, diffs, zorder=1)
+			s = [0.5 for n in range(len(epsilon_2_indices))]
+			plt.scatter(taus[epsilon_2_indices], diffs[epsilon_2_indices], color="r", zorder=2, s=s)
+			plt.scatter(taus[epsilon_1_indices], diffs[epsilon_1_indices], color="g", zorder=2, s=s)
+
+			save_path = os.path.join(output_folder, f"{text}_{epsilon_1}_{epsilon_2}_angles.png")
+			print(f"save_path:{save_path}")
+			plt.savefig(save_path, \
+			    dpi=300, bbox_inches='tight')
+			plt.clf()
+
 
 		return critical_alpha_approximation_1, critical_alpha_approximation_2
 

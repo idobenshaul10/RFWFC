@@ -24,7 +24,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
 from clustering import kmeans_cluster
-from utils import *
+from utils.utils import *
 import time
 import json
 
@@ -106,7 +106,11 @@ def save_alphas_plot(args, alphas, sizes, test_stats=None):
 		plt.plot(sizes, alphas, 'k', color='#1B2ACC')
 
 	plt.title(f"{args.env_name} Angle Smoothness")
-	acc_txt = f"TEST Top1-ACC {test_stats['top_1_accuracy']}"	
+	
+	acc_txt = ''
+	if test_stats is not None and 'top_1_accuracy' in test_stats:
+		acc_txt = f"TEST Top1-ACC {test_stats['top_1_accuracy']}"
+		
 	plt.xlabel(f'Layer\n\n{acc_txt}')
 	plt.ylabel(f'evaluate_smoothnes index- alpha')
 

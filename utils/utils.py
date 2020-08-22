@@ -60,9 +60,8 @@ def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_de
     if t_method == 'WF':
         if num_wavelets < 1:
             num_wavelets = int(np.round(num_wavelets*len(model.norms)))
-            norm_m_term = -np.sort(-model.norms)[num_wavelets-1]
+            norm_m_term = -np.sort(-model.norms)[num_wavelets-1]    
 
-    # alpha, n_wavelets, errors = model.evaluate_smoothness(m=num_wavelets, error_TH=error_TH)    
     alpha = model.evaluate_angle_smoothness(text=text, \
         output_folder=output_folder, epsilon_1=epsilon_1, epsilon_2=epsilon_2)
     n_wavelets, errors = 0., 0.

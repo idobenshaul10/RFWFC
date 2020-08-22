@@ -67,9 +67,7 @@ class DyadicDecisionTreeModel:
  
 	def init_ids(self):
 		for idx, node in enumerate(self.nodes):
-			node.id = idx
-		# if self.verbose:
-		# 	print(f"ids:{[k.id for k in self.nodes]}")
+			node.id = idx		
 
 	def fit(self, X_all, parent=None, indices=None):
 		if parent is None:
@@ -109,7 +107,6 @@ class DyadicDecisionTreeModel:
 			self.fit(X_all, parent=parent.right)		
 			self.nodes.append(right_node)
 			
-
 	def decision_path(self, X):
 		decision_paths = np.zeros((X.shape[0], len(self.nodes)))		
 		for idx, node in tqdm(enumerate(self.nodes), total=len(self.nodes)):			
@@ -131,8 +128,8 @@ class DyadicDecisionTreeModel:
 
 		for idx, node in enumerate(self.nodes):
 			levels[node.level] += node.indices.sum()
+			
 
-		# this will only work if there are the same number of levels for every subtree
-		# todo - add check with leaves
+		
 		print(f"levels: {levels}")
 
