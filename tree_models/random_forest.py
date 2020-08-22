@@ -417,13 +417,13 @@ class WaveletsForestRegressor:
 		angles = np.rad2deg(np.arctan(diffs))
 		try:
 			epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
-			epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]
+			epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]		
+			angle_index_1 = epsilon_1_indices[-1]
+			angle_index_2 = epsilon_2_indices[-1]
+
 		except Exception as e:
-			print("high range epsilon indices are empty, try considering a bigger epsilon")
+			print(f"\nHIGH RANGE EPSILON:{epsilon_1} indices are empty, try considering a bigger EPSILON")
 			exit()
-		
-		angle_index_1 = epsilon_1_indices[-1]
-		angle_index_2 = epsilon_2_indices[-1]		
 
 		critical_tau_approximation_1 = taus[angle_index_1]
 		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/self.power)

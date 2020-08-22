@@ -79,7 +79,9 @@ def plot_mse_per_donut_distance(flags, data_str, normalize=True, output_path='')
 			dpi=300, bbox_inches='tight')	
 	plt.show(block=False)
 
-def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_path=''):
+def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, \
+		output_path='', high_range_epsilon=0.1, low_range_epsilon=0.4):
+
 	n_folds = 5
 	add_noisy_channels = False
 	start = time.time()
@@ -90,7 +92,7 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 	N_wavelets = flags.num_wavelets
 	donut_distance = flags.donut_distance
 	norm_normalization = 'num_samples'
-	error_TH = flags.error_TH		
+	error_TH = flags.error_TH
 	normalize = True
 	semi_norm = False
 	wavelet_norms = False
@@ -119,7 +121,8 @@ def plot_alpha_per_num_sample_points(flags, data_str, normalize=True, output_pat
 				num_wavelets=N_wavelets, m_depth=flags.depth, \
 				n_state=2000, normalize=False, \
 				norm_normalization=norm_normalization, cube_length=pointGen.cube_length, \
-				error_TH=flags.error_TH, output_folder=output_path)
+				error_TH=flags.error_TH, output_folder=output_path, \
+				epsilon_1=high_range_epsilon, epsilon_2=low_range_epsilon)
 		
 		stds.append(std_alpha)
 		alphas.append(mean_alpha)		

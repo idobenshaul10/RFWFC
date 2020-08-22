@@ -46,13 +46,16 @@ def main():
 	parser.add_argument('--dimension',default=2,type=int, help='Dimension for sphere in R^n experiment')
 	parser.add_argument('--donut_distance',default=-1, type=float, help='Dimension for sphere in R^n experiment')
 	parser.add_argument('--error_TH',default=0., type=float, help='Dimension for sphere in R^n experiment')
+	parser.add_argument('--high_range_epsilon', type=float, default=0.01)	
 
 	flags, _ = parser.parse_known_args()
+	flags.low_range_epsilon = 4*flags.high_range_epsilon
+
 	if os.path.exists(flags.config):
-			config_flags = config_action(parser, argparse.Namespace(), flags.config)
-			aux_parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
-			for arg in vars(flags): aux_parser.add_argument('--'+arg)
-			flags, _ = aux_parser.parse_known_args(namespace=config_flags)      
+		config_flags = config_action(parser, argparse.Namespace(), flags.config)
+		aux_parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
+		for arg in vars(flags): aux_parser.add_argument('--'+arg)
+		flags, _ = aux_parser.parse_known_args(namespace=config_flags)      
 
 	np.random.seed(flags.seed)
 	logging.basicConfig(level=getattr(logging, flags.log))
@@ -65,7 +68,8 @@ def main():
 	# plot_dyadic(flags, data_str, output_path=flags.output_path)
 
 	# plot_dyadic_per_num_wavelets(flags, data_str, output_path=flags.output_path)
-	plot_alpha_per_num_sample_points(flags, data_str, output_path=flags.output_path)
+	plot_alpha_per_num_sample_points(flags, data_str, output_path=flags.output_path, \
+		high_range_epsilon=flags.high_range_epsilon, low_range_epsilon=flags.low_range_epsilon)
 
 	# plot_mse_per_donut_distance(flags, data_str, output_path=flags.output_path)		
 	# plot_intersection_volumes(flags, data_str, dataset_size=flags.dataset_size,  normalize=True)
