@@ -62,23 +62,9 @@ def main():
 	logging.info('Creating regressor with (dimension=%s, regressor=%s, trees=%s, features=%s, depth=%s, seed=%s, criterion=%s, bagging=%s)' % (flags.dimension, flags.regressor, flags.trees, flags.features, flags.depth, flags.seed, flags.criterion, flags.bagging) )
 	
 	data_str = f'Dimension:{flags.dimension}, # Trees:{flags.trees}, Depth:{flags.depth}'
-
-	# plot_alpha_per_donut_size(flags, data_str, output_path=flags.output_path)
-
-	# plot_dyadic(flags, data_str, output_path=flags.output_path)
-
-	# plot_dyadic_per_num_wavelets(flags, data_str, output_path=flags.output_path)
+	
 	plot_alpha_per_num_sample_points(flags, data_str, output_path=flags.output_path, \
 		high_range_epsilon=flags.high_range_epsilon, low_range_epsilon=flags.low_range_epsilon)
-
-	# plot_mse_per_donut_distance(flags, data_str, output_path=flags.output_path)		
-	# plot_intersection_volumes(flags, data_str, dataset_size=flags.dataset_size,  normalize=True)
-
-
-	# plot_alpha_per_depth(flags, \
-	# 		data_str, output_path=flags.output_path)
-
-	# plot_alpha_per_tree_number(flags, data_str, output_path=flags.output_path)
 	
 
 if '__main__' == __name__:

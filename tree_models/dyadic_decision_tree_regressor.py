@@ -159,14 +159,16 @@ class DyadicDecisionTreeRegressor:
 			diffs = -np.array(diffs)
 
 		angles = np.rad2deg(np.arctan(diffs))		
+		
 		epsilon_1 = 0.075
 		epsilon_2 = 2*epsilon_1
-		
+			
 		epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
 		epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]			
 
 		angle_index_1 = epsilon_1_indices[int(0.75*len(epsilon_1_indices))]
 		angle_index_2 = epsilon_2_indices[int(0.75*len(epsilon_2_indices))]
+
 
 		critical_tau_approximation_1 = taus[1:][angle_index_1]
 		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/self.power)
@@ -184,7 +186,6 @@ class DyadicDecisionTreeRegressor:
 			plt.scatter(taus[epsilon_1_indices], angles[epsilon_1_indices], color="g", zorder=2, s=s)
 
 			print(f"abs(angles+90.).min():{abs(angles+90.).min()}")
-
 
 			save_path = os.path.join(output_folder, f"{text}_{epsilon_1}_{epsilon_2}_derivates.png")
 			print(f"save_path:{save_path}")
