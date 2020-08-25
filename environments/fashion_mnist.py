@@ -25,18 +25,30 @@ class fashion_mnist(BaseEnviorment):
             root = r'C:\datasets\fashion_mnist',
             train = True,
             download = True,
-            transform = transforms.Compose([
-                transforms.ToTensor()                                 
-            ])
+            transform=self.get_eval_transform()
         )
         return dataset            
 
+    def get_test_dataset(self):
+        dataset = torchvision.datasets.FashionMNIST(
+            root=r'C:\datasets\fashion_mnist', 
+            train=False, 
+            transform=self.get_eval_transform(),
+            download=True)
+
+        return dataset
+
     def get_layers(self, model):        
-        layers = [module for module in model.modules() if type(module) != nn.Sequential][1:]        
+        layers = [module for module in model.modules() if type(module) != nn.Sequential][1:]
         return layers
 
+    def get_eval_transform(self):
+        transform = transforms.Compose([transforms.Resize((32, 32)),            
+            transforms.ToTensor()])
+        return transform
+
     def get_model(self):
-        model = FashionMnistModel()
+        model = LeNet5(10)
         if self.use_cuda:
             model = model.cuda()
         checkpoint = torch.load(self.model_path)['checkpoint']
