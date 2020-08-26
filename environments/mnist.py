@@ -31,8 +31,7 @@ class mnist(BaseEnviorment):
         dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
            train=False, 
            transform=self.get_eval_transform(),
-           download=True)
-        
+           download=True)        
         return dataset
 
     def get_eval_transform(self):

@@ -19,8 +19,12 @@ def get_args():
 	args = parser.parse_args()
 	return args
 
-def plot_epochs(main_dir, add_fill=False):
-	fig, axes = plt.subplots(1, 2)
+def plot_epochs(main_dir, plot_test=False, add_fill=False):
+	if plot_test:
+		fig, axes = plt.subplots(1, 2)
+	else:
+		fig, axes = plt.subplots(1, 1)
+		axes = [axes]
 	for file_path in Path(main_dir).glob('**/*.json'):	
 		file_path = str(file_path)	
 		epoch = file_path.split('\\')[-2].split('.')[-2]
@@ -37,7 +41,7 @@ def plot_epochs(main_dir, add_fill=False):
 			axes[0].fill_between(sizes, [k[0] for k in alphas], [k[1] for k in alphas], \
 				alpha=0.2, linewidth=4)
 		axes[0].plot(sizes, [np.array(k).mean()	 for k in alphas], label=f"{epoch}")
-		if test_stats is not None:
+		if test_stats is not None and plot_test:
 			axes[1].scatter(epoch, [test_stats['top_1_accuracy']], label=f"{epoch}")
 
 	plt.legend()

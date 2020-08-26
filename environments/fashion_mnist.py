@@ -9,8 +9,7 @@ from utils import *
 import time
 from environments.base_environment import *
 from torchvision import datasets, transforms
-from models.fashion_mnist_model import FashionMnistModel
-# https://www.arunprakash.org/2018/12/cnn-fashion-mnist-dataset-pytorch.html
+from models.LeNet5 import LeNet5
 
 class fashion_mnist(BaseEnviorment):
     def __init__(self, checkpoint_path=None):
@@ -38,8 +37,12 @@ class fashion_mnist(BaseEnviorment):
 
         return dataset
 
-    def get_layers(self, model):        
-        layers = [module for module in model.modules() if type(module) != nn.Sequential][1:]
+    def get_layers(self, model):
+        feature_layers = np.array([module for module in model.feature_extractor.modules() if type(module) != nn.Sequential])
+        classifier_layers = np.array([module for module in model.classifier.modules() if type(module) != nn.Sequential])        
+        feature_layers = list(feature_layers[[2, 5, 7]])        
+        classifier_layers = list(classifier_layers[[1, 2]])
+        layers = feature_layers + classifier_layers + [model.softmax]
         return layers
 
     def get_eval_transform(self):

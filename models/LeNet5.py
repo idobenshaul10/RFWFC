@@ -31,9 +31,11 @@ class LeNet5(nn.Module):
 
             nn.Linear(in_features=84, out_features=n_classes),
         )
+        if torch.cuda.is_available():
+            self.feature_extractor = self.feature_extractor.cuda()
+            self.classifier = self.classifier.cuda()
 
-
-    def forward(self, x):
+    def forward(self, x):        
         x = self.feature_extractor(x)
         x = torch.flatten(x, 1)
         logits = self.classifier(x)
