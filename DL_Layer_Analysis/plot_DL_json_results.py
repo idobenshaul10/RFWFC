@@ -19,13 +19,21 @@ def get_args():
 	args = parser.parse_args()
 	return args
 
-def plot_epochs(main_dir, plot_test=False, add_fill=False):
+def plot_epochs(main_dir, plot_test=True, add_fill=False):
 	if plot_test:
 		fig, axes = plt.subplots(1, 2)
+		axes[0].set_title("alphas for different epochs")
+		axes[1].set_title("Test scores different epochs")
 	else:
 		fig, axes = plt.subplots(1, 1)
 		axes = [axes]
-	for file_path in Path(main_dir).glob('**/*.json'):	
+
+	file_paths = list(Path(main_dir).glob('**/*.json'))
+	file_paths = [str(k) for k in file_paths]	
+	file_paths.sort(key=lambda x: int(x.split('\\')[-2].split('.')[-2]))	
+	# plt.title("alphas for different epochs")
+	
+	for file_path in file_paths:
 		file_path = str(file_path)	
 		epoch = file_path.split('\\')[-2].split('.')[-2]
 		eps = file_path.split('\\')[-2].split('.')[1]	
@@ -45,7 +53,6 @@ def plot_epochs(main_dir, plot_test=False, add_fill=False):
 			axes[1].scatter(epoch, [test_stats['top_1_accuracy']], label=f"{epoch}")
 
 	plt.legend()
-	plt.title("alphas for different epochs")
 	plt.xlabel(f'layer')
 	plt.ylabel(f'evaluate_smoothnes index- alpha')
 	plt.show()

@@ -51,10 +51,7 @@ if not os.path.isdir(output_path):
 
 AUG = A.Compose({
 	A.Resize(32, 32),	
-	# A.HorizontalFlip(p=0.5),
-	A.Rotate(limit=(-25, 25)),
-	# A.VerticalFlip(p=0.5),
-	# A.Normalize((0.5), (0.5))
+	A.Rotate(limit=(-25, 25)),	
 	A.OpticalDistortion()
 })
 

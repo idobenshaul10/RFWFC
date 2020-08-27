@@ -47,29 +47,27 @@ def get_args():
 	parser.add_argument('--use_clustering', action='store_true', default=False)
 	parser.add_argument('--calc_test', action='store_true', default=False)
 
-	args = parser.parse_args()
-	args.low_range_epsilon = 4*args.high_range_epsilon
+	args = parser.parse_args()	
 	return args
 
 def run_all_comands(args):
-	RUN_FREQ = 30
+	RUN_FREQ = 10
 	if not os.path.isdir(args.checkpoints_dir_path):
 		raise("Checkpoints directory does not exist!")
 	checkpoints = glob(os.path.join(args.checkpoints_dir_path, "*.h5"))	
-	checkpoints = [k for k in checkpoints if int(k.split('\\')[-1].split('.')[1]) % RUN_FREQ==0]
+	checkpoints = [k for k in checkpoints if int(k.split('\\')[-1].split('.')[1]) % RUN_FREQ == 0]
 	cmd = get_base_command(args)
 	
 	for checkpoint_path in tqdm(checkpoints):
-		cur_cmd = cmd + f'--checkpoint_path {checkpoint_path}'
-		process = Process(target=run_cmd, args=(cur_cmd))
+		cur_cmd = cmd + f' --checkpoint_path {checkpoint_path}'
+		process = Process(target=run_cmd, args=([cur_cmd]))
 		process.start()
 		process.join()
 
 def run_cmd(cmd):	
-	print(cmd)
-	# job_output = os.popen(cmd).read()
-	# job_output = str(job_output)
-	# print(f"JOB_ID {job_output}", flush=True)
+	job_output = os.popen(cmd).read()
+	job_output = str(job_output)
+	print(f"JOB_ID {job_output}", flush=True)
 
 def get_base_command(args):
 	cmd = f'python DL_Layer_Analysis/DL_smoothness.py'
