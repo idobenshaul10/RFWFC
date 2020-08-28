@@ -13,6 +13,11 @@ from pathlib import Path
 import json
 import cv2
 import glob
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir)
+from utils import utils
+import torch
 # USAGE: python .\DL_Layer_Analysis\plot_DL_json_results.py --main_dir C:\projects\RFWFC\results\mnist
 
 def get_args():
@@ -21,7 +26,7 @@ def get_args():
 	args = parser.parse_args()
 	return args
 
-def show_images(images, cols = 1, titles = None):
+def show_images(images, cols = 2, titles = None):
 	"""Display a list of images in a single figure with matplotlib.
 	
 	Parameters
@@ -35,9 +40,10 @@ def show_images(images, cols = 1, titles = None):
 			the same length as titles.
 	"""
 	assert((titles is None) or (len(images) == len(titles)))
+	plt.tick_params(axis='both', labelsize=0, length = 0)
 	n_images = len(images)
 	if titles is None: titles = ['Image (%d)' % i for i in range(1,n_images + 1)]
-	fig = plt.figure()
+	fig = plt.figure()	
 	for n, (image, title) in enumerate(zip(images, titles)):
 		a = fig.add_subplot(cols, np.ceil(n_images/float(cols)), n + 1)
 		if image.ndim == 2:
@@ -52,6 +58,5 @@ if __name__ == '__main__':
 	file_paths = glob.glob(os.path.join(args.main_dir, "*.png"))
 	file_paths = [k for k in file_paths if '_' not in k.split('\\')[-1]]
 	file_paths = [k for k in file_paths if 'result' not in k.split('\\')[-1]]
-	images = [cv2.imread(file) for file in file_paths]
-	show_images(images)
-	# plot_clusters(args.main_dir)
+	images = [cv2.imread(file)[:,:, ::-1] for file in file_paths]	
+	show_images(images)	
