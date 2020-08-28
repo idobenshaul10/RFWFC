@@ -12,7 +12,6 @@ from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot, ion, show
-import numpy as np
 import importlib
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -23,14 +22,15 @@ import time
 import json
 import umap
 
-def kmeans_cluster(X, Y, output_folder=None, layer_str = ""):
+def kmeans_cluster(X, Y, output_folder=None, layer_str="", sample_size=5000):
+	np.random.seed(0)
 	k = len(np.unique(Y))
 	print(f"Fitting k means with k={k}")
 	kmeans = KMeans(n_clusters=k, random_state=0).fit(X)
 	predicted_labels = kmeans.labels_
 	print(f"Fitting umap")
 	reducer = umap.UMAP(random_state=42)
-	indices = np.random.choice(len(X), 5000)
+	indices = np.random.choice(len(X), sample_size)
 
 	X = X[indices]
 	Y = Y[indices]
@@ -40,9 +40,11 @@ def kmeans_cluster(X, Y, output_folder=None, layer_str = ""):
 	print(f"Done fitting umap")
 	
 	fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=(12, 10))
-	ax.scatter(
+	scatter = ax.scatter(
 		embedding_train[:, 0], embedding_train[:, 1], c=predicted_labels, cmap="Spectral" , s=0.5
 	)
+	legend1 = ax.legend(*scatter.legend_elements(),
+			loc="lower left", title="Classes")
 
 	plt.setp(ax, xticks=[], yticks=[])	
 	plt.suptitle(f"UMAP of Clustering for {layer_str}", fontsize=18)	

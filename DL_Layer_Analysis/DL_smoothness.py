@@ -43,9 +43,9 @@ def get_args():
 		help='path to save results')
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
 	parser.add_argument('--batch_size', type=int, default=1024)
-	parser.add_argument('--env_name', type=str, default="cifar10")
+	parser.add_argument('--env_name', type=str, default="mnist")
 	parser.add_argument('--checkpoint_path', type=str, default=None)
-	parser.add_argument('--high_range_epsilon', type=float, default=0.01)
+	parser.add_argument('--high_range_epsilon', type=float, default=0.1)
 	parser.add_argument('--use_clustering', action='store_true', default=False)
 	parser.add_argument('--calc_test', action='store_true', default=False)
 
@@ -154,22 +154,28 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 	norm_normalization = 'num_samples'
 	model.eval()
 	sizes, alphas = [], []
-	with torch.no_grad():
-		for k, layer in enumerate(layers):		
+	with torch.no_grad():		
+		layers = ["0"] + layers
+		for k, layer in enumerate(layers):
 			layer_str = str(layer)
 			print(f"LAYER {k}, type:{layer_str}")		
 			layer_name = f'layer_{k}'
-			handle = layer.register_forward_hook(get_activation(layer_name, args))
-			for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
-				if args.use_cuda:
-					data = data.cuda()
-				model(data)
 
-			X = activation[list(activation.keys())[0]]
-			handle.remove()
-			del activation[layer_name]
+			if layer == "0":
+				X = torch.cat([data for (data, target) in tqdm(data_loader)]).detach()				
+				X = X.view(X.shape[0], -1)				
+			else:
+				handle = layer.register_forward_hook(get_activation(layer_name, args))
+				for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
+					if args.use_cuda:
+						data = data.cuda()
+					model(data)
 
-			start = time.time()
+				X = activation[list(activation.keys())[0]]
+				handle.remove()
+				del activation[layer_name]
+
+			start = time.time()			
 			Y = np.array(Y).reshape(-1, 1)
 			X = np.array(X).squeeze()
 

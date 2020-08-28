@@ -43,7 +43,7 @@ def get_args():
 	parser.add_argument('--batch_size', type=int, default=1024)
 	parser.add_argument('--env_name', type=str, default="cifar10")
 	parser.add_argument('--checkpoints_dir_path', type=str, default="")
-	parser.add_argument('--high_range_epsilon', type=float, default=0.01)
+	parser.add_argument('--high_range_epsilon', type=float, default=0.1)
 	parser.add_argument('--use_clustering', action='store_true', default=False)
 	parser.add_argument('--calc_test', action='store_true', default=False)
 
