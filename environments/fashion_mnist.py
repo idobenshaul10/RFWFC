@@ -40,8 +40,9 @@ class fashion_mnist(BaseEnviorment):
     def get_layers(self, model):
         feature_layers = np.array([module for module in model.feature_extractor.modules() if type(module) != nn.Sequential])
         classifier_layers = np.array([module for module in model.classifier.modules() if type(module) != nn.Sequential])        
-        feature_layers = list(feature_layers[[2, 5, 7]])        
-        classifier_layers = list(classifier_layers[[1, 2]])
+
+        # feature_layers = list(feature_layers[[2, 5, 7]])
+        # classifier_layers = list(classifier_layers[[1, 2]])
         layers = feature_layers + classifier_layers + [model.softmax]
         return layers
 

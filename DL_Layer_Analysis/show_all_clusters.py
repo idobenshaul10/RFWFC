@@ -26,19 +26,7 @@ def get_args():
 	args = parser.parse_args()
 	return args
 
-def show_images(images, cols = 2, titles = None):
-	"""Display a list of images in a single figure with matplotlib.
-	
-	Parameters
-	---------
-	images: List of np.arrays compatible with plt.imshow.
-	
-	cols (Default = 1): Number of columns in figure (number of rows is 
-						set to np.ceil(n_images/float(cols))).
-	
-	titles: List of titles corresponding to each image. Must have
-			the same length as titles.
-	"""
+def show_images(images, cols = 2, titles = None):	
 	assert((titles is None) or (len(images) == len(titles)))
 	plt.tick_params(axis='both', labelsize=0, length = 0)
 	n_images = len(images)

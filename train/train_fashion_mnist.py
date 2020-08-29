@@ -121,7 +121,7 @@ def get_accuracy(model, data_loader, device):
 	return correct_pred.float() / n
 
 def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
-	epochs, device, print_every=1, save_every=1):
+	epochs, device, print_every=1, save_every=10):
 	best_loss = 1e10
 	train_losses = []
 	valid_losses = [] 
@@ -175,7 +175,7 @@ if args.enrich_dataset:
 			image = train_dataset[i][0]
 			to_show_images.append(image)
 
-		visualize_augmentation(to_show_images)	
+		visualize_augmentation(to_show_images)
 else:
 	train_dataset = datasets.FashionMNIST(
 		root = r'C:\datasets\fashion_mnist',

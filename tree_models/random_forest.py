@@ -54,7 +54,7 @@ class WaveletsForestRegressor:
 		self.regressor = regressor
 		self.criterion = criterion
 		self.bagging = bagging
-		self.verbose = True
+		self.verbose = False
 
 		if self.regressor == "random_forest" and depth == -1:
 			self.depth = None
