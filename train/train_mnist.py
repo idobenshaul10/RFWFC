@@ -20,7 +20,7 @@ import albumentations as A
 from PIL import Image
 from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
-from utils import visualize_augmentation
+from utils.utils import visualize_augmentation
 
 parser = argparse.ArgumentParser(description='train lenet5 on mnist dataset')
 parser.add_argument('--output_path', default=r"C:\projects\RFWFC\results\DL_layers\trained_models", 
@@ -45,7 +45,7 @@ N_EPOCHS = args.epochs
 N_CLASSES = args.num_classes
 ENRICH_FACTOR = args.enrich_factor
 
-output_path = os.path.join(args.output_path, "LeNet5")
+output_path = os.path.join(args.output_path, "MNIST")
 if not os.path.isdir(output_path):
 	os.mkdir(output_path)
 
