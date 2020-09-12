@@ -1,18 +1,5 @@
 # Smoothness Analysis on Deep Learning Architectures
 **Simple commands** - for questions - ido.benshaul@gmail.com
-
-```mermaid
-graph LR
-A[Train Model]
-B[Run Smoothness Script]
-D[Clustering]
-E[Alpha Smoothness]
-C[Visualize Results] 
-A --> B
-B --> D
-B --> E
-E --> C
-```
 ## Training a model 
 ```python .\train\train_mnist.py```
 ## Running Smoothness Analysis
