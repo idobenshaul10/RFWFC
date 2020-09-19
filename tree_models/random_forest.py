@@ -10,7 +10,11 @@ from scipy.sparse import csr_matrix, lil_matrix
 import operator
 import code
 from functools import reduce
-from tree_models.decision_tree_with_bagging import DecisionTreeWithBaggingRegressor
+try:
+	from tree_models.decision_tree_with_bagging import DecisionTreeWithBaggingRegressor	
+except:
+	print("could not import DyadicDecisionTreeModel+DecisionTreeWithBaggingRegressor")
+
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot, ion, show
 import random
@@ -54,7 +58,7 @@ class WaveletsForestRegressor:
 		self.regressor = regressor
 		self.criterion = criterion
 		self.bagging = bagging
-		self.verbose = False
+		self.verbose = True
 
 		if self.regressor == "random_forest" and depth == -1:
 			self.depth = None
@@ -156,8 +160,7 @@ class WaveletsForestRegressor:
 
 		:X_raw: Non-normalized features, given as a 2D array with each row representing a sample.
 		:y: Labels, each row is given as a vertex on the simplex.
-		'''
-
+		'''		
 		logging.info('Fitting %s samples' % np.shape(X_raw)[0])
 		X = (X_raw - np.min(X_raw, 0))/(np.max(X_raw, 0) - np.min(X_raw, 0))
 		X = np.nan_to_num(X)
@@ -399,7 +402,7 @@ class WaveletsForestRegressor:
 		h = 0.01
 		
 		diffs = []		
-		taus = np.arange(0.75, 3., h)
+		taus = np.arange(0.25, 3., h)
 		total_sparsities, total_alphas = [], []
 		J = len(self.rf.estimators_)
 

@@ -23,7 +23,7 @@ import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
-from clustering import kmeans_cluster
+from clustering import kmeans_cluster, get_clustering_statistics
 from utils.utils import *
 import time
 import json
@@ -154,6 +154,7 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 	norm_normalization = 'num_samples'
 	model.eval()
 	sizes, alphas = [], []
+	stats = defaultdict(list)
 	with torch.no_grad():		
 		layers = ["0"] + layers
 		for k, layer in enumerate(layers):
@@ -191,11 +192,14 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 					text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
 					epsilon_1=args.high_range_epsilon, epsilon_2=args.low_range_epsilon)
 				
-				print(f"alpha for layer {k} is {alpha_index}")			
+				print(f"alpha for layer {k} is {alpha_index}")
+				kmeans = kmeans_cluster(X, Y, False, args.output_folder, f"layer {k}")
+				stats = get_clustering_statistics(kmeans)
+
 				sizes.append(k)
 				alphas.append(alpha_index)
 			else:
-				kmeans_cluster(X, Y, args.output_folder, f"layer {k}")
+				kmeans_cluster(X, Y, False, args.output_folder, f"layer {k}")
 
 	if not args.use_clustering:	
 		test_stats = None

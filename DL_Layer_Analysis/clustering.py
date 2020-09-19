@@ -7,7 +7,7 @@ from tqdm import tqdm
 from sklearn.cluster import KMeans
 from torch.optim.lr_scheduler import StepLR
 from sklearn import tree, linear_model, ensemble
-from sklearn.metrics import accuracy_score
+import sklearn.metrics as metrics
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
@@ -22,11 +22,13 @@ import time
 import json
 import umap
 
-def kmeans_cluster(X, Y, output_folder=None, layer_str="", sample_size=5000):
+def kmeans_cluster(X, Y, visualize=False, output_folder=None, layer_str="", sample_size=5000):
 	np.random.seed(0)
 	k = len(np.unique(Y))
 	print(f"Fitting k means with k={k}")
 	kmeans = KMeans(n_clusters=k, random_state=0).fit(X)
+	if not visualize:
+		return kmeans
 	predicted_labels = kmeans.labels_
 	print(f"Fitting umap")
 	reducer = umap.UMAP(random_state=42)
@@ -57,9 +59,28 @@ def kmeans_cluster(X, Y, output_folder=None, layer_str="", sample_size=5000):
 			dpi=300, bbox_inches='tight')
 
 	plt.clf()
+	return kmeans
+
+def get_clustering_statistics(X, Y, kmeans):
+	metrics_results = {}
+	preds = kmeans.labels_
+	metrics_results['silhouette_score'] = metrics.silhouette_score(X, preds)	
+	metrics_results['adj_rand'] = metrics.adjusted_rand_score(Y, preds)
+	metrics_results['MI_score'] = metrics.adjusted_mutual_info_score(Y, preds)
+	metrics_results['homogeneity_score'] = metrics.homogeneity_score(Y, preds)
+	metrics_results['completeness'] = metrics.completeness_score(Y, preds)
+	metrics_results['FMI'] = metrics.fowlkes_mallows_score(Y, preds)
+	for k, v in metrics_results.items():
+		print(f'{k}:{v}')
+
 
 if __name__ == '__main__':
-	N = 20
-	X = np.random.rand(N, 20)
-	Y = np.random.randint(0, 10, (N, 1)) 
-	kmeans_cluster(X, Y)
+	# N = 20
+	# X = np.random.rand(N, 20)
+	# Y = np.random.randint(0, 10, (N, 1)) 
+
+	from sklearn.datasets import make_blobs
+	X, Y = make_blobs(n_samples=5000, centers=10, n_features=200, random_state=0)
+	output_folder = r"C:\projects\RFWFC\results"
+	kmeans = kmeans_cluster(X, Y, True, output_folder, layer_str="", sample_size=500)
+	get_clustering_statistics(X, Y, kmeans)

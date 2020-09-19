@@ -6,8 +6,13 @@ from tqdm import tqdm
 from sklearn import metrics
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.model_selection import KFold
-from tree_models.random_forest import WaveletsForestRegressor
-from tree_models.dyadic_decision_tree_regressor import DyadicDecisionTreeRegressor
+import sys
+try:
+	from tree_models.random_forest import WaveletsForestRegressor
+	from tree_models.dyadic_decision_tree_regressor import DyadicDecisionTreeRegressor
+except:
+	sys.path.append(r"C:\projects\RFWFC\tree_models")
+	from random_forest import WaveletsForestRegressor
 import torchvision
 
 def normalize_data(x_raw):
