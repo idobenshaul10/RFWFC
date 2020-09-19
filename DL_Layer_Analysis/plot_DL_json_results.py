@@ -19,7 +19,7 @@ def get_args():
 	args = parser.parse_args()
 	return args
 
-def plot_epochs(main_dir, plot_test=True, add_fill=False):
+def plot_epochs(main_dir, plot_test=True, add_fill=False, remove_layers=0):
 	if plot_test:
 		fig, axes = plt.subplots(1, 2)
 		axes[0].set_title("alphas for different epochs")
@@ -36,11 +36,26 @@ def plot_epochs(main_dir, plot_test=True, add_fill=False):
 	for file_path in file_paths:
 		file_path = str(file_path)	
 		epoch = file_path.split('\\')[-2].split('.')[-2]
+		# trees = int(file_path.split('\\')[-2].split('.')[0].split('_')[2])
+		# if trees != 5:
+		# 	continue
+
+		
+		# if "AFTER" not in file_path:
+		# 	continue
+
+		# if int(epoch) != 360:
+		# 	continue
+
 		eps = file_path.split('\\')[-2].split('.')[1]	
 		with open(file_path, "r+") as f:
 			result = json.load(f)	
+		
 		sizes = result["sizes"]
 		alphas = result["alphas"]
+
+		if remove_layers > 0:
+			sizes, alphas = sizes[:-remove_layers], alphas[:-remove_layers]
 
 		test_stats = None
 		if 'test_stats' in result:

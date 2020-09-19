@@ -194,7 +194,7 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 				print(f"alpha for layer {k} is {alpha_index}")			
 				sizes.append(k)
 				alphas.append(alpha_index)
-			else:			
+			else:
 				kmeans_cluster(X, Y, args.output_folder, f"layer {k}")
 
 	if not args.use_clustering:	

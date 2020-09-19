@@ -4,7 +4,6 @@ import torch
 from torch import save
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 import matplotlib.pyplot as plt
 import os 
@@ -13,7 +12,7 @@ import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
-from models.LeNet5 import LeNet5
+from models.LeNet5_bad import LeNet5Bad
 import argparse
 from collections import OrderedDict
 import albumentations as A
@@ -22,7 +21,6 @@ from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
 from utils.utils import visualize_augmentation
 
-# USAGE:  python .\train\train_mnist.py --output_path "C:\projects\RFWFC\results\trained_models\mnist\normal\" --batch_size 32 --epochs 100
 
 parser = argparse.ArgumentParser(description='train lenet5 on mnist dataset')
 parser.add_argument('--output_path', default=r"C:\projects\RFWFC\results\DL_layers\trained_models", 
@@ -36,6 +34,7 @@ parser.add_argument('--num_classes', default=10, type=int, help='num categories 
 parser.add_argument('--enrich_factor', default=1., type=float, help='num categories in output of model')
 parser.add_argument('--enrich_dataset', action="store_true", help='if True, will show sample images from DS')
 parser.add_argument('--visualize_dataset', action="store_true", help='if True, will show sample images from DS')
+parser.add_argument('--continue_path', type=str, default=None)
 
 args, _ = parser.parse_known_args()
 
@@ -47,17 +46,13 @@ N_EPOCHS = args.epochs
 N_CLASSES = args.num_classes
 ENRICH_FACTOR = args.enrich_factor
 
-# output_path = os.path.join(args.output_path, "mnist")
-output_path = args.output_path
+output_path = os.path.join(args.output_path, "FashionMNIST")
 if not os.path.isdir(output_path):
 	os.mkdir(output_path)
 
 AUG = A.Compose({
 	A.Resize(32, 32),	
-	# A.HorizontalFlip(p=0.5),
-	A.Rotate(limit=(-25, 25)),
-	# A.VerticalFlip(p=0.5),
-	# A.Normalize((0.5), (0.5))
+	A.Rotate(limit=(-25, 25)),	
 	A.OpticalDistortion()
 })
 
@@ -127,11 +122,12 @@ def get_accuracy(model, data_loader, device):
 	return correct_pred.float() / n
 
 def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
-	epochs, device, print_every=1, save_every=1):
+	epochs, device, print_every=1, save_every=10):
 	best_loss = 1e10
 	train_losses = []
 	valid_losses = [] 
-	for epoch in range(0, epochs):		
+	wanted_param_indices = [2, 3]
+	for epoch in range(0, epochs):
 		model, optimizer, train_loss = train(train_loader, model, criterion, optimizer, device)		
 		train_losses.append(train_loss)
 
@@ -151,8 +147,12 @@ def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
 				  f'Train accuracy: {100 * train_acc:.2f}\t'
 				  f'Valid accuracy: {100 * valid_acc:.2f}')
 
-		if epoch % save_every == 0:			
-			checkpoint_path = f"{output_path}/weights.{epoch}.h5"
+		if epoch % save_every == 0:
+			if args.continue_path is not None:
+				checkpoint_path = f"{output_path}/AFTER_LOAD_weights.{epoch}.h5"
+			else:
+				checkpoint_path = f"{output_path}/weights.{epoch}.h5"
+
 			model_state_dict = model.state_dict()
 			state_dict = OrderedDict()
 			state_dict["epoch"] = epoch
@@ -167,9 +167,11 @@ transforms = transforms.Compose([transforms.Resize((32, 32)),
 								 transforms.ToTensor()])
 
 if args.enrich_dataset:
-	train_dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
-							   train=True,							   
-							   download=True)
+	train_dataset = datasets.FashionMNIST(
+		root = r'C:\datasets\fashion_mnist',
+		train = True,
+		download = True)
+
 	train_dataset = enrich_dataset(train_dataset, factor=ENRICH_FACTOR)
 	if args.visualize_dataset:
 		random_indices = np.random.choice(len(train_dataset), 16)
@@ -178,14 +180,20 @@ if args.enrich_dataset:
 			image = train_dataset[i][0]
 			to_show_images.append(image)
 
-		visualize_augmentation(to_show_images)	
+		visualize_augmentation(to_show_images)
 else:
-	train_dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
-	   train=True, download=True, transform=transforms)
+	train_dataset = datasets.FashionMNIST(
+		root = r'C:\datasets\fashion_mnist',
+		train = True,
+		download = True,
+		transform = transforms)
 
 
-valid_dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
-	train=False, transform=transforms)
+valid_dataset = datasets.FashionMNIST(
+	root = r'C:\datasets\fashion_mnist',
+	train = False,
+	download = True,
+	transform = transforms)
 
 train_loader = DataLoader(dataset=train_dataset, 
 						  batch_size=BATCH_SIZE, 
@@ -197,7 +205,16 @@ valid_loader = DataLoader(dataset=valid_dataset,
 
 
 torch.manual_seed(RANDOM_SEED)
-model = LeNet5(N_CLASSES).to(DEVICE)
+model = LeNet5Bad(N_CLASSES).to(DEVICE)
+
+if args.continue_path is not None:
+	try:
+		model.load_state_dict(torch.load(args.continue_path)['checkpoint'])		
+		print(f"loaded model: {args.continue_path}")
+	except Exception as e:
+		print(f"could not load checkpoint!, {e}")
+		exit()
+
 optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 criterion = nn.CrossEntropyLoss()
 

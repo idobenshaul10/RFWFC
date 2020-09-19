@@ -9,9 +9,9 @@ from utils import *
 import time
 from environments.base_environment import *
 from torchvision import datasets, transforms
-from models.LeNet5 import LeNet5
+from models.LeNet5_bad import LeNet5Bad
 
-class fashion_mnist(BaseEnviorment):
+class fashion_mnist_bad(BaseEnviorment):
     def __init__(self, checkpoint_path=None):
         super().__init__()
         if checkpoint_path is None:
@@ -39,19 +39,13 @@ class fashion_mnist(BaseEnviorment):
 
     def get_layers(self, model):
         feature_layers = np.array([module for module in model.feature_extractor.modules() if type(module) != nn.Sequential])
-        classifier_layers = np.array([module for module in model.classifier.modules() if type(module) != nn.Sequential])
+        FC_network_layers = np.array([module for module in model.FC_network.modules() if type(module) != nn.Sequential])
+        Second_Conv_network_layers = np.array([module for module in model.Second_Conv_network.modules() if type(module) != nn.Sequential])
         
-        # feature_layers = list(feature_layers[[3, 7, 10]])
-        # classifier_layers = list(classifier_layers[[1, 3, 4]])
-        
-        # batchnorm+dropout
-        # feature_layers = list(feature_layers[[4, 9, 13]])
-        # classifier_layers = list(classifier_layers[[1, 2]])
-
-        # default
-        feature_layers = list(feature_layers[[2, 5, 7]])
-        classifier_layers = list(classifier_layers[[1, 2]])
-        layers = feature_layers + classifier_layers + [model.softmax]
+        feature_layers = list(feature_layers[[2, 5]])
+        FC_network_layers = list(FC_network_layers[[1]])        
+        Second_Conv_network_layers = list(Second_Conv_network_layers[[1]]) 
+        layers = feature_layers + FC_network_layers + Second_Conv_network_layers + [model.softmax]        
         return layers
 
     def get_eval_transform(self):
@@ -60,7 +54,7 @@ class fashion_mnist(BaseEnviorment):
         return transform
 
     def get_model(self):
-        model = LeNet5(10)
+        model = LeNet5Bad(10)
         if self.use_cuda:
             model = model.cuda()
         checkpoint = torch.load(self.model_path)['checkpoint']

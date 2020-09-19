@@ -34,6 +34,7 @@ parser.add_argument('--num_classes', default=10, type=int, help='num categories 
 parser.add_argument('--enrich_factor', default=1., type=float, help='num categories in output of model')
 parser.add_argument('--enrich_dataset', action="store_true", help='if True, will show sample images from DS')
 parser.add_argument('--visualize_dataset', action="store_true", help='if True, will show sample images from DS')
+parser.add_argument('--continue_path', type=str, default=None)
 
 args, _ = parser.parse_known_args()
 
@@ -125,7 +126,22 @@ def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
 	best_loss = 1e10
 	train_losses = []
 	valid_losses = [] 
+	wanted_param_indices = [2, 3]
 	for epoch in range(0, epochs):
+		if epoch % 5 == 0:
+			if epoch % 4 == 0:
+				print(f"FREEZING all but layers {wanted_param_indices}")			
+				for idx, param in enumerate(model.parameters()):
+					if idx in wanted_param_indices:
+						continue
+					param.requires_grad = False
+
+			elif epoch % 15 == 0:
+				print(f"UNFREEZING layers all but layers {wanted_param_indices}")
+				for idx, param in enumerate(model.parameters()):
+					if idx in wanted_param_indices:
+						continue
+					param.requires_grad = True
 
 		model, optimizer, train_loss = train(train_loader, model, criterion, optimizer, device)		
 		train_losses.append(train_loss)
@@ -146,8 +162,12 @@ def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
 				  f'Train accuracy: {100 * train_acc:.2f}\t'
 				  f'Valid accuracy: {100 * valid_acc:.2f}')
 
-		if epoch % save_every == 0:			
-			checkpoint_path = f"{output_path}/weights.{epoch}.h5"
+		if epoch % save_every == 0:
+			if args.continue_path is not None:
+				checkpoint_path = f"{output_path}/AFTER_LOAD_weights.{epoch}.h5"
+			else:
+				checkpoint_path = f"{output_path}/weights.{epoch}.h5"
+
 			model_state_dict = model.state_dict()
 			state_dict = OrderedDict()
 			state_dict["epoch"] = epoch
@@ -201,6 +221,15 @@ valid_loader = DataLoader(dataset=valid_dataset,
 
 torch.manual_seed(RANDOM_SEED)
 model = LeNet5(N_CLASSES).to(DEVICE)
+
+if args.continue_path is not None:
+	try:
+		model.load_state_dict(torch.load(args.continue_path)['checkpoint'])		
+		print(f"loaded model: {args.continue_path}")
+	except Exception as e:
+		print(f"could not load checkpoint!, {e}")
+		exit()
+
 optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 criterion = nn.CrossEntropyLoss()
 

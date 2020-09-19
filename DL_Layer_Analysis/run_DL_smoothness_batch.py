@@ -55,11 +55,12 @@ def run_all_comands(args):
 	if not os.path.isdir(args.checkpoints_dir_path):
 		raise("Checkpoints directory does not exist!")
 	checkpoints = glob(os.path.join(args.checkpoints_dir_path, "*.h5"))	
-	checkpoints = [k for k in checkpoints if int(k.split('\\')[-1].split('.')[1]) % RUN_FREQ == 0]
+	checkpoints = [k for k in checkpoints if int(k.split('\\')[-1].split('.')[1]) % RUN_FREQ == 0]	
 	cmd = get_base_command(args)
 	
 	for checkpoint_path in tqdm(checkpoints):
-		cur_cmd = cmd + f' --checkpoint_path {checkpoint_path}'
+		cur_cmd = cmd + f' --checkpoint_path {checkpoint_path}'		
+		print(f"\n{cur_cmd}")
 		process = Process(target=run_cmd, args=([cur_cmd]))
 		process.start()
 		process.join()

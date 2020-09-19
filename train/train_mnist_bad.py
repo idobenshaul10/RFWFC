@@ -13,7 +13,7 @@ import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
-from models.LeNet5 import LeNet5
+from models.LeNet5_bad import LeNet5Bad
 import argparse
 from collections import OrderedDict
 import albumentations as A
@@ -197,7 +197,7 @@ valid_loader = DataLoader(dataset=valid_dataset,
 
 
 torch.manual_seed(RANDOM_SEED)
-model = LeNet5(N_CLASSES).to(DEVICE)
+model = LeNet5Bad(N_CLASSES).to(DEVICE)
 optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 criterion = nn.CrossEntropyLoss()
 
