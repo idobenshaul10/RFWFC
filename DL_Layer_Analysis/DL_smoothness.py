@@ -194,7 +194,7 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 				handle.remove()
 				del activation[layer_name]
 
-			X, Y = enrich_dataset(X, Y)			
+			# X, Y = enrich_dataset(X, Y)			
 			start = time.time()
 			Y = np.array(Y).reshape(-1, 1)			
 			X = np.array(X).squeeze()

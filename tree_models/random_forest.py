@@ -440,10 +440,9 @@ class WaveletsForestRegressor:
 			plt.title(f"tau vs. angle")
 			plt.xlabel(f'tau')
 			plt.ylabel(f'sparsity angle')
-			plt.plot(taus, angles, zorder=1)
-			s = [0.5 for n in range(len(epsilon_2_indices))]
-			plt.scatter(taus[epsilon_2_indices], angles[epsilon_2_indices], color="r", zorder=2, s=s)
-			plt.scatter(taus[epsilon_1_indices], angles[epsilon_1_indices], color="g", zorder=2, s=s)
+			plt.plot(taus, angles, zorder=1)			
+			plt.scatter(taus[epsilon_2_indices], angles[epsilon_2_indices], color="r", zorder=2, s=0.5)
+			plt.scatter(taus[epsilon_1_indices], angles[epsilon_1_indices], color="g", zorder=2, s=0.5)
 
 			print(f"abs(angles+90.).min():{abs(angles+90.).min()}")
 
@@ -457,10 +456,9 @@ class WaveletsForestRegressor:
 			plt.title(f"tau vs. derivative")
 			plt.xlabel(f'tau')
 			plt.ylabel(f'sparsity derivative')
-			plt.plot(taus, diffs, zorder=1)
-			s = [0.5 for n in range(len(epsilon_2_indices))]
-			plt.scatter(taus[epsilon_2_indices], diffs[epsilon_2_indices], color="r", zorder=2, s=s)
-			plt.scatter(taus[epsilon_1_indices], diffs[epsilon_1_indices], color="g", zorder=2, s=s)
+			plt.plot(taus, diffs, zorder=1)			
+			plt.scatter(taus[epsilon_2_indices], diffs[epsilon_2_indices], color="r", zorder=2, s=0.5)
+			plt.scatter(taus[epsilon_1_indices], diffs[epsilon_1_indices], color="g", zorder=2, s=0.5)
 
 			save_path = os.path.join(output_folder, f"{text}_{epsilon_1}_{epsilon_2}_angles.png")
 			print(f"save_path:{save_path}")
