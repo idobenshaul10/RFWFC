@@ -27,7 +27,11 @@ from clustering import kmeans_cluster, get_clustering_statistics
 from utils.utils import *
 import time
 import json
-
+import albumentations as A
+from collections import defaultdict
+import cv2
+from utils.utils import visualize_augmentation
+from torch.utils.data import TensorDataset, DataLoader
 #  python .\DL_smoothness.py --env_name mnist --checkpoint_path "C:\projects\RFWFC\results\trained_models\weights.80.h5" --use_clustering
 
 ion()
@@ -148,6 +152,20 @@ def get_top_1_accuracy(model, data_loader, device):
 			correct_pred += (predicted_labels == y_true).sum()
 	return (correct_pred.float() / n).item()
 
+def enrich_dataset(X, Y, factor=2.):
+	new_dataset_size = int(len(X) * factor)
+	indices = np.random.choice(len(X), new_dataset_size)
+	transformed = []	
+	for index in tqdm(indices):		
+		cur = X[index]
+		noise = np.random.uniform(low=-0.05, high=0.05, size=cur.shape)		
+		cur += noise	
+		transformed.append(cur)
+
+	transformed_labels = [Y[i] for i in indices]	
+	X, Y = np.row_stack((transformed)), np.array(transformed_labels)
+	return X, Y
+
 def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loader):
 	Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()
 	N_wavelets = 10000
@@ -155,7 +173,7 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 	model.eval()
 	sizes, alphas = [], []
 	stats = defaultdict(list)
-	with torch.no_grad():		
+	with torch.no_grad():	
 		layers = ["0"] + layers
 		for k, layer in enumerate(layers):
 			layer_str = str(layer)
@@ -163,8 +181,8 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 			layer_name = f'layer_{k}'
 
 			if layer == "0":
-				X = torch.cat([data for (data, target) in tqdm(data_loader)]).detach()				
-				X = X.view(X.shape[0], -1)				
+				X = torch.cat([data for (data, target) in tqdm(data_loader)]).detach()
+				X = X.view(X.shape[0], -1)
 			else:
 				handle = layer.register_forward_hook(get_activation(layer_name, args))
 				for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
@@ -176,8 +194,9 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 				handle.remove()
 				del activation[layer_name]
 
-			start = time.time()			
-			Y = np.array(Y).reshape(-1, 1)
+			X, Y = enrich_dataset(X, Y)			
+			start = time.time()
+			Y = np.array(Y).reshape(-1, 1)			
 			X = np.array(X).squeeze()
 
 			print(f"X.shape:{X.shape}, Y shape:{Y.shape}")

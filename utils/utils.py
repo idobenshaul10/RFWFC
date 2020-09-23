@@ -101,6 +101,7 @@ def imshow(img):
 
 def visualize_augmentation(images):    
 	imshow(torchvision.utils.make_grid(images))
+	import pdb; pdb.set_trace()
 
 if __name__ == '__main__':    
 	from sklearn.datasets import make_moons, make_circles, make_classification
