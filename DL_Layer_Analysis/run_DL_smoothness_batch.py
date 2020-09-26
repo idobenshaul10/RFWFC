@@ -45,13 +45,14 @@ def get_args():
 	parser.add_argument('--checkpoints_dir_path', type=str, default="")
 	parser.add_argument('--high_range_epsilon', type=float, default=0.1)
 	parser.add_argument('--use_clustering', action='store_true', default=False)
+	parser.add_argument('--create_umap', action='store_true', default=False)
 	parser.add_argument('--calc_test', action='store_true', default=False)
 
 	args = parser.parse_args()	
 	return args
 
 def run_all_comands(args):
-	RUN_FREQ = 10
+	RUN_FREQ = 1
 	if not os.path.isdir(args.checkpoints_dir_path):
 		raise("Checkpoints directory does not exist!")
 	checkpoints = glob(os.path.join(args.checkpoints_dir_path, "*.h5"))	
@@ -60,7 +61,7 @@ def run_all_comands(args):
 	
 	for checkpoint_path in tqdm(checkpoints):
 		cur_cmd = cmd + f' --checkpoint_path {checkpoint_path}'		
-		print(f"\n{cur_cmd}")
+		print(f"\n{cur_cmd}")		
 		process = Process(target=run_cmd, args=([cur_cmd]))
 		process.start()
 		process.join()
@@ -76,14 +77,19 @@ def get_base_command(args):
 	for key, value in args_dict.items():
 		if key == 'checkpoints_dir_path':
 			continue
-		if key == 'use_clustering':
+		if key == 'create_umap':
 			if value is True:
-				cmd += ' --use_clustering'
+				cmd += ' --create_umap'
 			continue
 		if key == 'calc_test':
 			if value is True:
 				cmd += ' --calc_test'
-			continue				
+			continue
+		if key == 'use_clustering':
+			if value is True:
+				cmd += ' --use_clustering'
+			continue
+
 		value = str(value).replace('&', '\\&')
 		cmd += f" --{key} {value}"
 	return cmd

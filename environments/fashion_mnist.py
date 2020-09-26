@@ -10,6 +10,7 @@ import time
 from environments.base_environment import *
 from torchvision import datasets, transforms
 from models.LeNet5 import LeNet5
+from models.fashion_mnist_model import FashionCNN
 
 class fashion_mnist(BaseEnviorment):
     def __init__(self, checkpoint_path=None):
@@ -37,30 +38,18 @@ class fashion_mnist(BaseEnviorment):
 
         return dataset
 
-    def get_layers(self, model):
-        feature_layers = np.array([module for module in model.feature_extractor.modules() if type(module) != nn.Sequential])
-        classifier_layers = np.array([module for module in model.classifier.modules() if type(module) != nn.Sequential])
-        
-        # feature_layers = list(feature_layers[[3, 7, 10]])
-        # classifier_layers = list(classifier_layers[[1, 3, 4]])
-        
-        # batchnorm+dropout
-        # feature_layers = list(feature_layers[[4, 9, 13]])
-        # classifier_layers = list(classifier_layers[[1, 2]])
-
-        # default
-        feature_layers = list(feature_layers[[2, 5, 7]])
-        classifier_layers = list(classifier_layers[[1, 2]])
-        layers = feature_layers + classifier_layers + [model.softmax]
+    def get_layers(self, model):        
+        layers = [model.layer1, model.layer2, model.layer3, model.fc1, model.fc2]
         return layers
 
     def get_eval_transform(self):
-        transform = transforms.Compose([transforms.Resize((32, 32)),            
+        transform = transforms.Compose([transforms.Resize((28, 28)),            
             transforms.ToTensor()])
         return transform
 
     def get_model(self):
-        model = LeNet5(10)
+        # model = LeNet5(10)
+        model = FashionCNN()
         if self.use_cuda:
             model = model.cuda()
         checkpoint = torch.load(self.model_path)['checkpoint']

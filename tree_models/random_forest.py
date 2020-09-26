@@ -60,6 +60,8 @@ class WaveletsForestRegressor:
 		self.bagging = bagging
 		self.verbose = True
 
+		self.num_alpha_sample_points = 10
+
 		if self.regressor == "random_forest" and depth == -1:
 			self.depth = None
 		else:
@@ -402,7 +404,7 @@ class WaveletsForestRegressor:
 		h = 0.01
 		
 		diffs = []		
-		taus = np.arange(0.25, 3., h)
+		taus = np.arange(0.75, 3., h)
 		total_sparsities, total_alphas = [], []
 		J = len(self.rf.estimators_)
 
@@ -419,20 +421,30 @@ class WaveletsForestRegressor:
 
 		angles = np.rad2deg(np.arctan(diffs))
 		try:
-			epsilon_1_indices = np.where(abs(angles+90.)<=epsilon_1)[0]
-			epsilon_2_indices = np.where(abs(angles+90.)<=epsilon_2)[0]		
-			angle_index_1 = epsilon_1_indices[-1]
-			angle_index_2 = epsilon_2_indices[-1]
+			step = (epsilon_2 - epsilon_1)/self.num_alpha_sample_points
+			sampling_indices = np.arange(epsilon_1, epsilon_2, step)
+			alphas = []
+			for idx, sample_epsilon in enumerate(sampling_indices):				
+				cur_epsilon_indices = np.where(abs(angles+90.)<=sample_epsilon)[0]
+				if idx == 0:
+					epsilon_1_indices = cur_epsilon_indices
+				elif idx == len(sampling_indices)-1:
+					epsilon_2_indices = cur_epsilon_indices
+				cur_angle_index = cur_epsilon_indices[-1]				
+				cur_critical_tau = taus[cur_angle_index]
+				cur_critical_alpha = ((1/cur_critical_tau) - 1/self.power)
+				alphas.append(cur_critical_alpha)
+			alphas = np.array(alphas)				
 
 		except Exception as e:
 			print(f"\nHIGH RANGE EPSILON:{epsilon_1} indices are empty, try considering a bigger EPSILON")
 			exit()
 
-		critical_tau_approximation_1 = taus[angle_index_1]
-		critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/self.power)
+		# critical_tau_approximation_1 = taus[angle_index_1]
+		# critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/self.power)
 
-		critical_tau_approximation_2 = taus[angle_index_2]
-		critical_alpha_approximation_2 = ((1/critical_tau_approximation_2) - 1/self.power)
+		# critical_tau_approximation_2 = taus[angle_index_2]
+		# critical_alpha_approximation_2 = ((1/critical_tau_approximation_2) - 1/self.power)
 
 		
 		if self.verbose:
@@ -466,7 +478,8 @@ class WaveletsForestRegressor:
 			    dpi=300, bbox_inches='tight')
 			plt.clf()
 
-		return critical_alpha_approximation_1, critical_alpha_approximation_2
+		# return critical_alpha_approximation_1, critical_alpha_approximation_2
+		return alphas
 		
 
 	def evaluate_smoothness(self, m=1000, error_TH=0.):

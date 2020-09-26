@@ -62,17 +62,20 @@ def kmeans_cluster(X, Y, visualize=False, output_folder=None, layer_str="", samp
 	return kmeans
 
 def get_clustering_statistics(X, Y, kmeans):
+	Y = Y.squeeze()	
 	metrics_results = {}
 	preds = kmeans.labels_
+	print("START clustering statistics")
 	metrics_results['silhouette_score'] = metrics.silhouette_score(X, preds)	
 	metrics_results['adj_rand'] = metrics.adjusted_rand_score(Y, preds)
 	metrics_results['MI_score'] = metrics.adjusted_mutual_info_score(Y, preds)
 	metrics_results['homogeneity_score'] = metrics.homogeneity_score(Y, preds)
 	metrics_results['completeness'] = metrics.completeness_score(Y, preds)
 	metrics_results['FMI'] = metrics.fowlkes_mallows_score(Y, preds)
+	print("DONE clustering statistics")
 	for k, v in metrics_results.items():
 		print(f'{k}:{v}')
-
+	return metrics_results
 
 if __name__ == '__main__':
 	# N = 20

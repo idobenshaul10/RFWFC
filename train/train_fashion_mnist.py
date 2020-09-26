@@ -13,6 +13,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
 from models.LeNet5 import LeNet5
+from models.fashion_mnist_model import FashionCNN
 import argparse
 from collections import OrderedDict
 import albumentations as A
@@ -20,7 +21,8 @@ from PIL import Image
 from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
 from utils.utils import visualize_augmentation
-
+from shutil import copyfile
+from pathlib import Path
 
 parser = argparse.ArgumentParser(description='train lenet5 on mnist dataset')
 parser.add_argument('--output_path', default=r"C:\projects\RFWFC\results\DL_layers\trained_models", 
@@ -45,13 +47,18 @@ BATCH_SIZE = args.batch_size
 N_EPOCHS = args.epochs
 N_CLASSES = args.num_classes
 ENRICH_FACTOR = args.enrich_factor
+softmax = nn.Softmax(dim=1)
 
 output_path = os.path.join(args.output_path, "FashionMNIST")
 if not os.path.isdir(output_path):
 	os.mkdir(output_path)
 
+path = Path(__file__)
+model_path = os.path.join(path.parents[1], 'models', "fashion_mnist_model.py")
+copyfile(model_path, os.path.join(output_path, "model.py"))
+
 AUG = A.Compose({
-	A.Resize(32, 32),	
+	A.Resize(28, 28),	
 	A.Rotate(limit=(-25, 25)),	
 	A.OpticalDistortion()
 })
@@ -68,7 +75,7 @@ def enrich_dataset(dataset, factor=1.):
 	for index in tqdm(indices):
 		image = dataset[index][0]
 		image = transform(image)/255.
-		transformed_images.append(image.view(1, 1, 32, 32))
+		transformed_images.append(image.view(1, 1, 28, 28))
 
 	labels = [dataset[i][1] for i in indices]		
 	labels = torch.tensor(labels)		
@@ -83,7 +90,7 @@ def train(train_loader, model, criterion, optimizer, device):
 		optimizer.zero_grad()		
 		X = X.to(device)
 		y_true = y_true.to(device)
-		y_hat, _ = model(X) 
+		y_hat = model(X) 
 		loss = criterion(y_hat, y_true) 
 		running_loss += loss.item() * X.size(0)
 		loss.backward()
@@ -100,7 +107,7 @@ def validate(valid_loader, model, criterion, device):
 	
 		X = X.to(device)
 		y_true = y_true.to(device)
-		y_hat, _ = model(X)
+		y_hat = model(X)
 		loss = criterion(y_hat, y_true) 
 		running_loss += loss.item() * X.size(0)
 
@@ -114,35 +121,21 @@ def get_accuracy(model, data_loader, device):
 		model.eval()
 		for X, y_true in data_loader:
 			X = X.to(device)
-			y_true = y_true.to(device)
-			_, y_prob = model(X)
-			_, predicted_labels = torch.max(y_prob, 1)
-			n += y_true.size(0)
+			y_true = y_true.to(device)			
+			logits = model(X)			
+			probs = softmax(logits)			
+			predicted_labels = torch.max(probs, 1)[1]
+			n += y_true.size(0)			
 			correct_pred += (predicted_labels == y_true).sum()
 	return correct_pred.float() / n
 
 def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
-	epochs, device, print_every=1, save_every=10):
+	epochs, device, print_every=1, save_every=1):
 	best_loss = 1e10
 	train_losses = []
 	valid_losses = [] 
 	wanted_param_indices = [2, 3]
 	for epoch in range(0, epochs):
-		if epoch % 5 == 0:
-			if epoch % 4 == 0:
-				print(f"FREEZING all but layers {wanted_param_indices}")			
-				for idx, param in enumerate(model.parameters()):
-					if idx in wanted_param_indices:
-						continue
-					param.requires_grad = False
-
-			elif epoch % 15 == 0:
-				print(f"UNFREEZING layers all but layers {wanted_param_indices}")
-				for idx, param in enumerate(model.parameters()):
-					if idx in wanted_param_indices:
-						continue
-					param.requires_grad = True
-
 		model, optimizer, train_loss = train(train_loader, model, criterion, optimizer, device)		
 		train_losses.append(train_loss)
 
@@ -178,7 +171,7 @@ def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
 	
 	return model, optimizer, (train_losses, valid_losses)
 
-transforms = transforms.Compose([transforms.Resize((32, 32)),
+transforms = transforms.Compose([transforms.Resize((28, 28)),
 								 transforms.ToTensor()])
 
 if args.enrich_dataset:
@@ -220,7 +213,8 @@ valid_loader = DataLoader(dataset=valid_dataset,
 
 
 torch.manual_seed(RANDOM_SEED)
-model = LeNet5(N_CLASSES).to(DEVICE)
+# model = LeNet5(N_CLASSES).to(DEVICE)
+model = FashionCNN().to(DEVICE)
 
 if args.continue_path is not None:
 	try:

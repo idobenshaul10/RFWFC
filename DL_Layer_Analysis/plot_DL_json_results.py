@@ -24,32 +24,25 @@ def plot_epochs(main_dir, plot_test=True, add_fill=False, remove_layers=0):
 		fig, axes = plt.subplots(1, 2)
 		axes[0].set_title("alphas for different epochs")
 		axes[1].set_title("Test scores different epochs")
+		# axes[2].set_title("Clustering Metrics")
 	else:
 		fig, axes = plt.subplots(1, 1)
 		axes = [axes]
 
 	file_paths = list(Path(main_dir).glob('**/*.json'))
 	file_paths = [str(k) for k in file_paths]	
-	file_paths.sort(key=lambda x: int(x.split('\\')[-2].split('.')[-2]))	
-	# plt.title("alphas for different epochs")
+	file_paths.sort(key=lambda x: int(x.split('\\')[-2].split('.')[-2]))
+	clustering_stats = None
 	
 	for file_path in file_paths:
 		file_path = str(file_path)	
 		epoch = file_path.split('\\')[-2].split('.')[-2]
-		# trees = int(file_path.split('\\')[-2].split('.')[0].split('_')[2])
-		# if trees != 5:
+		# if int(epoch) != 6:
 		# 	continue
-
+		eps = file_path.split('\\')[-2].split('.')[1]		
 		
-		# if "AFTER" not in file_path:
-		# 	continue
-
-		# if int(epoch) != 360:
-		# 	continue
-
-		eps = file_path.split('\\')[-2].split('.')[1]	
-		with open(file_path, "r+") as f:
-			result = json.load(f)	
+		with open(file_path, "r+") as f:			
+			result = json.load(f)		
 		
 		sizes = result["sizes"]
 		alphas = result["alphas"]
@@ -60,12 +53,20 @@ def plot_epochs(main_dir, plot_test=True, add_fill=False, remove_layers=0):
 		test_stats = None
 		if 'test_stats' in result:
 			test_stats = result['test_stats']
+		if 'clustering_stats' in result:
+			clustering_stats = result['clustering_stats']
 		if add_fill:	
 			axes[0].fill_between(sizes, [k[0] for k in alphas], [k[1] for k in alphas], \
-				alpha=0.2, linewidth=4)
+				alpha=0.2, linewidth=4)		
+
 		axes[0].plot(sizes, [np.array(k).mean()	 for k in alphas], label=f"{epoch}")
 		if test_stats is not None and plot_test:
 			axes[1].scatter(epoch, [test_stats['top_1_accuracy']], label=f"{epoch}")
+		if clustering_stats is not None and plot_test:
+			chosen_stat = 'silhouette_score'
+			keys = sorted(list(clustering_stats.keys()))
+			values = [clustering_stats[k][chosen_stat] for k in keys]			
+			# axes[2].plot(keys, values, label=f"{epoch}")
 
 	plt.legend()
 	plt.xlabel(f'layer')
@@ -74,4 +75,4 @@ def plot_epochs(main_dir, plot_test=True, add_fill=False, remove_layers=0):
 
 if __name__ == '__main__':
 	args = get_args()	
-	plot_epochs(args.main_dir, add_fill=False)
+	plot_epochs(args.main_dir, plot_test=True, add_fill=False)

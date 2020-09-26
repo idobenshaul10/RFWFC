@@ -50,6 +50,7 @@ def get_args():
 	parser.add_argument('--env_name', type=str, default="mnist")
 	parser.add_argument('--checkpoint_path', type=str, default=None)
 	parser.add_argument('--high_range_epsilon', type=float, default=0.1)
+	parser.add_argument('--create_umap', action='store_true', default=False)
 	parser.add_argument('--use_clustering', action='store_true', default=False)
 	parser.add_argument('--calc_test', action='store_true', default=False)
 
@@ -98,11 +99,11 @@ def get_activation(name, args):
 				pass		
 	return hook
 
-def save_alphas_plot(args, alphas, sizes, test_stats=None):
+def save_alphas_plot(args, alphas, sizes, test_stats=None, clustering_stats=None):
 	plt.figure(1)
 	plt.clf()
 	if type(alphas) == list:
-		plt.fill_between(sizes, [k[0] for k in alphas], [k[1] for k in alphas], \
+		plt.fill_between(sizes, [k[0] for k in alphas], [k[-1] for k in alphas], \
 			alpha=0.2, facecolor='#089FFF', \
 			linewidth=4)
 		plt.plot(sizes, [np.array(k).mean()	 for k in alphas], 'k', color='#1B2ACC')
@@ -131,52 +132,55 @@ def save_alphas_plot(args, alphas, sizes, test_stats=None):
 
 	json_file_name = os.path.join(args.output_folder, "result.json")
 	write_data = {}
-	write_data['alphas'] = alphas
+	write_data['alphas'] = [tuple(k) for k in alphas]
 	write_data['sizes'] = sizes
 	write_data['test_stats'] = test_stats
-	norms_path = os.path.join(args.output_folder, json_file_name)
+	write_data['clustering_stats'] = clustering_stats
+	norms_path = os.path.join(args.output_folder, json_file_name)	
 	with open(norms_path, "w+") as f:
 		json.dump(write_data, f, default=convert)
 
 def get_top_1_accuracy(model, data_loader, device):	
+	softmax = nn.Softmax(dim=1)
 	correct_pred = 0
 	n = 0
 	with torch.no_grad():
 		model.eval()
 		for X, y_true in data_loader:
 			X = X.to(device)
-			y_true = y_true.to(device)
-			_, y_prob = model(X)
-			_, predicted_labels = torch.max(y_prob, 1)
+			logits = model(X)			
+			probs = softmax(logits).cpu()
+			predicted_labels = torch.max(probs, 1)[1]			
 			n += y_true.size(0)
 			correct_pred += (predicted_labels == y_true).sum()
 	return (correct_pred.float() / n).item()
 
-def enrich_dataset(X, Y, factor=2.):
+def enrich_dataset(X, Y, factor=1.5):
 	new_dataset_size = int(len(X) * factor)
 	indices = np.random.choice(len(X), new_dataset_size)
 	transformed = []	
 	for index in tqdm(indices):		
 		cur = X[index]
-		noise = np.random.uniform(low=-0.05, high=0.05, size=cur.shape)		
-		cur += noise	
+		cur_mean = cur.mean()
+		noise = np.random.uniform(low=-cur_mean*1e-10, high=cur_mean*1e-10, size=cur.shape)
+		cur += noise
 		transformed.append(cur)
 
 	transformed_labels = [Y[i] for i in indices]	
 	X, Y = np.row_stack((transformed)), np.array(transformed_labels)
 	return X, Y
 
-def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loader):
+def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loader):	
 	Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()
 	N_wavelets = 10000
 	norm_normalization = 'num_samples'
 	model.eval()
 	sizes, alphas = [], []
-	stats = defaultdict(list)
+	clustering_stats = defaultdict(list)
 	with torch.no_grad():	
 		layers = ["0"] + layers
 		for k, layer in enumerate(layers):
-			layer_str = str(layer)
+			layer_str = 'layer'
 			print(f"LAYER {k}, type:{layer_str}")		
 			layer_name = f'layer_{k}'
 
@@ -194,7 +198,7 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 				handle.remove()
 				del activation[layer_name]
 
-			# X, Y = enrich_dataset(X, Y)			
+			# X, Y = enrich_dataset(X, Y)
 			start = time.time()
 			Y = np.array(Y).reshape(-1, 1)			
 			X = np.array(X).squeeze()
@@ -202,7 +206,7 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 			print(f"X.shape:{X.shape}, Y shape:{Y.shape}")
 			assert(Y.shape[0] == X.shape[0])		
 
-			if not args.use_clustering:
+			if not args.create_umap:
 				alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
 					num_wavelets=N_wavelets, n_trees=args.trees, \
 					m_depth=args.depth, \
@@ -211,16 +215,16 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 					text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
 					epsilon_1=args.high_range_epsilon, epsilon_2=args.low_range_epsilon)
 				
-				print(f"alpha for layer {k} is {alpha_index}")
-				kmeans = kmeans_cluster(X, Y, False, args.output_folder, f"layer {k}")
-				stats = get_clustering_statistics(kmeans)
-
+				print(f"ALPHA for LAYER {k} is {np.mean(alpha_index)}")
+				if args.use_clustering:
+					kmeans = kmeans_cluster(X, Y, False, args.output_folder, f"layer {k}")
+					clustering_stats[k] = get_clustering_statistics(X, Y, kmeans)
 				sizes.append(k)
 				alphas.append(alpha_index)
 			else:
 				kmeans_cluster(X, Y, False, args.output_folder, f"layer {k}")
 
-	if not args.use_clustering:	
+	if not args.create_umap:	
 		test_stats = None
 		if args.calc_test and test_dataset is not None:
 			test_stats = {}
@@ -229,7 +233,7 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 			device = 'cuda' if args.use_cuda else 'cpu'
 			test_accuracy = get_top_1_accuracy(model, test_loader, device)
 			test_stats['top_1_accuracy'] = test_accuracy
-		save_alphas_plot(args, alphas, sizes, test_stats)
+		save_alphas_plot(args, alphas, sizes, test_stats, clustering_stats)
 
 if __name__ == '__main__':
 	args, model, dataset, test_dataset, layers, data_loader = init_params()
