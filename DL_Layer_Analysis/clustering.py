@@ -21,13 +21,16 @@ from utils import *
 import time
 import json
 import umap
+import pickle
 
-def kmeans_cluster(X, Y, visualize=False, output_folder=None, layer_str="", sample_size=5000):
+def kmeans_cluster(X, Y, visualize=False, output_folder=None, layer_str="", sample_size=100):
 	np.random.seed(0)
 	k = len(np.unique(Y))
 	print(f"Fitting k means with k={k}")
 	kmeans = KMeans(n_clusters=k, random_state=0).fit(X)
-	if not visualize:
+	save_path = os.path.join(output_folder, f"{layer_str}.p")
+	pickle.dump(kmeans, open(save_path, "wb"))
+	if not visualize:		
 		return kmeans
 	predicted_labels = kmeans.labels_
 	print(f"Fitting umap")
@@ -85,5 +88,6 @@ if __name__ == '__main__':
 	from sklearn.datasets import make_blobs
 	X, Y = make_blobs(n_samples=5000, centers=10, n_features=200, random_state=0)
 	output_folder = r"C:\projects\RFWFC\results"
-	kmeans = kmeans_cluster(X, Y, True, output_folder, layer_str="", sample_size=500)
+	kmeans = kmeans_cluster(X, Y, False, output_folder, layer_str="", sample_size=500)
+	import pdb; pdb.set_trace()
 	get_clustering_statistics(X, Y, kmeans)

@@ -11,35 +11,41 @@ import importlib
 import os,sys,inspect
 from pathlib import Path
 import json
+from itertools import cycle
 # USAGE: python .\DL_Layer_Analysis\plot_DL_json_results.py --main_dir C:\projects\RFWFC\results\mnist
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Network Smoothness Script')	
-	parser.add_argument('--main_dir', type=str ,help='Results folder')
+	parser.add_argument('--main_dir', type=str ,help='Results folder', default=None)
+	parser.add_argument('--checkpoints','--list', nargs='+', default=None)
 	args = parser.parse_args()
 	return args
 
-def plot_epochs(main_dir, plot_test=True, add_fill=False, remove_layers=0):
+def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remove_layers=0):
 	if plot_test:
-		fig, axes = plt.subplots(1, 2)
+		fig, axes = plt.subplots(1, 3)
 		axes[0].set_title("alphas for different epochs")
 		axes[1].set_title("Test scores different epochs")
-		# axes[2].set_title("Clustering Metrics")
+		axes[2].set_title("Clustering Metrics")
 	else:
 		fig, axes = plt.subplots(1, 1)
 		axes = [axes]
 
-	file_paths = list(Path(main_dir).glob('**/*.json'))
-	file_paths = [str(k) for k in file_paths]	
-	file_paths.sort(key=lambda x: int(x.split('\\')[-2].split('.')[-2]))
+	if checkpoints is not None:
+		file_paths = checkpoints		
+	else:
+		file_paths = list(Path(main_dir).glob('**/*.json'))
+		file_paths = [str(k) for k in file_paths]	
+		file_paths.sort(key=lambda x: int(x.split('\\')[-2].split('.')[-2]))
 	clustering_stats = None
-	
-	for file_path in file_paths:
-		file_path = str(file_path)	
+	# element = 2 if main_dir is not None else 1
+
+	colors = ['chocolate', 'dodgerblue', 'darkgreen', 'orchid']
+	for idx, file_path in enumerate(file_paths):
+		file_path = str(file_path)
+
 		epoch = file_path.split('\\')[-2].split('.')[-2]
-		# if int(epoch) != 6:
-		# 	continue
-		eps = file_path.split('\\')[-2].split('.')[1]		
+		# eps = file_path.split('\\')[-element].split('.')[1]
 		
 		with open(file_path, "r+") as f:			
 			result = json.load(f)		
@@ -56,23 +62,30 @@ def plot_epochs(main_dir, plot_test=True, add_fill=False, remove_layers=0):
 		if 'clustering_stats' in result:
 			clustering_stats = result['clustering_stats']
 		if add_fill:	
-			axes[0].fill_between(sizes, [k[0] for k in alphas], [k[1] for k in alphas], \
+			axes[0].fill_between(sizes, [k[0] for k in alphas], [k[-1] for k in alphas], \
 				alpha=0.2, linewidth=4)		
 
-		axes[0].plot(sizes, [np.array(k).mean()	 for k in alphas], label=f"{epoch}")
+		axes[0].plot(sizes, [np.array(k).mean()	 for k in alphas], label=f"{epoch}", color=colors[idx])
 		if test_stats is not None and plot_test:
-			axes[1].scatter(epoch, [test_stats['top_1_accuracy']], label=f"{epoch}")
+			axes[1].scatter(epoch, [test_stats['top_1_accuracy']], label=f"{epoch}", color=colors[idx])
+
+		lines = ["-","--","-.",":"]
+		linecycler = cycle(lines)
+
 		if clustering_stats is not None and plot_test:
-			chosen_stat = 'silhouette_score'
 			keys = sorted(list(clustering_stats.keys()))
-			values = [clustering_stats[k][chosen_stat] for k in keys]			
-			# axes[2].plot(keys, values, label=f"{epoch}")
+			stat_names = clustering_stats[list(keys)[0]].keys()			
+			for chosen_stat in stat_names:
+				if chosen_stat == 'silhouette_score' or chosen_stat == 'FMI':
+					continue
+				values = [clustering_stats[k][chosen_stat] for k in keys]
+				axes[2].plot(keys, values, next(linecycler), color=colors[idx], label=f"{chosen_stat}")
 
 	plt.legend()
-	plt.xlabel(f'layer')
+	plt.xlabel(f'Epoch')
 	plt.ylabel(f'evaluate_smoothnes index- alpha')
 	plt.show()
 
 if __name__ == '__main__':
 	args = get_args()	
-	plot_epochs(args.main_dir, plot_test=True, add_fill=False)
+	plot_epochs(args.main_dir, args.checkpoints, plot_test=True, add_fill=False)

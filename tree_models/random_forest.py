@@ -439,13 +439,6 @@ class WaveletsForestRegressor:
 		except Exception as e:
 			print(f"\nHIGH RANGE EPSILON:{epsilon_1} indices are empty, try considering a bigger EPSILON")
 			exit()
-
-		# critical_tau_approximation_1 = taus[angle_index_1]
-		# critical_alpha_approximation_1 = ((1/critical_tau_approximation_1) - 1/self.power)
-
-		# critical_tau_approximation_2 = taus[angle_index_2]
-		# critical_alpha_approximation_2 = ((1/critical_tau_approximation_2) - 1/self.power)
-
 		
 		if self.verbose:
 			plt.figure(1)		

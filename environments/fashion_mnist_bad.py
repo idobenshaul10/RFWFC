@@ -45,7 +45,7 @@ class fashion_mnist_bad(BaseEnviorment):
         feature_layers = list(feature_layers[[2, 5]])
         FC_network_layers = list(FC_network_layers[[1]])        
         Second_Conv_network_layers = list(Second_Conv_network_layers[[1]]) 
-        layers = feature_layers + FC_network_layers + Second_Conv_network_layers + [model.softmax]        
+        layers = feature_layers + FC_network_layers + Second_Conv_network_layers
         return layers
 
     def get_eval_transform(self):

@@ -38,11 +38,11 @@ class LeNet5Bad(nn.Module):
             self.Second_Conv_network = self.Second_Conv_network.cuda()
 
     def forward(self, x):        
-        batch_size, _, _, _ = x.shape        
-        x = self.feature_extractor(x)       
+        batch_size, _, _, _ = x.shape
+        x = self.feature_extractor(x)        
         x = torch.flatten(x, 1)        
         x = self.FC_network(x)
-        x = x.view(batch_size, 1, 4, 4) 
+        x = x.view(batch_size, 1, 4, 4)        
         x = self.Second_Conv_network(x)
         logits = torch.flatten(x, 1)     
         probs = self.softmax(logits)

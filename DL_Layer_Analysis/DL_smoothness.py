@@ -148,8 +148,12 @@ def get_top_1_accuracy(model, data_loader, device):
 		model.eval()
 		for X, y_true in data_loader:
 			X = X.to(device)
-			logits = model(X)			
-			probs = softmax(logits).cpu()
+			output = model(X)
+			if len(output) > 1:
+				logits, probs = output
+				logits, probs = logits.cpu(), probs.cpu()
+			else:
+				probs = softmax(output).cpu()
 			predicted_labels = torch.max(probs, 1)[1]			
 			n += y_true.size(0)
 			correct_pred += (predicted_labels == y_true).sum()
@@ -217,12 +221,13 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 				
 				print(f"ALPHA for LAYER {k} is {np.mean(alpha_index)}")
 				if args.use_clustering:
-					kmeans = kmeans_cluster(X, Y, False, args.output_folder, f"layer {k}")
+					kmeans = kmeans_cluster(X, Y, False, args.output_folder, f"layer_{k}")
 					clustering_stats[k] = get_clustering_statistics(X, Y, kmeans)
+
 				sizes.append(k)
 				alphas.append(alpha_index)
 			else:
-				kmeans_cluster(X, Y, False, args.output_folder, f"layer {k}")
+				kmeans_cluster(X, Y, True, args.output_folder, f"layer_{k}")
 
 	if not args.create_umap:	
 		test_stats = None

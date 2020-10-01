@@ -39,8 +39,8 @@ class FashionCNN(nn.Module):
         self.fc3 = nn.Linear(in_features=120, out_features=10)
         
     def forward(self, x):
-        out = self.layer1(x)
-        out = self.drop(out)
+        out = self.layer1(x)        
+        out = self.drop(out)        
         out = self.layer2(out)
         out = self.drop(out)
         out = self.layer3(out)        

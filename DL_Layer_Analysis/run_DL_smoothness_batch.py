@@ -52,7 +52,7 @@ def get_args():
 	return args
 
 def run_all_comands(args):
-	RUN_FREQ = 1
+	RUN_FREQ = 10
 	if not os.path.isdir(args.checkpoints_dir_path):
 		raise("Checkpoints directory does not exist!")
 	checkpoints = glob(os.path.join(args.checkpoints_dir_path, "*.h5"))	
