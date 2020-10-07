@@ -46,9 +46,11 @@ BATCH_SIZE = args.batch_size
 N_EPOCHS = args.epochs
 N_CLASSES = args.num_classes
 ENRICH_FACTOR = args.enrich_factor
+softmax = nn.Softmax(dim=1)
 
-# output_path = os.path.join(args.output_path, "mnist")
-output_path = args.output_path
+
+output_path = os.path.join(args.output_path, "mnist")
+# output_path = args.output_path
 if not os.path.isdir(output_path):
 	os.mkdir(output_path)
 
@@ -88,7 +90,7 @@ def train(train_loader, model, criterion, optimizer, device):
 		optimizer.zero_grad()		
 		X = X.to(device)
 		y_true = y_true.to(device)
-		y_hat, _ = model(X) 
+		y_hat = model(X)
 		loss = criterion(y_hat, y_true) 
 		running_loss += loss.item() * X.size(0)
 		loss.backward()
@@ -105,7 +107,7 @@ def validate(valid_loader, model, criterion, device):
 	
 		X = X.to(device)
 		y_true = y_true.to(device)
-		y_hat, _ = model(X)
+		y_hat = model(X)
 		loss = criterion(y_hat, y_true) 
 		running_loss += loss.item() * X.size(0)
 
@@ -119,10 +121,11 @@ def get_accuracy(model, data_loader, device):
 		model.eval()
 		for X, y_true in data_loader:
 			X = X.to(device)
-			y_true = y_true.to(device)
-			_, y_prob = model(X)
-			_, predicted_labels = torch.max(y_prob, 1)
-			n += y_true.size(0)
+			y_true = y_true.to(device)			
+			logits = model(X)			
+			probs = softmax(logits)			
+			predicted_labels = torch.max(probs, 1)[1]
+			n += y_true.size(0)			
 			correct_pred += (predicted_labels == y_true).sum()
 	return correct_pred.float() / n
 

@@ -90,7 +90,7 @@ def train(train_loader, model, criterion, optimizer, device):
 		optimizer.zero_grad()		
 		X = X.to(device)
 		y_true = y_true.to(device)
-		y_hat = model(X) 
+		y_hat = model(X)
 		loss = criterion(y_hat, y_true) 
 		running_loss += loss.item() * X.size(0)
 		loss.backward()

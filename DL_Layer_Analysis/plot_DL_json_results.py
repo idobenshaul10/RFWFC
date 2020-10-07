@@ -43,7 +43,6 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 	colors = ['chocolate', 'dodgerblue', 'darkgreen', 'orchid']
 	for idx, file_path in enumerate(file_paths):
 		file_path = str(file_path)
-
 		epoch = file_path.split('\\')[-2].split('.')[-2]
 		# eps = file_path.split('\\')[-element].split('.')[1]
 		
@@ -73,10 +72,10 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 		linecycler = cycle(lines)
 
 		if clustering_stats is not None and plot_test:
-			keys = sorted(list(clustering_stats.keys()))
+			keys = sorted(list(clustering_stats.keys()))			
 			stat_names = clustering_stats[list(keys)[0]].keys()			
 			for chosen_stat in stat_names:
-				if chosen_stat == 'silhouette_score' or chosen_stat == 'FMI':
+				if chosen_stat != 'silhouette_score':
 					continue
 				values = [clustering_stats[k][chosen_stat] for k in keys]
 				axes[2].plot(keys, values, next(linecycler), color=colors[idx], label=f"{chosen_stat}")

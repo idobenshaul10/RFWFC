@@ -147,13 +147,9 @@ def get_top_1_accuracy(model, data_loader, device):
 	with torch.no_grad():
 		model.eval()
 		for X, y_true in data_loader:
-			X = X.to(device)
-			output = model(X)
-			if len(output) > 1:
-				logits, probs = output
-				logits, probs = logits.cpu(), probs.cpu()
-			else:
-				probs = softmax(output).cpu()
+			X = X.to(device)			
+			output = model(X)			
+			probs = softmax(output).cpu()
 			predicted_labels = torch.max(probs, 1)[1]			
 			n += y_true.size(0)
 			correct_pred += (predicted_labels == y_true).sum()
@@ -182,7 +178,7 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 	sizes, alphas = [], []
 	clustering_stats = defaultdict(list)
 	with torch.no_grad():	
-		layers = ["0"] + layers
+		layers = ["0"] + layers		
 		for k, layer in enumerate(layers):
 			layer_str = 'layer'
 			print(f"LAYER {k}, type:{layer_str}")		
