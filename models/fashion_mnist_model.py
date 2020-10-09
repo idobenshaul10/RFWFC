@@ -23,9 +23,9 @@ class ResidualBlock(nn.Module):
             out += residual
         return out
 
-class FashionCNN(nn.Module):
+class fashion_mnist_model(nn.Module):
     def __init__(self, use_residual=False):
-        super(FashionCNN, self).__init__()
+        super(fashion_mnist_model, self).__init__()
         self.ReLU = nn.ReLU()
         self.use_residual = use_residual
         self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -43,7 +43,7 @@ class FashionCNN(nn.Module):
         self.fc3 = nn.Linear(in_features=120, out_features=10)
         
     def forward(self, x):
-        out = self.layer1(x)        
+        out = self.layer1(x)
         out = self.max_pool(out)
         out = self.drop(out)
 

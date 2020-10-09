@@ -9,15 +9,13 @@ from utils import *
 import time
 from environments.base_environment import *
 from torchvision import datasets, transforms
-from models.LeNet5 import LeNet5
-from models.fashion_mnist_model import FashionCNN
+from models.fashion_mnist_model import fashion_mnist_model
 
 class fashion_mnist(BaseEnviorment):
-    def __init__(self, checkpoint_path=None, use_residual=True):
+    def __init__(self, checkpoint_path=None, use_residual=False):
         super().__init__()
-        if checkpoint_path is None:
-            self.model_path = r"C:\projects\RFWFC\results\DL_layers\trained_models\fahsion_mnist_model\weights.0.h5"
-        else:
+        self.model_path = None
+        if checkpoint_path is None:        
             self.model_path = checkpoint_path
         self.use_residual = use_residual
 
@@ -49,11 +47,11 @@ class fashion_mnist(BaseEnviorment):
         return transform
 
     def get_model(self):
-        # model = LeNet5(10)
-        model = FashionCNN(use_residual=self.use_residual)
+        model = fashion_mnist_model(use_residual=self.use_residual)
         if self.use_cuda:
             model = model.cuda()
-        checkpoint = torch.load(self.model_path)['checkpoint']
-        model.load_state_dict(checkpoint)
+        if self.model_path is not None:
+            checkpoint = torch.load(self.model_path)['checkpoint']
+            model.load_state_dict(checkpoint)
         return model
 

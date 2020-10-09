@@ -35,9 +35,7 @@ parser.add_argument('--seed', default=0, type=int, help='seed')
 parser.add_argument('--lr', default=0.001, type=float, help='lr for train')
 parser.add_argument('--batch_size', default=32, type=int, help='batch_size for train/test')
 parser.add_argument('--epochs', default=100, type=int, help='num epochs for train')
-parser.add_argument('--num_classes', default=10, type=int, help='num categories in output of model')
 parser.add_argument('--env_name', type=str, default="mnist")
-
 parser.add_argument('--kfolds', default=5, type=int, help='number of folds for cross-validation')
 parser.add_argument('--enrich_factor', default=1., type=float, help='num categories in output of model')
 parser.add_argument('--enrich_dataset', action="store_true", help='if True, will show sample images from DS')
@@ -50,7 +48,6 @@ RANDOM_SEED = args.seed
 LEARNING_RATE = args.lr
 BATCH_SIZE = args.batch_size
 N_EPOCHS = args.epochs
-N_CLASSES = args.num_classes
 ENRICH_FACTOR = args.enrich_factor
 softmax = nn.Softmax(dim=1)
 torch.manual_seed(RANDOM_SEED)

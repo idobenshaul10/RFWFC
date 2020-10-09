@@ -9,16 +9,15 @@ from utils import *
 import time
 from environments.base_environment import *
 from torchvision import datasets, transforms
-from models.LeNet5_bad import LeNet5Bad
+from models.LeNet5_bad import LeNet5_Bad
 # https://towardsdatascience.com/implementing-yann-lecuns-lenet-5-in-pytorch-5e05a0911320
 
 class mnist_bad(BaseEnviorment):
     def __init__(self, checkpoint_path=None):
         super().__init__()
-        if checkpoint_path is None:
-            self.model_path = r"C:\projects\RFWFC\results\DL_layers\trained_models\LeNet5\weights.10.h5"
-        else:
-            self.model_path = checkpoint_path
+        self.model_path = None
+        if checkpoint_path is not None:
+            self.model_path = r"C:\projects\RFWFC\results\DL_layers\trained_models\LeNet5\weights.10.h5"        
 
     def get_dataset(self):
         dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
@@ -51,9 +50,10 @@ class mnist_bad(BaseEnviorment):
         return layers
 
     def get_model(self):
-        model = LeNet5Bad(10)
+        model = LeNet5_Bad(10)
         if self.use_cuda:
             model = model.cuda()        
-        checkpoint = torch.load(self.model_path)['checkpoint']
-        model.load_state_dict(checkpoint)
+        if self.model_path is not None:
+            checkpoint = torch.load(self.model_path)['checkpoint']
+            model.load_state_dict(checkpoint)
         return model

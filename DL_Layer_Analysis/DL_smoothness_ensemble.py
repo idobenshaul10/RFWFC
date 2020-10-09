@@ -200,7 +200,7 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 				X = X.view(X.shape[0], -1)
 			else:
 				X = []
-				for model_idx, model in tqdm(enumerate(models)):					
+				for model_idx, model in tqdm(enumerate(models), total=len(models)):
 					handle = layers[model_idx][k].register_forward_hook(get_activation(layer_name, args))
 					for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
 						if args.use_cuda:
@@ -247,8 +247,9 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 			test_loader = torch.utils.data.DataLoader(test_dataset, \
 				batch_size=args.batch_size, shuffle=False)
 			device = 'cuda' if args.use_cuda else 'cpu'
-			test_accuracy = get_top_1_accuracy(model, test_loader, device)
-			test_stats['top_1_accuracy'] = test_accuracy
+			for model in models:
+				test_accuracy = get_top_1_accuracy(model, test_loader, device)
+			test_stats['top_1_accuracy'] = np.mean(test_accuracy)
 		save_alphas_plot(args, alphas, sizes, test_stats, clustering_stats)
 
 if __name__ == '__main__':

@@ -8,9 +8,9 @@ from torchvision import datasets, transforms
 import matplotlib.pyplot as plt
 
 
-class LeNet5Bad(nn.Module):
+class LeNet5_Bad(nn.Module):
     def __init__(self, n_classes):
-        super(LeNet5Bad, self).__init__()
+        super(LeNet5_Bad, self).__init__()
         self.softmax = nn.Softmax(dim=1)
         self.feature_extractor = nn.Sequential(            
             nn.Conv2d(in_channels=1, out_channels=1, kernel_size=7, stride=1),
@@ -40,11 +40,11 @@ class LeNet5Bad(nn.Module):
     def forward(self, x):        
         batch_size, _, _, _ = x.shape        
         x = self.feature_extractor(x)       
-        x = torch.flatten(x, 1)        
+        x = torch.flatten(x, 1)           
         x = self.FC_network(x)
         x = x.view(batch_size, 1, 4, 4) 
         x = self.Second_Conv_network(x)
-        logits = torch.flatten(x, 1)     
+        logits = torch.flatten(x, 1)
         probs = self.softmax(logits)
         return logits
 
