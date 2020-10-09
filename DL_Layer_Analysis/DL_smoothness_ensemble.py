@@ -32,6 +32,7 @@ from collections import defaultdict
 import cv2
 from utils.utils import visualize_augmentation
 from torch.utils.data import TensorDataset, DataLoader
+import glob
 #  python .\DL_smoothness.py --env_name mnist --checkpoint_path "C:\projects\RFWFC\results\trained_models\weights.80.h5" --use_clustering
 
 ion()
@@ -43,12 +44,10 @@ def get_args():
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
-	parser.add_argument('--output_folder', type=str, default=r"C:\projects\results", \
-		help='path to save results')
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
 	parser.add_argument('--batch_size', type=int, default=1024)
 	parser.add_argument('--env_name', type=str, default="mnist")
-	parser.add_argument('--checkpoint_path', type=str, default=None)
+	parser.add_argument('--checkpoints_folder', type=str, default=None)
 	parser.add_argument('--high_range_epsilon', type=float, default=0.1)
 	parser.add_argument('--create_umap', action='store_true', default=False)
 	parser.add_argument('--use_clustering', action='store_true', default=False)
@@ -65,25 +64,37 @@ def init_params():
 
 	m = '.'.join(['environments', args.env_name])
 	module = importlib.import_module(m)
-	dict_input = vars(args)
-	if args.checkpoint_path is not None:
-		environment = eval(f"module.{args.env_name}(r'{args.checkpoint_path}')")
-	else:
-		environment = eval(f"module.{args.env_name}()")
+	dict_input = vars(args)	
+	
+	environment = eval(f"module.{args.env_name}()")
+	folds = glob.glob(os.path.join(args.checkpoints_folder, "*"))
+	folds = [f for f in folds if os.path.isdir(f)]
+	NUM_FOLDS = len(folds)	
 
-	model, dataset, test_dataset, layers = environment.load_enviorment()	
+	__, dataset, test_dataset, __ = environment.load_enviorment()
+	models = []
+	layers = {}
+	for idx, fold in enumerate(sorted(folds)):
+		checkpoint_path = os.path.join(fold, "weights.best.h5")
+		cur_model = environment.get_model()
+		checkpoint = torch.load(checkpoint_path)['checkpoint']
+		cur_model.load_state_dict(checkpoint)
+		models.append(cur_model)
+		layers[idx] = environment.get_layers(cur_model)
+
 	data_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
 	torch.manual_seed(args.seed)
 	np.random.seed(args.seed)
-	addition = f"{args.env_name}_{args.trees}_{args.depth}_{args.high_range_epsilon}_{args.low_range_epsilon:.2f}"
-	if args.checkpoint_path is not None:
-		addition += "_" + args.checkpoint_path.split("\\")[-1]
-	args.output_folder = os.path.join(args.output_folder, addition)
-
+	addition = f"{args.env_name}_{args.trees}_{args.depth}_{args.high_range_epsilon}_{args.low_range_epsilon:.2f}"	
+	args.output_folder = os.path.join(args.checkpoints_folder, "DL_Analysis")
 	if not os.path.isdir(args.output_folder):	
 		os.mkdir(args.output_folder)
 
-	return args, model, dataset, test_dataset, layers, data_loader
+	args.output_folder = os.path.join(args.output_folder, addition)
+	if not os.path.isdir(args.output_folder):	
+		os.mkdir(args.output_folder)
+
+	return args, models, dataset, test_dataset, layers, data_loader
 
 activation = {}
 def get_activation(name, args):
@@ -170,33 +181,38 @@ def enrich_dataset(X, Y, factor=1.5):
 	X, Y = np.row_stack((transformed)), np.array(transformed_labels)
 	return X, Y
 
-def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loader):	
+def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_loader):	
 	Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()
 	N_wavelets = 10000
 	norm_normalization = 'num_samples'
-	model.eval()
+	for model in models:
+		model.eval()
 	sizes, alphas = [], []
 	clustering_stats = defaultdict(list)
-	with torch.no_grad():	
-		layers = ["0"] + layers		
-		for k, layer in enumerate(layers):
+	with torch.no_grad():		
+		for k in [-1] + list(range(len(layers[0]))):
 			layer_str = 'layer'
-			print(f"LAYER {k}, type:{layer_str}")		
+			print(f"LAYER {k}, type:{layer_str}")
 			layer_name = f'layer_{k}'
 
-			if layer == "0":
+			if k == -1:
 				X = torch.cat([data for (data, target) in tqdm(data_loader)]).detach()
 				X = X.view(X.shape[0], -1)
 			else:
-				handle = layer.register_forward_hook(get_activation(layer_name, args))
-				for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
-					if args.use_cuda:
-						data = data.cuda()					
-					model(data)
-
-				X = activation[list(activation.keys())[0]]
-				handle.remove()
-				del activation[layer_name]
+				X = []
+				for model_idx, model in tqdm(enumerate(models)):					
+					handle = layers[model_idx][k].register_forward_hook(get_activation(layer_name, args))
+					for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
+						if args.use_cuda:
+							data = data.cuda()					
+						model(data)
+					
+					cur_X = activation[list(activation.keys())[0]]					
+					X.append(cur_X.unsqueeze(0))
+					handle.remove()
+					del activation[layer_name]				
+				X = np.vstack((X))
+				X = np.mean(X, axis=0)
 			
 			start = time.time()
 			Y = np.array(Y).reshape(-1, 1)			
@@ -236,5 +252,5 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 		save_alphas_plot(args, alphas, sizes, test_stats, clustering_stats)
 
 if __name__ == '__main__':
-	args, model, dataset, test_dataset, layers, data_loader = init_params()
-	run_smoothness_analysis(args, model, dataset, test_dataset,  layers, data_loader)
+	args, models, dataset, test_dataset, layers, data_loader = init_params()
+	run_smoothness_analysis(args, models, dataset, test_dataset,  layers, data_loader)

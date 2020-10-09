@@ -15,9 +15,8 @@ from models.LeNet5 import LeNet5
 class mnist(BaseEnviorment):
     def __init__(self, checkpoint_path=None):
         super().__init__()
-        if checkpoint_path is None:
-            self.model_path = r"C:\projects\RFWFC\results\DL_layers\trained_models\LeNet5\weights.10.h5"
-        else:
+        self.model_path = None
+        if checkpoint_path is not None:            
             self.model_path = checkpoint_path
 
     def get_dataset(self):
@@ -50,7 +49,8 @@ class mnist(BaseEnviorment):
     def get_model(self):
         model = LeNet5(10)
         if self.use_cuda:
-            model = model.cuda()        
-        checkpoint = torch.load(self.model_path)['checkpoint']
-        model.load_state_dict(checkpoint)
+            model = model.cuda()
+        if self.model_path is not None:        
+            checkpoint = torch.load(self.model_path)['checkpoint']
+            model.load_state_dict(checkpoint)
         return model

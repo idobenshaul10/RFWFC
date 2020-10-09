@@ -46,7 +46,7 @@ class LeNet5Bad(nn.Module):
         x = self.Second_Conv_network(x)
         logits = torch.flatten(x, 1)     
         probs = self.softmax(logits)
-        return logits, probs
+        return logits
 
 
 

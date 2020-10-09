@@ -49,7 +49,7 @@ class fashion_mnist_bad(BaseEnviorment):
         return layers
 
     def get_eval_transform(self):
-        transform = transforms.Compose([transforms.Resize((32, 32)),            
+        transform = transforms.Compose([transforms.Resize((28, 28)),
             transforms.ToTensor()])
         return transform
 
