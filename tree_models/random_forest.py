@@ -58,7 +58,7 @@ class WaveletsForestRegressor:
 		self.regressor = regressor
 		self.criterion = criterion
 		self.bagging = bagging
-		self.verbose = True
+		self.verbose = False
 
 		self.num_alpha_sample_points = 10
 

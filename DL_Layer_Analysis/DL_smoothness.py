@@ -71,7 +71,7 @@ def init_params():
 	else:
 		environment = eval(f"module.{args.env_name}()")
 
-	model, dataset, test_dataset, layers = environment.load_enviorment()
+	model, dataset, test_dataset, layers = environment.load_enviorment()	
 	data_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
 	torch.manual_seed(args.seed)
 	np.random.seed(args.seed)
@@ -191,7 +191,7 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 				handle = layer.register_forward_hook(get_activation(layer_name, args))
 				for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
 					if args.use_cuda:
-						data = data.cuda()
+						data = data.cuda()					
 					model(data)
 
 				X = activation[list(activation.keys())[0]]

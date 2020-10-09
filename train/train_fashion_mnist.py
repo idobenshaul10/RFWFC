@@ -37,6 +37,7 @@ parser.add_argument('--enrich_factor', default=1., type=float, help='num categor
 parser.add_argument('--enrich_dataset', action="store_true", help='if True, will show sample images from DS')
 parser.add_argument('--visualize_dataset', action="store_true", help='if True, will show sample images from DS')
 parser.add_argument('--continue_path', type=str, default=None)
+parser.add_argument('--use_residual', action="store_true")
 
 args, _ = parser.parse_known_args()
 
@@ -49,7 +50,7 @@ N_CLASSES = args.num_classes
 ENRICH_FACTOR = args.enrich_factor
 softmax = nn.Softmax(dim=1)
 
-output_path = os.path.join(args.output_path, "FashionMNIST")
+output_path = os.path.join(args.output_path, "FashionMNIST_Residual")
 if not os.path.isdir(output_path):
 	os.mkdir(output_path)
 
@@ -213,8 +214,7 @@ valid_loader = DataLoader(dataset=valid_dataset,
 
 
 torch.manual_seed(RANDOM_SEED)
-# model = LeNet5(N_CLASSES).to(DEVICE)
-model = FashionCNN().to(DEVICE)
+model = FashionCNN(args.use_residual).to(DEVICE)
 
 if args.continue_path is not None:
 	try:

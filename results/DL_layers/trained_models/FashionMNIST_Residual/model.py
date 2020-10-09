@@ -24,7 +24,7 @@ class ResidualBlock(nn.Module):
         return out
 
 class FashionCNN(nn.Module):
-    def __init__(self, use_residual=False):
+    def __init__(self, use_residual=True):
         super(FashionCNN, self).__init__()
         self.ReLU = nn.ReLU()
         self.use_residual = use_residual
@@ -43,14 +43,16 @@ class FashionCNN(nn.Module):
         self.fc3 = nn.Linear(in_features=120, out_features=10)
         
     def forward(self, x):
-        out = self.layer1(x)        
+        out = self.layer1(x)
+        import pdb; pdb.set_trace()
         out = self.max_pool(out)
-        out = self.drop(out)
 
+        out = self.drop(out)
         out = self.layer2(out)
-        out = self.drop(out)
 
-        out = self.layer3(out)
+        out = self.drop(out)
+        out = self.layer3(out)        
+
         out = out.view(out.size(0), -1)
         out = self.fc1(out)
         out = self.ReLU(out)
