@@ -26,6 +26,7 @@ import importlib
 from sklearn.model_selection import KFold
 from shutil import copyfile
 from pathlib import Path
+import pickle
 
 # USAGE:  python .\train\train_mnist.py --output_path "C:\projects\RFWFC\results\trained_models\mnist\normal\" --batch_size 32 --epochs 100
 parser = argparse.ArgumentParser(description='train lenet5 on mnist dataset')
@@ -40,7 +41,7 @@ parser.add_argument('--kfolds', default=5, type=int, help='number of folds for c
 parser.add_argument('--enrich_factor', default=1., type=float, help='num categories in output of model')
 parser.add_argument('--enrich_dataset', action="store_true", help='if True, will show sample images from DS')
 parser.add_argument('--visualize_dataset', action="store_true", help='if True, will show sample images from DS')
-
+parser.add_argument('--use_residual', action="store_true")
 
 args, _ = parser.parse_known_args()
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -57,7 +58,7 @@ module = importlib.import_module(m)
 dict_input = vars(args)
 environment = eval(f"module.{args.env_name}()")
 
-model, train_dataset, test_dataset, layers = environment.load_enviorment()
+model, train_dataset, test_dataset, layers = environment.load_enviorment(**dict_input)
 time_filename = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
 output_path = os.path.join(args.output_path, f"{args.env_name}_{time_filename}")
 
@@ -67,6 +68,8 @@ if not os.path.isdir(output_path):
 path = Path(__file__)
 model_path = os.path.join(path.parents[1], 'models', f"{type(model).__name__}.py")
 copyfile(model_path, os.path.join(output_path, "model.py"))
+print(f"Begining train, args:{args}")
+pickle.dump(args, open(os.path.join(output_path, "args.p"), "wb"))
 
 AUG = A.Compose({
 	A.Resize(32, 32),	

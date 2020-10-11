@@ -37,7 +37,7 @@ class fashion_mnist(BaseEnviorment):
 
         return dataset
 
-    def get_layers(self, model):        
+    def get_layers(self, model):
         layers = [model.max_pool, model.layer2, model.layer3, model.fc1, model.fc2]
         return layers
 
@@ -46,8 +46,8 @@ class fashion_mnist(BaseEnviorment):
             transforms.ToTensor()])
         return transform
 
-    def get_model(self):
-        model = fashion_mnist_model(use_residual=self.use_residual)
+    def get_model(self, **kwargs):
+        model = fashion_mnist_model(**kwargs)
         if self.use_cuda:
             model = model.cuda()
         if self.model_path is not None:

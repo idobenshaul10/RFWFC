@@ -8,14 +8,14 @@ from torchvision import datasets, transforms
 import matplotlib.pyplot as plt
 
 
-class LeNet5_Bad(nn.Module):
+class cifar10_bad_net(nn.Module):
     def __init__(self, **kwargs):
-        super(LeNet5_Bad, self).__init__()
+        super(cifar10_bad_net, self).__init__()
         for k, v in kwargs.items():
             setattr(self, k, v)
         self.softmax = nn.Softmax(dim=1)
         self.feature_extractor = nn.Sequential(            
-            nn.Conv2d(in_channels=1, out_channels=1, kernel_size=7, stride=1),
+            nn.Conv2d(in_channels=3, out_channels=1, kernel_size=7, stride=1),
             nn.Tanh(),
             nn.AvgPool2d(kernel_size=2),
 
@@ -50,7 +50,7 @@ class LeNet5_Bad(nn.Module):
         x = self.feature_extractor(x)      
         x = torch.flatten(x, 1)
         x = self.FC_network(x)
-        x = x.view(batch_size, 1, 4, 4)
+        x = x.view(batch_size, 1, 4, 4) 
         x = self.Second_Conv_network(x)
         x = torch.flatten(x, 1)        
         x = self.second_FC_network(x)

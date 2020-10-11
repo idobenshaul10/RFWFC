@@ -33,6 +33,7 @@ import cv2
 from utils.utils import visualize_augmentation
 from torch.utils.data import TensorDataset, DataLoader
 import glob
+import pickle
 #  python .\DL_smoothness.py --env_name mnist --checkpoint_path "C:\projects\RFWFC\results\trained_models\weights.80.h5" --use_clustering
 
 ion()
@@ -69,14 +70,18 @@ def init_params():
 	environment = eval(f"module.{args.env_name}()")
 	folds = glob.glob(os.path.join(args.checkpoints_folder, "*"))
 	folds = [f for f in folds if os.path.isdir(f)]
-	NUM_FOLDS = len(folds)	
+	NUM_FOLDS = len(folds)
+
+	params_path = os.path.join(args.checkpoints_folder, 'args.p')
+	if os.path.isfile(params_path):
+		params = vars(pickle.load(open(params_path, 'rb')))
 
 	__, dataset, test_dataset, __ = environment.load_enviorment()
 	models = []
 	layers = {}
 	for idx, fold in enumerate(sorted(folds)):
-		checkpoint_path = os.path.join(fold, "weights.best.h5")
-		cur_model = environment.get_model()
+		checkpoint_path = os.path.join(fold, "weights.best.h5")		
+		cur_model = environment.get_model(**params)		
 		checkpoint = torch.load(checkpoint_path)['checkpoint']
 		cur_model.load_state_dict(checkpoint)
 		models.append(cur_model)

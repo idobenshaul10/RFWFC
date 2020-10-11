@@ -19,14 +19,14 @@ class ResidualBlock(nn.Module):
         out = self.conv(x)
         out = self.batch_norm(out)
         out = F.relu(out)
-        out = self.conv(x)        
-        if self.use_residual:
+        out = self.conv(x)
+        if self.use_residual:            
             out += residual
         return out
 
-class fashion_mnist_model(nn.Module):
+class cifar10_net(nn.Module):
     def __init__(self, **kwargs):
-        super(fashion_mnist_model, self).__init__()
+        super(cifar10_net, self).__init__()
         self.use_residual = False
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -34,27 +34,30 @@ class fashion_mnist_model(nn.Module):
         self.ReLU = nn.ReLU()        
         self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2)
         
+        self.layer0 = nn.Conv2d(3, 32, 3, padding=1)
+
         self.layer1 = ResidualBlock(use_residual=self.use_residual, \
-            in_channels=1, out_channels=32, kernel_size=3, padding=1)
+            in_channels=32, out_channels=32, kernel_size=3, padding=1)
         self.layer2 = ResidualBlock(use_residual=self.use_residual, \
             in_channels=32, out_channels=32, kernel_size=3, padding=1)
         self.layer3 = ResidualBlock(use_residual=self.use_residual, \
             in_channels=32, out_channels=32, kernel_size=3, padding=1)
         
-        self.drop = nn.Dropout2d(0.25)
-        self.fc1 = nn.Linear(in_features=6272, out_features=600)        
+        self.drop = nn.Dropout2d(0.5)
+        self.fc1 = nn.Linear(in_features=8192, out_features=600)
         self.fc2 = nn.Linear(in_features=600, out_features=120)
         self.fc3 = nn.Linear(in_features=120, out_features=10)
         
-    def forward(self, x):        
-        out = self.layer1(x)        
+    def forward(self, x):    
+        out = self.layer0(x)        
+        out = self.layer1(out)
         out = self.max_pool(out)
+
         out = self.drop(out)
         out = self.layer2(out)
         out = self.drop(out)
         out = self.layer3(out)
-        out = out.view(out.size(0), -1)            
-        
+        out = out.view(out.size(0), -1)        
         out = self.fc1(out)
         out = self.ReLU(out)
         out = self.drop(out)

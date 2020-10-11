@@ -52,8 +52,8 @@ class fashion_mnist_bad(BaseEnviorment):
             transforms.ToTensor()])
         return transform
 
-    def get_model(self):
-        model = LeNet5_Bad(10)
+    def get_model(self, **kwargs):
+        model = LeNet5_Bad(**kwargs)
         if self.use_cuda:
             model = model.cuda()
         if self.model_path is not None:

@@ -42,8 +42,8 @@ class mnist(BaseEnviorment):
         layers = [model.max_pool, model.layer2, model.layer3, model.fc1, model.fc2]
         return layers
 
-    def get_model(self):
-        model = LeNet5(10)
+    def get_model(self, **kwargs):
+        model = LeNet5(**kwargs)
         if self.use_cuda:
             model = model.cuda()
         if self.model_path is not None:        
