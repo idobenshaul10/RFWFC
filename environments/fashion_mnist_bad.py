@@ -9,7 +9,7 @@ from utils import *
 import time
 from environments.base_environment import *
 from torchvision import datasets, transforms
-from models.LeNet5_bad import LeNet5_Bad
+from models.fashion_mnist_bad_net import fashion_mnist_bad_net
 
 class fashion_mnist_bad(BaseEnviorment):
     def __init__(self, checkpoint_path=None):
@@ -37,15 +37,13 @@ class fashion_mnist_bad(BaseEnviorment):
         return dataset
 
     def get_layers(self, model):
-        feature_layers = np.array([module for module in model.feature_extractor.modules() if type(module) != nn.Sequential])
-        FC_network_layers = np.array([module for module in model.FC_network.modules() if type(module) != nn.Sequential])
-        Second_Conv_network_layers = np.array([module for module in model.Second_Conv_network.modules() if type(module) != nn.Sequential])
+        feature_layers = np.array([module for module in \
+            model.feature_extractor.modules() if type(module) != nn.Sequential])
         
-        feature_layers = list(feature_layers[[2, 5]])
-        FC_network_layers = list(FC_network_layers[[1]])        
-        Second_Conv_network_layers = list(Second_Conv_network_layers[[1]]) 
-        layers = feature_layers + FC_network_layers + Second_Conv_network_layers
+        feature_layers = list(feature_layers[[2, 5]])        
+        layers = feature_layers + [model.FC_network, model.Second_Conv_network, model.second_FC_network]
         return layers
+
 
     def get_eval_transform(self):
         transform = transforms.Compose([transforms.Resize((28, 28)),
@@ -53,7 +51,7 @@ class fashion_mnist_bad(BaseEnviorment):
         return transform
 
     def get_model(self, **kwargs):
-        model = LeNet5_Bad(**kwargs)
+        model = fashion_mnist_bad_net(**kwargs)
         if self.use_cuda:
             model = model.cuda()
         if self.model_path is not None:

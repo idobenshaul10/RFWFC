@@ -42,8 +42,8 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 
 
 	colors = ['chocolate', 'dodgerblue', 'darkgreen', 'orchid']
-	# labels = ['FMNIST BAD', 'FMNIST NORMAL', 'FMNIST RESIDUAL', 'new']
-	labels = ['CIFAR10 BAD', 'CIFAR10 NORMAL', 'CIFAR10 RESIDUAL']
+	labels = ['MNIST BAD', 'MNIST NORMAL', 'MNIST RESIDUAL', 'new']
+	# labels = ['CIFAR10 BAD', 'CIFAR10 NORMAL', 'CIFAR10 RESIDUAL']
 	for idx, file_path in enumerate(file_paths):
 		file_path = str(file_path)
 		epoch = file_path.split('\\')[-2].split('.')[-2]
