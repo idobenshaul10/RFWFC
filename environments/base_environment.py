@@ -26,7 +26,10 @@ class BaseEnviorment():
 		except:
 			print("test_dataset not availbale!")
 		model = self.get_model(**kwargs)
+		if torch.cuda.is_available():
+			model = model.cuda()
 		layers = self.get_layers(model)
+
 		return model, train_dataset, test_dataset, layers
 
 	def get_layers(self):

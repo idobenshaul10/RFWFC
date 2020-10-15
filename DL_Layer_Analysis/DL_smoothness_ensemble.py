@@ -53,6 +53,7 @@ def get_args():
 	parser.add_argument('--create_umap', action='store_true', default=False)
 	parser.add_argument('--use_clustering', action='store_true', default=False)
 	parser.add_argument('--calc_test', action='store_true', default=False)
+	parser.add_argument('--output_folder', type=str, default=None)	
 
 	args = parser.parse_args()
 	args.low_range_epsilon = 4*args.high_range_epsilon
@@ -68,8 +69,8 @@ def init_params():
 	dict_input = vars(args)	
 	
 	environment = eval(f"module.{args.env_name}()")
-	folds = glob.glob(os.path.join(args.checkpoints_folder, "*"))
-	folds = [f for f in folds if os.path.isdir(f)]
+	folds = glob.glob(os.path.join(args.checkpoints_folder, "*"))	
+	folds = [f for f in folds if os.path.isdir(f) and "DL_Analysis" not in f]
 	NUM_FOLDS = len(folds)
 
 	params_path = os.path.join(args.checkpoints_folder, 'args.p')
@@ -91,7 +92,10 @@ def init_params():
 	torch.manual_seed(args.seed)
 	np.random.seed(args.seed)
 	addition = f"{args.env_name}_{args.trees}_{args.depth}_{args.high_range_epsilon}_{args.low_range_epsilon:.2f}"	
-	args.output_folder = os.path.join(args.checkpoints_folder, "DL_Analysis")
+	if args.output_folder is None:
+		args.output_folder = os.path.join(args.checkpoints_folder, "DL_Analysis")
+	else:
+		args.output_folder = os.path.join(args.output_folder, "DL_Analysis")
 	if not os.path.isdir(args.output_folder):	
 		os.mkdir(args.output_folder)
 
@@ -194,8 +198,9 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 		model.eval()
 	sizes, alphas = [], []
 	clustering_stats = defaultdict(list)
-	with torch.no_grad():		
-		for k in [-1] + list(range(len(layers[0]))):
+	with torch.no_grad():
+		# for k in list(range(len(layers[0]))):
+		for k in [-1] + list(range(len(layers[0]))):		
 			layer_str = 'layer'
 			print(f"LAYER {k}, type:{layer_str}")
 			layer_name = f'layer_{k}'

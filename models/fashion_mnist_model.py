@@ -19,7 +19,7 @@ class ResidualBlock(nn.Module):
         out = self.conv(x)
         out = self.batch_norm(out)
         out = F.relu(out)
-        out = self.conv(x)        
+        out = self.conv(out)        
         if self.use_residual:
             out += residual
         return out
@@ -34,8 +34,7 @@ class fashion_mnist_model(nn.Module):
         self.ReLU = nn.ReLU()        
         self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2)
         
-        self.layer1 = ResidualBlock(use_residual=self.use_residual, \
-            in_channels=1, out_channels=32, kernel_size=3, padding=1)
+        self.layer1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding=1)
         self.layer2 = ResidualBlock(use_residual=self.use_residual, \
             in_channels=32, out_channels=32, kernel_size=3, padding=1)
         self.layer3 = ResidualBlock(use_residual=self.use_residual, \
