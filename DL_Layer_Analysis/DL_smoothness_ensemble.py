@@ -81,10 +81,12 @@ def init_params():
 	models = []
 	layers = {}
 	for idx, fold in enumerate(sorted(folds)):
-		checkpoint_path = os.path.join(fold, "weights.best.h5")		
-		cur_model = environment.get_model(**params)		
+		checkpoint_path = os.path.join(fold, "weights.best.h5")
+		cur_model = environment.get_model(**params)
 		checkpoint = torch.load(checkpoint_path)['checkpoint']
 		cur_model.load_state_dict(checkpoint)
+		if torch.cuda.is_available():
+			cur_model = cur_model.cuda()
 		models.append(cur_model)
 		layers[idx] = environment.get_layers(cur_model)
 
