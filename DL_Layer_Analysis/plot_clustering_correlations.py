@@ -14,7 +14,9 @@ import json
 from itertools import cycle
 from scipy.stats import pearsonr as pearson
 import seaborn as sns
+from collections import defaultdict
 # USAGE: python .\DL_Layer_Analysis\plot_clustering_correlations.py --main_dir C:\projects\RFWFC\results\mnist
+# USAGE: python .\DL_Layer_Analysis\plot_clustering_correlations.py --checkpoints C:\projects\DL_Smoothness_Results\trained_models\TWO_LAYER_RESIDUAL\cifar10\cifar10_2020_10_15-10_47_30_PM\DL_Analysis\cifar10_1_15_0.1_0.40\result.json C:\projects\DL_Smoothness_Results\trained_models\TWO_LAYER_RESIDUAL\mnist\mnist_2020_10_15-07_59_36_PM\DL_Analysis\mnist_1_15_0.1_0.40\result.json C:\projects\DL_Smoothness_Results\trained_models\TWO_LAYER_RESIDUAL\fashion_mnist\fashion_mnist_2020_10_15-09_32_15_PM\DL_Analysis\fashion_mnist_1_15_0.1_0.40\result.json
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Network Smoothness Script')	
@@ -32,25 +34,25 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 	# else:
 	# 	fig, axes = plt.subplots(1, 1)
 	# 	axes = [axes]
-
 	if checkpoints is not None:
 		file_paths = checkpoints		
 	else:
 		file_paths = list(Path(main_dir).glob('**/*.json'))
 		file_paths = [str(k) for k in file_paths]
-		file_paths.sort(key=lambda x: int(x.split('\\')[-2].split('.')[-2]))
+		file_paths.sort(key=lambda x: int(x.split('\\')[-2].split('.')[-2]))	
 	clustering_stats = None
 
-
-	colors = ['chocolate', 'dodgerblue', 'darkgreen', 'orchid']
-	labels = ['FMNIST BAD', 'FMNIST NORMAL', 'FMNIST RESIDUAL']
-	# labels = ['CIFAR10 BAD', 'CIFAR10 NORMAL', 'CIFAR10 RESIDUAL']
+	fig, ax = plt.subplots(figsize=(8,6))
+	ax.set_ylim([0,3])
+	
+	use_pearson = True
+	correlations = defaultdict(list)
 	for idx, file_path in enumerate(file_paths):
 		file_path = str(file_path)
 		epoch = file_path.split('\\')[-2].split('.')[-2]
 		# eps = file_path.split('\\')[-element].split('.')[1]
 		
-		with open(file_path, "r+") as f:			
+		with open(file_path, "r+") as f:
 			result = json.load(f)		
 		
 		sizes = result["sizes"]
@@ -58,46 +60,35 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 
 		if remove_layers > 0:
 			sizes, alphas = sizes[:-remove_layers], alphas[:-remove_layers]
-
-		# test_stats = None
-		# if 'test_stats' in result:
-		# 	test_stats = result['test_stats']
+		
 		if 'clustering_stats' in result:
 			clustering_stats = result['clustering_stats']
 
-		alphas = np.array(alphas).mean(axis=1)
-		# if add_fill:
-		# 	axes[0].fill_between(sizes, [k[0] for k in alphas], [k[-1] for k in alphas], \
-		# 		alpha=0.2, linewidth=4)		
-
-		# axes[0].plot(sizes, [np.array(k).mean()	 for k in alphas], label=labels[idx], color=colors[idx])
-		# if test_stats is not None and plot_test:
-		# 	axes[1].scatter(epoch, [test_stats['top_1_accuracy']], label=labels[idx], color=colors[idx])
-
-		# lines = ["-","--","-.",":"]
-		# linecycler = cycle(lines)
-
-		correlations = {}
+		alphas = np.array(alphas).mean(axis=1)		
 		
 		if clustering_stats is not None and plot_test:
 			keys = sorted(list(clustering_stats.keys()))
 			if len(keys) == 0:
 				continue
 			stat_names = clustering_stats[list(keys)[0]].keys()			
-			for chosen_stat in stat_names:
-				# if chosen_stat != 'silhouette_score':
-				# 	continue
+			for chosen_stat in stat_names:				
 				values = [clustering_stats[k][chosen_stat] for k in keys]
-				correlations[chosen_stat] = pearson(alphas, values)[0]
-				# axes[2].plot(keys, values, next(linecycler), color=colors[idx], label=f"{chosen_stat}")
+				if use_pearson:
+					correlations[chosen_stat].append(pearson(alphas, values)[0])
+				else:
+					a = np.corrcoef(alphas, values)					
+					correlations[chosen_stat].append(a)
 		
-		corrections_values = np.asarray(list(correlations.values())).reshape(-1,1)
-		sns.heatmap(corrections_values, annot=True, vmin=0., vmax=1.)
-		print(correlations)
+	
+	metrics = list(correlations.keys())	
+	values = np.array([correlations[k] for k in metrics]).reshape(6, 3)
+	dataset_names = ["CIFAR100", "MNIST", "FASHION_MNIST"]
 
-	# plt.legend()
-	# plt.xlabel(f'Epoch')
-	# plt.ylabel(f'evaluate_smoothnes index- alpha')
+	sns.heatmap(values,  annot=True, vmin=0., vmax=1.,\
+		xticklabels=dataset_names, yticklabels=metrics)
+	print(correlations)
+
+	plt.title("Pearson Correlation: Besov-Smoothness vs. Clustering")	
 	plt.show()
 
 if __name__ == '__main__':

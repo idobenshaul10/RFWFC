@@ -58,10 +58,9 @@ class WaveletsForestRegressor:
 		self.regressor = regressor
 		self.criterion = criterion
 		self.bagging = bagging
-		self.verbose = False
+		self.verbose = True
 
 		self.num_alpha_sample_points = 10
-
 		if self.regressor == "random_forest" and depth == -1:
 			self.depth = None
 		else:
@@ -404,7 +403,7 @@ class WaveletsForestRegressor:
 		h = 0.01
 		
 		diffs = []		
-		taus = np.arange(0.75, 3., h)
+		taus = np.arange(0., 3., h)
 		total_sparsities, total_alphas = [], []
 		J = len(self.rf.estimators_)
 

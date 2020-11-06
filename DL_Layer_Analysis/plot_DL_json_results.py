@@ -23,10 +23,10 @@ def get_args():
 
 def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remove_layers=0):
 	if plot_test:
-		fig, axes = plt.subplots(1, 2)
+		fig, axes = plt.subplots(1, 3)
 		axes[0].set_title("Alphas for different ARCHS - 5-FOLD")
 		axes[1].set_title("Test scores different ARHCS - 5-FOLD")
-		# axes[2].set_title("Clustering Metrics")
+		axes[2].set_title("Clustering Metrics")
 	else:
 		fig, axes = plt.subplots(1, 1)
 		axes = [axes]
@@ -67,6 +67,10 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 			axes[0].fill_between(sizes, [k[0] for k in alphas], [k[-1] for k in alphas], \
 				alpha=0.2, linewidth=4)		
 
+		# axes[0].plot(sizes, [np.array(k).mean()	 for k in alphas], label=labels[idx], color=colors[idx])
+		# if test_stats is not None and plot_test:
+		# 	axes[1].scatter(epoch, [test_stats['top_1_accuracy']], label=labels[idx], color=colors[idx])
+
 		axes[0].plot(sizes, [np.array(k).mean()	 for k in alphas], label=labels[idx], color=colors[idx])
 		if test_stats is not None and plot_test:
 			axes[1].scatter(epoch, [test_stats['top_1_accuracy']], label=labels[idx], color=colors[idx])
@@ -80,10 +84,11 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 				continue
 			stat_names = clustering_stats[list(keys)[0]].keys()			
 			for chosen_stat in stat_names:
-				if chosen_stat != 'silhouette_score':
-					continue
+				# if chosen_stat != 'silhouette_score':
+				# 	continue
 				values = [clustering_stats[k][chosen_stat] for k in keys]
-				axes[2].plot(keys, values, next(linecycler), color=colors[idx], label=f"{chosen_stat}")
+				axes[2].plot(keys, values, next(linecycler), label=f"{chosen_stat}")
+				# axes[2].plot(keys, values, next(linecycler), color=colors[idx], label=f"{chosen_stat}")
 
 	plt.legend()
 	plt.xlabel(f'Epoch')

@@ -59,8 +59,7 @@ def get_args():
 	return args
 
 def init_params():	
-	args = get_args()
-	args.batch_size = args.batch_size
+	args = get_args()	
 	args.use_cuda = torch.cuda.is_available()
 
 	m = '.'.join(['environments', args.env_name])

@@ -17,6 +17,7 @@ from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot, ion, show
+import matplotlib as mpl
 import numpy as np
 import importlib
 import os,sys,inspect
@@ -35,6 +36,8 @@ from torch.utils.data import TensorDataset, DataLoader
 from sklearn.datasets import make_blobs
 from sklearn.datasets import make_classification
 import pickle
+import seaborn as sns
+# plt.style.use('dark_background')
 #  python .\DL_smoothness.py --env_name mnist --checkpoint_path "C:\projects\RFWFC\results\trained_models\weights.80.h5" --use_clustering
 
 ion()
@@ -111,14 +114,25 @@ if __name__ == '__main__':
 	smoothness = pickle.load( open( r"C:\projects\DL_Smoothness_Results\clustering\smoothness.p", "rb" ) )
 	smoothness_values = [smoothness[k] for k in smoothness.keys()]
 
-	for key in stats[3].keys():
+
+	# N=10
+	# plt.rcParams["axes.prop_cycle"] = plt.cycler("color", plt.cm.Set1(np.linspace(0,1,N)))
+	colors = ['darkblue', 'lightblue', 'dodgerblue', 'navy', 'blue']
+	colors_2 = ['gold', 'orange']
+	
+	for idx, key in enumerate(stats[3].keys()):
+		
+		values = [stats[i][key]  for i in stats.keys()]		
 		# if key == "silhouette_score" or key == "FMI":
-		# 	continue
-		values = [stats[i][key]  for i in stats.keys()]
-		plt.plot(list(stats.keys()), values, label=key)
+		# 	plt.plot(list(stats.keys()), values, label=key, color=colors_2[idx%len(colors_2)])
+		# else:
+		# 	plt.plot(list(stats.keys()), values, label=key, color=colors[idx])
+
+		sns.lineplot(list(stats.keys()), values, label=key)
+		# plt.plot(list(stats.keys()), values, label=key, color=colors_2[idx%len(colors_2)])
 
 
-	plt.plot(list(smoothness.keys()), smoothness_values, label="Smoothness")
+	plt.plot(list(smoothness.keys()), smoothness_values, label="Smoothness", color="orchid")
 	plt.legend()
 	plt.show(block=True)
 	

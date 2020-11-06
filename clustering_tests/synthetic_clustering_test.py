@@ -36,14 +36,14 @@ from sklearn.datasets import make_blobs
 from sklearn.datasets import make_classification
 import pickle
 #  python .\DL_smoothness.py --env_name mnist --checkpoint_path "C:\projects\RFWFC\results\trained_models\weights.80.h5" --use_clustering
-
+plt.style.use('dark_background')
 ion()
 np.random.seed(2)
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Network Smoothness Script')   
 	parser.add_argument('--trees',default=1,type=int,help='Number of trees in the forest.') 
-	parser.add_argument('--depth', default=15, type=int,help='Maximum depth of each tree.Use 0 for unlimited depth.')       
+	parser.add_argument('--depth', default=10, type=int,help='Maximum depth of each tree.Use 0 for unlimited depth.')       
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')    
@@ -53,6 +53,7 @@ def get_args():
 	parser.add_argument('--batch_size', type=int, default=1024)
 	parser.add_argument('--env_name', type=str, default="mnist")
 	parser.add_argument('--checkpoint_path', type=str, default=None)
+	# 1e-5
 	parser.add_argument('--high_range_epsilon', type=float, default=0.1)
 	parser.add_argument('--create_umap', action='store_true', default=False)
 	parser.add_argument('--use_clustering', action='store_true', default=False)
@@ -62,33 +63,14 @@ def get_args():
 	args.low_range_epsilon = 4*args.high_range_epsilon
 	return args
 
-# def save_alphas_plot(args, alphas, sizes, test_stats=None, clustering_stats=None):
-#   plt.figure(1)
-#   plt.clf()
-#   if type(alphas) == list:
-#       plt.fill_between(sizes, [k[0] for k in alphas], [k[-1] for k in alphas], \
-#           alpha=0.2, facecolor='#089FFF', \
-#           linewidth=4)
-#       plt.plot(sizes, [np.array(k).mean()  for k in alphas], 'k', color='#1B2ACC')
-#   else:
-#       plt.plot(sizes, alphas, 'k', color='#1B2ACC')
-
-#   plt.title(f"{args.env_name} Angle Smoothness")
-	
-#   acc_txt = ''
-#   if test_stats is not None and 'top_1_accuracy' in test_stats:
-#       acc_txt = f"TEST Top1-ACC {test_stats['top_1_accuracy']}"
-		
-#   plt.xlabel(f'Layer\n\n{acc_txt}')
-#   plt.ylabel(f'evaluate_smoothnes index- alpha')
-
-
-def compare_methods(args, X, Y):
-	N_wavelets = 10000	
+def compare_methods(args, X, Y, num_centers):
+	N_wavelets = 10000
 	norm_normalization = 'num_samples'
+	depth = 15 + num_centers//5
+	print(f"depth is {depth}")
 	alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
 		num_wavelets=N_wavelets, n_trees=args.trees, \
-		m_depth=args.depth, \
+		m_depth=depth, \
 		n_state=args.seed, normalize=False, \
 		norm_normalization=norm_normalization, error_TH=0., 
 		text=f"Alpha Smoothness", output_folder=args.output_folder, 
@@ -103,20 +85,23 @@ def compare_methods(args, X, Y):
 	return clustering_stats, smoothness
 
 
-def get_synthetic_data(num_centers):
-	# X, Y = make_classification(n_features=2, n_redundant=0, n_clusters_per_class=3, n_informative=3)
-	# plt.cla()
-	# fig1, ax1 = plt.subplots()
-	centers = np.random.rand(num_centers, 2) * 100000
-	X, Y = make_blobs(n_samples=30000, centers=centers, shuffle=False,
-					  random_state=42)
+def get_synthetic_data(num_centers):	
+	centers = np.random.rand(num_centers, 2) * 100000	
+	stds = np.random.rand(num_centers)/20
+
+	X, Y = make_blobs(n_samples=30000, centers=num_centers, shuffle=False,
+					  cluster_std=stds, random_state=42)
+
 
 	Y[Y%2 ==0] = 2
 	Y[Y%2 ==1] = 1
 	# plt.scatter(X[:, 0], X[:, 1], marker='o', c=Y,
-	# 			s=25, edgecolor='k')
-	# plt.show(block=True)
-
+	# 			s=25, edgecolor='k', cmap='jet')
+	# # plt.show(block=True)
+	# plt.draw()
+	# plt.pause(0.5)
+	# if num_centers == 15:
+	# 	plt.pause(5.)
 	return X, Y
 
 
@@ -124,10 +109,10 @@ if __name__ == '__main__':
 	args = get_args()
 	args.use_cuda = torch.cuda.is_available()
 	clustering_stats, smoothness = {}, {}
-	for num_centers in range(3, 100, 3):
+	for num_centers in range(3, 50, 3):
 		print(f"CALCULATING FOR {num_centers}")
 		X, Y = get_synthetic_data(num_centers)		
-		clustering_stats[num_centers], smoothness[num_centers] = compare_methods(args, X, Y)
+		clustering_stats[num_centers], smoothness[num_centers] = compare_methods(args, X, Y, num_centers)
 	
 
 	pickle.dump(clustering_stats, open(r"C:\projects\DL_Smoothness_Results\clustering\clustering_stats.p", "wb"))
