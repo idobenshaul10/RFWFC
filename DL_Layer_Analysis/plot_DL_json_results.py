@@ -23,10 +23,10 @@ def get_args():
 
 def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remove_layers=0):
 	if plot_test:
-		fig, axes = plt.subplots(1, 3)
+		fig, axes = plt.subplots(1, 2)
 		axes[0].set_title("Alphas for different ARCHS - 5-FOLD")
 		axes[1].set_title("Test scores different ARHCS - 5-FOLD")
-		axes[2].set_title("Clustering Metrics")
+		# axes[2].set_title("Clustering Metrics")
 	else:
 		fig, axes = plt.subplots(1, 1)
 		axes = [axes]
@@ -42,8 +42,9 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 
 
 	colors = ['chocolate', 'dodgerblue', 'darkgreen', 'orchid']
-	labels = ['FMNIST BAD', 'FMNIST NORMAL', 'FMNIST RESIDUAL']
+	# labels = ['FMNIST BAD', 'FMNIST NORMAL', 'FMNIST RESIDUAL']
 	# labels = ['CIFAR10 BAD', 'CIFAR10 NORMAL', 'CIFAR10 RESIDUAL']
+	labels = ['VGG11', 'VGG13', 'VGG16']
 	for idx, file_path in enumerate(file_paths):
 		file_path = str(file_path)
 		epoch = file_path.split('\\')[-2].split('.')[-2]

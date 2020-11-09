@@ -46,7 +46,7 @@ def get_args():
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
 	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
-	parser.add_argument('--batch_size', type=int, default=1024)
+	parser.add_argument('--batch_size', type=int, default=256)
 	parser.add_argument('--env_name', type=str, default="mnist")
 	parser.add_argument('--checkpoints_folder', type=str, default=None)
 	parser.add_argument('--high_range_epsilon', type=float, default=0.1)
@@ -202,7 +202,7 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 	clustering_stats = defaultdict(list)
 	with torch.no_grad():
 		# for k in list(range(len(layers[0]))):
-		for k in [-1] + list(range(len(layers[0]))):		
+		for k in [-1] + list(range(len(layers[0]))):
 			layer_str = 'layer'
 			print(f"LAYER {k}, type:{layer_str}")
 			layer_name = f'layer_{k}'
@@ -216,11 +216,13 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 					handle = layers[model_idx][k].register_forward_hook(get_activation(layer_name, args))
 					for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
 						if args.use_cuda:
-							data = data.cuda()					
+							data = data.cuda()		
 						model(data)
-					
-					cur_X = activation[list(activation.keys())[0]]					
-					X.append(cur_X.unsqueeze(0))
+						del data
+						# print(activation[list(activation.keys())[0]].shape)
+
+					cur_X = activation[list(activation.keys())[0]]
+					X.append(cur_X.cpu().unsqueeze(0))
 					handle.remove()
 					del activation[layer_name]				
 				X = np.vstack((X))
@@ -256,11 +258,12 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 		test_stats = None
 		if args.calc_test and test_dataset is not None:
 			test_stats = {}
+			test_accuracy = []
 			test_loader = torch.utils.data.DataLoader(test_dataset, \
 				batch_size=args.batch_size, shuffle=False)
 			device = 'cuda' if args.use_cuda else 'cpu'
 			for model in models:
-				test_accuracy = get_top_1_accuracy(model, test_loader, device)
+				test_accuracy.append(get_top_1_accuracy(model, test_loader, device))
 			test_stats['top_1_accuracy'] = np.mean(test_accuracy)
 		save_alphas_plot(args, alphas, sizes, test_stats, clustering_stats)
 

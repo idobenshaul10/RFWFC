@@ -25,15 +25,7 @@ def get_args():
 	args = parser.parse_args()
 	return args
 
-def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remove_layers=0):
-	# if plot_test:
-	# 	fig, axes = plt.subplots(1, 3)
-	# 	axes[0].set_title("Alphas for different ARCHS - 5-FOLD")
-	# 	axes[1].set_title("Test scores different ARHCS - 5-FOLD")
-	# 	axes[2].set_title("Clustering Metrics")
-	# else:
-	# 	fig, axes = plt.subplots(1, 1)
-	# 	axes = [axes]
+def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remove_layers=0):	
 	if checkpoints is not None:
 		file_paths = checkpoints		
 	else:
@@ -49,8 +41,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 	correlations = defaultdict(list)
 	for idx, file_path in enumerate(file_paths):
 		file_path = str(file_path)
-		epoch = file_path.split('\\')[-2].split('.')[-2]
-		# eps = file_path.split('\\')[-element].split('.')[1]
+		epoch = file_path.split('\\')[-2].split('.')[-2]		
 		
 		with open(file_path, "r+") as f:
 			result = json.load(f)		
@@ -80,7 +71,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 					correlations[chosen_stat].append(a)
 		
 	
-	metrics = list(correlations.keys())	
+	metrics = list(correlations.keys())
 	values = np.array([correlations[k] for k in metrics]).reshape(6, 3)
 	dataset_names = ["CIFAR100", "MNIST", "FASHION_MNIST"]
 
