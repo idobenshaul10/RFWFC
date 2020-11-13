@@ -103,12 +103,16 @@ def enrich_dataset(dataset, factor=1.):
 def train(train_loader, model, criterion, optimizer, device):
 	model.train()
 	running_loss = 0	
-	for X, y_true in train_loader:
+	for X, y_true in tqdm(train_loader, total=len(train_loader)):
 		optimizer.zero_grad()		
 		X = X.to(device)
 		y_true = y_true.to(device)
 		y_hat = model(X)
+		# import pdb; pdb.set_trace()
+		# try:
 		loss = criterion(y_hat, y_true.long())
+		# except:
+		# 	import pdb; pdb.set_trace()
 		running_loss += loss.item() * X.size(0)
 		loss.backward()
 		optimizer.step()

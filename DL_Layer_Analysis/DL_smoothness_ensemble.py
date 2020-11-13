@@ -81,7 +81,7 @@ def init_params():
 	models = []
 	layers = {}
 	for idx, fold in enumerate(sorted(folds)):
-		checkpoint_path = os.path.join(fold, "weights.best.h5")
+		checkpoint_path = os.path.join(fold, "weights.best.h5")		
 		cur_model = environment.get_model(**params)
 		checkpoint = torch.load(checkpoint_path)['checkpoint']
 		cur_model.load_state_dict(checkpoint)
@@ -202,7 +202,7 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 	clustering_stats = defaultdict(list)
 	with torch.no_grad():
 		# for k in list(range(len(layers[0]))):
-		for k in [-1] + list(range(len(layers[0]))):
+		for k in [-1] + list(range(len(layers[0]))):		
 			layer_str = 'layer'
 			print(f"LAYER {k}, type:{layer_str}")
 			layer_name = f'layer_{k}'
@@ -264,9 +264,9 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 			device = 'cuda' if args.use_cuda else 'cpu'
 			for model in models:
 				test_accuracy.append(get_top_1_accuracy(model, test_loader, device))
-			test_stats['top_1_accuracy'] = np.mean(test_accuracy)
+			test_stats['top_1_accuracy'] = np.mean(test_accuracy)		
 		save_alphas_plot(args, alphas, sizes, test_stats, clustering_stats)
 
 if __name__ == '__main__':
-	args, models, dataset, test_dataset, layers, data_loader = init_params()
+	args, models, dataset, test_dataset, layers, data_loader = init_params()	
 	run_smoothness_analysis(args, models, dataset, test_dataset,  layers, data_loader)

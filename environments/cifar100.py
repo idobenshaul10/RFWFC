@@ -14,7 +14,7 @@ from models.resnet import ResNet18
 from models.vgg import VGG
 # https://towardsdatascience.com/implementing-yann-lecuns-lenet-5-in-pytorch-5e05a0911320
 
-class cifar10(BaseEnviorment):
+class cifar100(BaseEnviorment):
     def __init__(self, checkpoint_path=None):
         super().__init__()
         self.model_path = None
@@ -22,14 +22,14 @@ class cifar10(BaseEnviorment):
             self.model_path = checkpoint_path
 
     def get_dataset(self):
-        dataset = datasets.CIFAR10(root=r'C:\datasets\cifar10', 
+        dataset = datasets.CIFAR100(root=r'C:\datasets\cifar100', 
            train=True, 
            transform=self.get_eval_transform(),
            download=True)
         return dataset
 
     def get_test_dataset(self):
-        dataset = datasets.CIFAR10(root=r'C:\datasets\cifar10', 
+        dataset = datasets.CIFAR100(root=r'C:\datasets\cifar100', 
            train=False, 
            transform=self.get_eval_transform(),
            download=True)        
@@ -46,10 +46,25 @@ class cifar10(BaseEnviorment):
         return layers
 
     def get_model(self, **kwargs):
-        model = VGG('VGG19')        
+        model = VGG('VGG16', 100)        
         if self.use_cuda:
             model = model.cuda()
         if self.model_path is not None:
             checkpoint = torch.load(self.model_path)['checkpoint']
             model.load_state_dict(checkpoint)
         return model
+
+
+
+    # def get_layers(self, model):        
+    #     layers = [model.max_pool, model.layer2, model.layer3, model.fc1, model.fc2]
+    #     return layers
+
+    # def get_model(self, **kwargs):
+    #     model = cifar10_net(**kwargs)        
+    #     if self.use_cuda:
+    #         model = model.cuda()
+    #     if self.model_path is not None:
+    #         checkpoint = torch.load(self.model_path)['checkpoint']
+    #         model.load_state_dict(checkpoint)
+    #     return model

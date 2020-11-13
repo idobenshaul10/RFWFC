@@ -10,6 +10,7 @@ import time
 from environments.base_environment import *
 from torchvision import datasets, transforms
 from models.fashion_mnist_model import fashion_mnist_model
+from models.resnet_altered import ResNet18_altered
 
 class fashion_mnist(BaseEnviorment):
     def __init__(self, checkpoint_path=None, use_residual=False):
@@ -38,7 +39,8 @@ class fashion_mnist(BaseEnviorment):
         return dataset
 
     def get_layers(self, model):
-        layers = [model.max_pool, model.layer2, model.layer3, model.fc1, model.fc2]
+        # layers = [model.max_pool, model.layer2, model.layer3, model.fc1, model.fc2]
+        layers = [model.layer1, model.layer2, model.layer3, model.layer4, model.avg_pool]
         return layers
 
     def get_eval_transform(self):
@@ -47,7 +49,8 @@ class fashion_mnist(BaseEnviorment):
         return transform
 
     def get_model(self, **kwargs):
-        model = fashion_mnist_model(**kwargs)
+        # model = fashion_mnist_model(**kwargs)
+        model = ResNet18_altered()
         if self.use_cuda:
             model = model.cuda()
         if self.model_path is not None:
