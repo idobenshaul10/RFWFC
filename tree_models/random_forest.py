@@ -178,8 +178,8 @@ class WaveletsForestRegressor:
 		self.num_classes = y.max()+1
 		
 		self.X = X
-		# self.y = self.from_label_to_one_hot_label(y)
-		self.y = y
+		self.y = self.from_label_to_one_hot_label(y)
+		# self.y = y
 
 		regressor = None
 		if self.regressor == 'decision_tree_with_bagging':
@@ -223,7 +223,7 @@ class WaveletsForestRegressor:
 		self.rf = rf
 
 		try:
-			val_size = np.shape(y)[1]
+			val_size = np.shape(self.y)[1]
 		except:
 			val_size = 1
 
@@ -297,8 +297,8 @@ class WaveletsForestRegressor:
 		norm = np.power(np.sum(np.power(np.abs(avg - parent_avg), self.power)) * volume, (1/self.power))
 		return norm
 
-	def compute_average_score_from_tree(self, tree_value):
-		if self.mode == 'classification':
+	def compute_average_score_from_tree(self, tree_value):		
+		if self.mode == 'classification':			
 			y_vec = [-1. , 1.]
 			result = tree_value.dot(y_vec)/tree_value.sum()         
 			return result
@@ -611,7 +611,7 @@ class WaveletsForestRegressor:
 		'''
 		return accuracy_score(y, y_pred)
 
-	def pred_to_one_hot(self, y_pred, num_classes):
+	def pred_to_one_hot(self, y_pred):
 		'''
 		Converts regression predictions to their closest vertices on the simplex
 		'''
