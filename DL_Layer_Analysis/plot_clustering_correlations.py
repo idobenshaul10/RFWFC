@@ -73,7 +73,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 	
 	metrics = list(correlations.keys())
 	values = np.array([correlations[k] for k in metrics]).reshape(6, 3)
-	dataset_names = ["CIFAR100", "MNIST", "FASHION_MNIST"]
+	dataset_names = ["BAD", "GOOD", "RESIDUAL"]
 
 	sns.heatmap(values,  annot=True, vmin=0., vmax=1.,\
 		xticklabels=dataset_names, yticklabels=metrics)

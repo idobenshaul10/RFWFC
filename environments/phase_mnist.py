@@ -8,13 +8,14 @@ from matplotlib.pyplot import plot, ion, show
 from utils import *
 import time
 from environments.base_environment import *
+from datasets.mnist_phase_retrival import MnistPhaseDataset
 from torchvision import datasets, transforms
 from models.cifar10_net import cifar10_net
 from models.resnet import ResNet18
 from models.vgg import VGG
-# https://towardsdatascience.com/implementing-yann-lecuns-lenet-5-in-pytorch-5e05a0911320
+from models.phase_net import phase_net
 
-class cifar10(BaseEnviorment):
+class phase_mnist(BaseEnviorment):
     def __init__(self, checkpoint_path=None):
         super().__init__()
         self.model_path = None
@@ -22,34 +23,20 @@ class cifar10(BaseEnviorment):
             self.model_path = checkpoint_path
 
     def get_dataset(self):
-        dataset = datasets.CIFAR10(root=r'C:\datasets\cifar10', 
-           train=True, 
-           transform=self.get_eval_transform(),
-           download=True)
+        dataset = MnistPhaseDataset(train=True)
         return dataset
 
     def get_test_dataset(self):
-        dataset = datasets.CIFAR10(root=r'C:\datasets\cifar10', 
-           train=False, 
-           transform=self.get_eval_transform(),
-           download=True)        
+        dataset = MnistPhaseDataset(train=False)
         return dataset
-
-    def get_eval_transform(self):
-        transform = transforms.Compose([transforms.Resize((32, 32)),        	
-            transforms.ToTensor()])
-        return transform
 
     def get_layers(self, model):        
         # layers = [model.layer1, model.layer2, model.layer3, model.layer4, model.avg_pool]
-        layers = [k for k in model.features if type(k) == nn.MaxPool2d]
+        layers = [model.fc1, model.fc2, model.fc3]
         return layers
 
     def get_model(self, **kwargs):
-        model = VGG('VGG11')        
+        model = phase_net(**kwargs)        
         if self.use_cuda:
-            model = model.cuda()
-        if self.model_path is not None:
-            checkpoint = torch.load(self.model_path)['checkpoint']
-            model.load_state_dict(checkpoint)
+            model = model.cuda()        
         return model

@@ -155,6 +155,16 @@ class WaveletsForestRegressor:
 
 		return intersections
 
+	def from_label_to_one_hot_label(self, y):
+		if y.shape[1] != 1:
+			return y
+		num_samples = y.shape[0]
+		self.num_classes = y.max()+1
+		y_result = np.zeros((num_samples, self.num_classes))
+		for i in range(num_samples):			
+			y_result[i][y[i][0]] = 1.		
+		return y_result
+
 	def fit(self, X_raw, y):
 		'''
 		Fit non-normalized data to simplex labels.
@@ -165,9 +175,10 @@ class WaveletsForestRegressor:
 		logging.info('Fitting %s samples' % np.shape(X_raw)[0])
 		X = (X_raw - np.min(X_raw, 0))/(np.max(X_raw, 0) - np.min(X_raw, 0))
 		X = np.nan_to_num(X)
-		# X = X_raw
+		self.num_classes = y.max()+1
 		
 		self.X = X
+		# self.y = self.from_label_to_one_hot_label(y)
 		self.y = y
 
 		regressor = None
@@ -204,8 +215,11 @@ class WaveletsForestRegressor:
 			else:
 				print("ERROR, WRONG MODE")
 				exit()
-
-		rf = regressor.fit(self.X, self.y.ravel())
+		
+		try:
+			rf = regressor.fit(self.X, self.y.ravel())
+		except:
+			rf = regressor.fit(self.X, self.y)
 		self.rf = rf
 
 		try:
@@ -597,7 +611,7 @@ class WaveletsForestRegressor:
 		'''
 		return accuracy_score(y, y_pred)
 
-	def pred_to_one_hot(self, y_pred):
+	def pred_to_one_hot(self, y_pred, num_classes):
 		'''
 		Converts regression predictions to their closest vertices on the simplex
 		'''
