@@ -20,14 +20,18 @@ import copy
 def get_args():
 	parser = argparse.ArgumentParser(description='Network Smoothness Script')	
 	parser.add_argument('--main_dir', type=str ,help='Results folder', default=None)
-	parser.add_argument('--checkpoints','--list', nargs='+', default=None)
+	parser.add_argument('--checkpoints','--list', nargs='+', default=None)	
 	args = parser.parse_args()
 	return args
 
 def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remove_layers=0):
 	if plot_test:
+		# fig, axes = plt.subplots(1, 2)
+		# gs = gridspec.GridSpec(1, 2, width_ratios=[10, 1])
 		fig, axes = plt.subplots(1, 3)
 		gs = gridspec.GridSpec(1, 3, width_ratios=[10, 1, 10])
+		
+		# axes = [None, None]
 		axes = [None, None, None]
 		axes[0] = plt.subplot(gs[0])		
 		axes[1] = plt.subplot(gs[1])
@@ -35,7 +39,8 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 		
 		axes[0].set_ylabel('Alpha Smoothness Approximation')
 		axes[1].set_xticks([])
-		axes[0].set_xticklabels([0, 1, 2, 3, 4, 5, 6], minor=False)
+		axes[0].set_xticks([-1, 0, 1, 2, 3, 4, 5, 6] )#, minor=False)
+		# axes[0].set_xticklabels([0, 1, 2, 3, 4, 5, 6] )#, minor=False)
 		axes[1].set_ylabel('Test Accuracy')
 
 		axes[0].set_title("Good vs. Bad architectures on Fashion MNIST")
@@ -45,8 +50,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 
 		axes[2].set_title("Clustering Statistics")
 		axes[2].set_xlabel("Layers")
-
-		# axes[2].set_title("Clustering Metrics")
+		axes[2].set_title("Clustering Metrics")
 	else:
 		fig, axes = plt.subplots(1, 1)
 		axes = [axes]
@@ -63,9 +67,9 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 
 	# colors = [(43, 194, 203), (27, 55, 77), (238, 79, 47), (251, 167, 32)]
 	colors = ["#2bc2cb", "#1b374d", "#ee4f2f", "#fba720"]
-	# labels = ['FMNIST BAD', 'FMNIST NORMAL', 'FMNIST RESIDUAL']
+	labels = ['VGG11', 'VGG13', 'VGG16', 'VGG19']	
 	# labels = ['CIFAR10 BAD', 'CIFAR10 NORMAL', 'CIFAR10 RESIDUAL']
-	labels = ['BAD', 'GOOD', 'RESIDUAL']
+	# labels = ['BAD', 'GOOD', 'RESIDUAL']
 
 	test_results = []
 	handles = []
@@ -101,7 +105,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 		lines = ["-","--","-.",":", "-*", "-+"]
 		linecycler = cycle(lines)
 
-		if False:
+		if True:
 			if clustering_stats is not None and plot_test:
 				keys = sorted(list(clustering_stats.keys()))			
 				if len(keys) == 0:
@@ -118,10 +122,8 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 	
 	axes[0].legend()
 	for h in handles:
-		h.set_color("#fba720")
+		h.set_color("black")
 	axes[2].legend(handles=handles)
-	# plt.xlabel(f'')
-	# plt.ylabel(f'evaluate_smoothnes index- alpha')
 	plt.show()
 
 if __name__ == '__main__':

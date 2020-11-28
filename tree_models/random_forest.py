@@ -178,8 +178,7 @@ class WaveletsForestRegressor:
 		self.num_classes = y.max()+1
 		
 		self.X = X
-		self.y = self.from_label_to_one_hot_label(y)
-		# self.y = y
+		self.y = self.from_label_to_one_hot_label(y)		
 
 		regressor = None
 		if self.regressor == 'decision_tree_with_bagging':
@@ -417,13 +416,13 @@ class WaveletsForestRegressor:
 		h = 0.01
 		
 		diffs = []		
-		taus = np.arange(0., 3., h)
+		taus = np.arange(0.3, 2., h)
 		total_sparsities, total_alphas = [], []
 		J = len(self.rf.estimators_)
 
 		use_derivatives = True
 		for tau in tqdm(taus):
-			if use_derivatives:				
+			if use_derivatives:
 				tau_sparsity = (1/J)*np.power(np.power(norms, tau).sum(), ((1/tau)-1))
 				tau_sparsity *= np.power(norms, (tau-1)).sum()
 			else:
@@ -454,13 +453,18 @@ class WaveletsForestRegressor:
 			exit()
 		
 		if self.verbose:
+			colors = ["#2bc2cb", "#1b374d", "#ee4f2f", "#fba720"]
 			plt.figure(1)		
 			plt.title(f"tau vs. angle")
 			plt.xlabel(f'tau')
 			plt.ylabel(f'sparsity angle')
-			plt.plot(taus, angles, zorder=1)			
-			plt.scatter(taus[epsilon_2_indices], angles[epsilon_2_indices], color="r", zorder=2, s=0.5)
-			plt.scatter(taus[epsilon_1_indices], angles[epsilon_1_indices], color="g", zorder=2, s=0.5)
+			plt.plot(taus, angles, zorder=1, color=colors[0], label='sparsity derivative angle')
+			plt.scatter(taus[epsilon_2_indices], angles[epsilon_2_indices], \
+				color=colors[1], zorder=2, s=0.5, label='epsilon low')
+			plt.scatter(taus[epsilon_1_indices], angles[epsilon_1_indices], \
+				color=colors[2], zorder=2, s=0.5, label='epsilon high')			
+
+			plt.legend()
 
 			print(f"abs(angles+90.).min():{abs(angles+90.).min()}")
 
@@ -474,17 +478,22 @@ class WaveletsForestRegressor:
 			plt.title(f"tau vs. derivative")
 			plt.xlabel(f'tau')
 			plt.ylabel(f'sparsity derivative')
-			plt.plot(taus, diffs, zorder=1)			
-			plt.scatter(taus[epsilon_2_indices], diffs[epsilon_2_indices], color="r", zorder=2, s=0.5)
-			plt.scatter(taus[epsilon_1_indices], diffs[epsilon_1_indices], color="g", zorder=2, s=0.5)
+			# taus_length = int(len(taus)/2)
+			# taus = taus[0:taus_length]
+			plt.plot(taus, diffs, zorder=1, color=colors[0], label='sparsity derivative')
+			plt.scatter(taus[epsilon_2_indices], diffs[epsilon_2_indices], \
+				color=colors[1], zorder=2, s=0.5, label='epsilon low')
+			plt.scatter(taus[epsilon_1_indices], diffs[epsilon_1_indices], \
+				color=colors[2], zorder=2, s=0.5, label='epsilon high')
+
+			plt.legend()
 
 			save_path = os.path.join(output_folder, f"{text}_{epsilon_1}_{epsilon_2}_angles.png")
 			print(f"save_path:{save_path}")
 			plt.savefig(save_path, \
 			    dpi=300, bbox_inches='tight')
 			plt.clf()
-
-		# return critical_alpha_approximation_1, critical_alpha_approximation_2
+		
 		return alphas
 		
 

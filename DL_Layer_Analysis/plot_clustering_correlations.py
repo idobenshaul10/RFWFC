@@ -67,7 +67,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 				if use_pearson:
 					correlations[chosen_stat].append(pearson(alphas, values)[0])
 				else:
-					a = np.corrcoef(alphas, values)					
+					a = np.corrcoef(alphas, values)
 					correlations[chosen_stat].append(a)
 		
 	

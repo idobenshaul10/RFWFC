@@ -31,8 +31,10 @@ class phase_mnist(BaseEnviorment):
         return dataset
 
     def get_layers(self, model):        
-        # layers = [model.layer1, model.layer2, model.layer3, model.layer4, model.avg_pool]
-        layers = [model.fc1, model.fc2, model.fc3]
+        # layers = [model.layer1, model.layer2, model.layer3, model.layer4, model.avg_pool]        
+
+        layers = [model.fc1, model.fc2, model.fc3, model.conv_layer1, \
+            model.conv_layer2, model.conv_layer3, model.fc_output]
         return layers
 
     def get_model(self, **kwargs):

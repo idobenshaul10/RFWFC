@@ -162,8 +162,23 @@ def save_alphas_plot(args, alphas, sizes, test_stats=None, clustering_stats=None
 	with open(norms_path, "w+") as f:
 		json.dump(write_data, f, default=convert)
 
-def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_loader):		
-	Y = torch.cat([torch.tensor(np.array(img)) for (_, _, img) in tqdm(data_loader)])
+def get_top_1_accuracy(model, data_loader, device):	
+	softmax = nn.Softmax(dim=1)
+	correct_pred = 0
+	n = 0
+	with torch.no_grad():
+		model.eval()
+		for mag,_, _, y_true in data_loader:
+			mag = mag.to(device)
+			output = model(mag)
+			probs = softmax(output).cpu()
+			predicted_labels = torch.max(probs, 1)[1]			
+			n += y_true.size(0)
+			correct_pred += (predicted_labels == y_true).sum()
+	return (correct_pred.float() / n).item()
+
+def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_loader):	
+	Y = torch.cat([target for (_, _, _, target) in tqdm(data_loader)]).detach()
 	# Y = torch.cat([torch.tensor(np.array(img)) for (_, _, img) in tqdm(data_loader)]).detach()
 	N_wavelets = 10000
 	norm_normalization = 'num_samples'
@@ -172,19 +187,20 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 	sizes, alphas = [], []
 	clustering_stats = defaultdict(list)
 	with torch.no_grad():		
+		# for k in []:
 		for k in [-1] + list(range(len(layers[0]))):		
 			layer_str = 'layer'
 			print(f"LAYER {k}, type:{layer_str}")
 			layer_name = f'layer_{k}'
 
 			if k == -1:				
-				X = torch.cat([data for (data, _, _) in tqdm(data_loader)]).detach()
+				X = torch.cat([data for (data, _, _, _) in tqdm(data_loader)]).detach()
 				X = X.view(X.shape[0], -1)
 			else:
 				X = []
 				for model_idx, model in tqdm(enumerate(models), total=len(models)):
 					handle = layers[model_idx][k].register_forward_hook(get_activation(layer_name, args))
-					for i, (data, _, _) in tqdm(enumerate(data_loader), total=len(data_loader)):	
+					for i, (data, _, _, _) in tqdm(enumerate(data_loader), total=len(data_loader)):	
 						if args.use_cuda:
 							data = data.cuda()		
 						model(data)
@@ -227,8 +243,16 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 				kmeans_cluster(X, Y, True, args.output_folder, f"layer_{k}")
 
 	if not args.create_umap:	
-		test_stats = None		
-		test_stats = {}		
+		test_stats = None
+		if args.calc_test and test_dataset is not None:
+			test_stats = {}
+			test_accuracy = []
+			test_loader = torch.utils.data.DataLoader(test_dataset, \
+				batch_size=args.batch_size, shuffle=False)
+			device = 'cuda' if args.use_cuda else 'cpu'
+			for model in models:
+				test_accuracy.append(get_top_1_accuracy(model, test_loader, device))
+			test_stats['top_1_accuracy'] = np.mean(test_accuracy)
 		save_alphas_plot(args, alphas, sizes, test_stats, clustering_stats)
 
 if __name__ == '__main__':

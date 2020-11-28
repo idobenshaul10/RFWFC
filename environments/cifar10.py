@@ -46,7 +46,7 @@ class cifar10(BaseEnviorment):
         return layers
 
     def get_model(self, **kwargs):
-        model = VGG('VGG11')        
+        model = VGG('VGG19')        
         if self.use_cuda:
             model = model.cuda()
         if self.model_path is not None:

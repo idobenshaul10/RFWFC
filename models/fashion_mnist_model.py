@@ -31,7 +31,7 @@ class fashion_mnist_model(nn.Module):
         for k, v in kwargs.items():
             setattr(self, k, v)
         
-        self.ReLU = nn.ReLU()        
+        self.ReLU = nn.ReLU()
         self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2)
         
         self.layer1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding=1)

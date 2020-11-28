@@ -264,7 +264,7 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 			device = 'cuda' if args.use_cuda else 'cpu'
 			for model in models:
 				test_accuracy.append(get_top_1_accuracy(model, test_loader, device))
-			test_stats['top_1_accuracy'] = np.mean(test_accuracy)		
+			test_stats['top_1_accuracy'] = np.mean(test_accuracy)
 		save_alphas_plot(args, alphas, sizes, test_stats, clustering_stats)
 
 if __name__ == '__main__':

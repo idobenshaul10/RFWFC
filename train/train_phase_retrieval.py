@@ -75,31 +75,34 @@ pickle.dump(args, open(os.path.join(output_path, "args.p"), "wb"))
 def get_image_from_phase(mag, dft):
 	dft = dft.detach().cpu().numpy().astype(np.float32())	
 	real, imag = dft[:,:,0], dft[:,:,1]	
-	back = cv2.merge([real, imag])
+	back = cv2.merge([real, imag])	
 	img_back = cv2.idft(back)
 	img_back = cv2.magnitude(img_back[:,:,0], img_back[:,:,1])
+
 	return img_back
 
 def train(train_loader, model, criterion, optimizer, device, epoch):
 	model.train()
 	running_loss = 0
-	for idx, (mag, dft, gt_img) in enumerate(tqdm(train_loader, total=len(train_loader))):
+	for idx, (mag, dft, gt_img, label) in enumerate(tqdm(train_loader, total=len(train_loader))):
 		optimizer.zero_grad()
 		mag = mag.to(device)
 		dft = dft.to(device)
-
-		dft_pred = model(mag)
+		pred, img_back = model(mag)		
+		label = label.to(device).long()
 		plt.clf()
-		if epoch % 3 == 0 and idx == 0:
-			img_back = get_image_from_phase(mag[0], dft_pred[0])
-			# gt_img = get_image_from_phase(mag[0], phase[0])
-			ax1 = plt.subplot(1,2,1)			
+
+		if epoch % 3 == 0 and idx == 0:	
+			img_back = img_back[0].squeeze().detach().cpu().numpy()
+			# img_back = get_image_from_phase(mag[0], dft_pred[0])
+			# gt_img = get_image_from_phase(mag[0], phase[0])			
+			ax1 = plt.subplot(1,2,1)	
 			ax1.imshow(gt_img[0], cmap='gray')
 			ax2 = plt.subplot(1,2,2)
 			ax2.imshow(img_back, cmap='gray')
-			plt.pause(0.01)			
+			plt.pause(0.01)
+		loss = criterion(pred, label)
 
-		loss = criterion(dft_pred, dft)
 		running_loss += loss.item() * mag.size(0)
 		loss.backward()
 		optimizer.step()
@@ -110,12 +113,12 @@ def train(train_loader, model, criterion, optimizer, device, epoch):
 def validate(valid_loader, model, criterion, device):	
 	model.eval()
 	running_loss = 0	
-	for mag, phase, _ in valid_loader:
-		mag = mag.to(device)		
-		phase = phase.to(device)
-		phase_pred = model(mag)		
-		loss = criterion(phase_pred, phase)
-		running_loss += loss.item() * mag.size(0)
+	for mag, phase, _, label in valid_loader:
+		mag = mag.to(device)
+		label = label.to(device).long()
+		y_hat, _ = model(mag)
+		loss = criterion(y_hat, label)
+		running_loss += loss.item() * mag.size(0)		
 
 	epoch_loss = running_loss / len(valid_loader.dataset)	
 	return model, epoch_loss
@@ -125,15 +128,17 @@ def get_accuracy(model, data_loader, device):
 	n = 0
 	with torch.no_grad():
 		model.eval()
-		for mag, phase, _ in data_loader:
-			mag = mag.to(device)
-			phase_pred = model(mag).cpu()		
-			# y_hat = get_image_from_phase(mag, phase)
-			# y_true = get_image_from_phase(mag, phase)			
-			error = torch.norm(phase-phase_pred, p=1)
-
-	error /= phase.shape[0]
-	return error
+		for mag, phase, _, label in data_loader:
+			mag = mag.to(device)			
+			label = label.to(device).long()		
+			logits, _ = model(mag)
+			probs = softmax(logits)
+			predicted_labels = torch.max(probs, 1)[1]
+			n += label.size(0)
+			correct_pred += (predicted_labels == label).sum()
+	
+	return correct_pred.float() / n
+	
 
 def save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc):
 	fold_folder = os.path.join(output_path, str(fold_index))
@@ -169,7 +174,9 @@ def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
 			print(f'{datetime.now().time().replace(microsecond=0)} --- '
 				  f'Epoch: {epoch}\t'
 				  f'Train loss: {train_loss:.4f}\t'
-				  f'Valid loss: {valid_loss:.4f}\t')
+				  f'Valid loss: {valid_loss:.4f}\t'
+				  f'Train accuracy: {100 * train_acc:.2f}\t'
+				  f'Valid accuracy: {100 * valid_acc:.2f}')
 
 			if valid_acc < best_val_acc:
 				best_val_acc = valid_acc
@@ -179,16 +186,20 @@ def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
 	return model, optimizer, (train_losses, valid_losses)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
-criterion = nn.MSELoss()
+# criterion = nn.MSELoss()
+criterion = nn.CrossEntropyLoss()
 
 if args.kfolds > 1:
-	x_train = [x.unsqueeze(0) for x, phase, _ in train_dataset]
-	phase_train = [phase.unsqueeze(0) for x, phase, _ in train_dataset]	
-	images = [img for x, phase, img in train_dataset]
+	x_train = [x.unsqueeze(0) for x, phase, _, _ in train_dataset]
+	phase_train = [phase.unsqueeze(0) for x, phase, _, _ in train_dataset]	
+	images = [img for x, phase, img, _ in train_dataset]
+	labels = [label for _, _, _, label in train_dataset]
 	
 	x_train = np.vstack(x_train)
-	phase_train = np.vstack(phase_train)	
-	images = np.array([np.float32(img) for img in images])
+	phase_train = np.vstack(phase_train)
+	images = np.array([np.float32(img) for img in images])	
+	labels = np.array(labels)
+	# labels = np.array([np.float32(label) for labels in images])
 	kfold =KFold(n_splits=args.kfolds)
 	
 	for fold_index, (train_index, test_index) in enumerate(kfold.split(x_train)):
@@ -197,15 +208,17 @@ if args.kfolds > 1:
 		x_train_fold = torch.tensor(x_train[train_index])		
 		phase_train_fold = torch.tensor(phase_train[train_index])
 		images_train_fold = torch.tensor(images[train_index])
+		labels_train_fold = torch.tensor(labels[train_index])
 
 
 		x_test_fold = torch.tensor(x_train[test_index])
 		phase_test_fold = torch.tensor(phase_train[test_index])
 		images_test_fold = torch.tensor(images[test_index])
+		labels_test_fold = torch.tensor(labels[test_index])
 
 
-		fold_train_dataset = TensorDataset(x_train_fold, phase_train_fold, images_train_fold)
-		fold_val_dataset = TensorDataset(x_test_fold, phase_test_fold, images_test_fold)
+		fold_train_dataset = TensorDataset(x_train_fold, phase_train_fold, images_train_fold, labels_train_fold)
+		fold_val_dataset = TensorDataset(x_test_fold, phase_test_fold, images_test_fold, labels_test_fold)
 
 		train_loader = DataLoader(dataset=fold_train_dataset,
 								  batch_size=BATCH_SIZE, 
