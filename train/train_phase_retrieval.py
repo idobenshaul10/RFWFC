@@ -88,19 +88,19 @@ def train(train_loader, model, criterion, optimizer, device, epoch):
 		optimizer.zero_grad()
 		mag = mag.to(device)
 		dft = dft.to(device)
-		pred, img_back = model(mag)		
+		pred = model(mag)		
 		label = label.to(device).long()
 		plt.clf()
 
-		if epoch % 3 == 0 and idx == 0:	
-			img_back = img_back[0].squeeze().detach().cpu().numpy()
-			# img_back = get_image_from_phase(mag[0], dft_pred[0])
-			# gt_img = get_image_from_phase(mag[0], phase[0])			
-			ax1 = plt.subplot(1,2,1)	
-			ax1.imshow(gt_img[0], cmap='gray')
-			ax2 = plt.subplot(1,2,2)
-			ax2.imshow(img_back, cmap='gray')
-			plt.pause(0.01)
+		# if epoch % 3 == 0 and idx == 0:	
+		# 	img_back = img_back[0].squeeze().detach().cpu().numpy()
+		# 	# img_back = get_image_from_phase(mag[0], dft_pred[0])
+		# 	# gt_img = get_image_from_phase(mag[0], phase[0])			
+		# 	ax1 = plt.subplot(1,2,1)	
+		# 	ax1.imshow(gt_img[0], cmap='gray')
+		# 	ax2 = plt.subplot(1,2,2)
+		# 	ax2.imshow(img_back, cmap='gray')
+		# 	plt.pause(0.01)
 		loss = criterion(pred, label)
 
 		running_loss += loss.item() * mag.size(0)
@@ -116,7 +116,7 @@ def validate(valid_loader, model, criterion, device):
 	for mag, phase, _, label in valid_loader:
 		mag = mag.to(device)
 		label = label.to(device).long()
-		y_hat, _ = model(mag)
+		y_hat = model(mag)
 		loss = criterion(y_hat, label)
 		running_loss += loss.item() * mag.size(0)		
 
@@ -131,7 +131,7 @@ def get_accuracy(model, data_loader, device):
 		for mag, phase, _, label in data_loader:
 			mag = mag.to(device)			
 			label = label.to(device).long()		
-			logits, _ = model(mag)
+			logits = model(mag)
 			probs = softmax(logits)
 			predicted_labels = torch.max(probs, 1)[1]
 			n += label.size(0)

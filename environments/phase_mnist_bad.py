@@ -31,10 +31,7 @@ class phase_mnist_bad(BaseEnviorment):
         return dataset
 
     def get_layers(self, model):        
-        layers = [model.conv_layer1, model.conv_layer2, model.conv_layer3, model.fc1, \
-            model.fc2, model.fc3, model.fc_output]
-        # layers = [model.layer1, model.layer2, model.layer3, model.layer4]
-        # layers = [model.fc1, model.fc2, model.fc3]
+        layers = [model.conv_layer1, model.max_pool, model.conv_layer2, model.conv_layer3, model.fc_output]        
         return layers
 
     def get_model(self, **kwargs):

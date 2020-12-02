@@ -24,33 +24,37 @@ def get_args():
 	args = parser.parse_args()
 	return args
 
-def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remove_layers=0):
+def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remove_layers=0, use_clustering=False):
 	if plot_test:
-		# fig, axes = plt.subplots(1, 2)
-		# gs = gridspec.GridSpec(1, 2, width_ratios=[10, 1])
-		fig, axes = plt.subplots(1, 3)
-		gs = gridspec.GridSpec(1, 3, width_ratios=[10, 1, 10])
+		if not use_clustering:
+			fig, axes = plt.subplots(1, 2)
+			gs = gridspec.GridSpec(1, 2, width_ratios=[10, 1])
+			axes = [None, None]
+		else:
+			fig, axes = plt.subplots(1, 3)
+			gs = gridspec.GridSpec(1, 3, width_ratios=[10, 1, 10])
+			axes = [None, None, None]	
+			axes[2] = plt.subplot(gs[2])
 		
-		# axes = [None, None]
-		axes = [None, None, None]
 		axes[0] = plt.subplot(gs[0])		
 		axes[1] = plt.subplot(gs[1])
-		axes[2] = plt.subplot(gs[2])
 		
-		axes[0].set_ylabel('Alpha Smoothness Approximation')
+		
+		axes[0].set_ylabel(r'$\alpha$'+'-score')
 		axes[1].set_xticks([])
 		axes[0].set_xticks([-1, 0, 1, 2, 3, 4, 5, 6] )#, minor=False)
 		# axes[0].set_xticklabels([0, 1, 2, 3, 4, 5, 6] )#, minor=False)
 		axes[1].set_ylabel('Test Accuracy')
 
-		axes[0].set_title("Good vs. Bad architectures on Fashion MNIST")
+		axes[0].set_title(f"Comparing " + r'$\alpha$' + "-scores on MNIST Phase Classification")
 		axes[0].set_xlabel("Layers")
 		axes[1].set_title("Test Accuracy Scores")
 		axes[1].set_ylim(0.5, 1.)
 
-		axes[2].set_title("Clustering Statistics")
-		axes[2].set_xlabel("Layers")
-		axes[2].set_title("Clustering Metrics")
+		if use_clustering:
+			axes[2].set_title("Clustering Statistics")
+			axes[2].set_xlabel("Layers")
+			axes[2].set_title("Clustering Metrics")
 	else:
 		fig, axes = plt.subplots(1, 1)
 		axes = [axes]
@@ -61,15 +65,12 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 		file_paths = list(Path(main_dir).glob('**/*.json'))
 		file_paths = [str(k) for k in file_paths]
 		file_paths.sort(key=lambda x: int(x.split('\\')[-2].split('.')[-2]))
-	clustering_stats = None
-	# element = 2 if main_dir is not None else 1
+	clustering_stats = None	
 
 
-	# colors = [(43, 194, 203), (27, 55, 77), (238, 79, 47), (251, 167, 32)]
 	colors = ["#2bc2cb", "#1b374d", "#ee4f2f", "#fba720"]
-	labels = ['VGG11', 'VGG13', 'VGG16', 'VGG19']	
-	# labels = ['CIFAR10 BAD', 'CIFAR10 NORMAL', 'CIFAR10 RESIDUAL']
-	# labels = ['BAD', 'GOOD', 'RESIDUAL']
+	# labels = ['VGG11', 'VGG13', 'VGG16', 'VGG19']
+	labels = ['Convolutional model', 'FC model']
 
 	test_results = []
 	handles = []
@@ -105,7 +106,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 		lines = ["-","--","-.",":", "-*", "-+"]
 		linecycler = cycle(lines)
 
-		if True:
+		if use_clustering:
 			if clustering_stats is not None and plot_test:
 				keys = sorted(list(clustering_stats.keys()))			
 				if len(keys) == 0:
@@ -123,7 +124,8 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 	axes[0].legend()
 	for h in handles:
 		h.set_color("black")
-	axes[2].legend(handles=handles)
+	if use_clustering:
+		axes[2].legend(handles=handles)
 	plt.show()
 
 if __name__ == '__main__':
