@@ -84,7 +84,11 @@ def init_params():
 		checkpoint_path = os.path.join(fold, "weights.best.h5")		
 		cur_model = environment.get_model(**params)
 		checkpoint = torch.load(checkpoint_path)['checkpoint']
-		cur_model.load_state_dict(checkpoint)
+		try:
+			cur_model.load_state_dict(checkpoint)
+		except:
+			import pdb; pdb.set_trace()
+			cur_model.model.load_state_dict(checkpoint)
 		if torch.cuda.is_available():
 			cur_model = cur_model.cuda()
 		models.append(cur_model)

@@ -24,7 +24,8 @@ def get_args():
 	args = parser.parse_args()
 	return args
 
-def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remove_layers=0, use_clustering=False):
+def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remove_layers=0, \
+	use_clustering=False, remove_begin=0):
 	if plot_test:
 		if not use_clustering:
 			fig, axes = plt.subplots(1, 2)
@@ -49,7 +50,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 		axes[0].set_title(f"Comparing " + r'$\alpha$' + "-scores on MNIST Phase Classification")
 		axes[0].set_xlabel("Layers")
 		axes[1].set_title("Test Accuracy Scores")
-		axes[1].set_ylim(0.5, 1.)
+		# axes[1].set_ylim(0.5, 1.)
 
 		if use_clustering:
 			axes[2].set_title("Clustering Statistics")
@@ -68,9 +69,9 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 	clustering_stats = None	
 
 
-	colors = ["#2bc2cb", "#1b374d", "#ee4f2f", "#fba720"]
+	colors = ["#2bc2cb", "#1b374d", "#ee4f2f", "#fba720", "blue", "green"]
 	# labels = ['VGG11', 'VGG13', 'VGG16', 'VGG19']
-	labels = ['Convolutional model', 'FC model']
+	labels = ['VGG16', 'Googlenet','resnet18', 'densenet121', 'resnet50', 'resnet101']
 
 	test_results = []
 	handles = []
@@ -88,6 +89,8 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 
 		if remove_layers > 0:
 			sizes, alphas = sizes[:-remove_layers], alphas[:-remove_layers]
+		if remove_begin > 0:
+			sizes, alphas = sizes[remove_begin:], alphas[remove_begin:]
 
 		test_stats = None
 		if 'test_stats' in result:
