@@ -15,6 +15,7 @@ from itertools import cycle
 import seaborn as sns
 import matplotlib.gridspec as gridspec
 import copy
+import seaborn as sns
 # USAGE: python .\DL_Layer_Analysis\plot_DL_json_results.py --main_dir C:\projects\RFWFC\results\mnist
 
 def get_args():
@@ -65,20 +66,29 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 	else:
 		file_paths = list(Path(main_dir).glob('**/*.json'))
 		file_paths = [str(k) for k in file_paths]
-		file_paths.sort(key=lambda x: int(x.split('\\')[-2].split('.')[-2]))
+		# file_paths.sort(key=lambda x: int(x.split('\\')[-2].split('.')[-2]))
+		try:
+			file_paths.sort(key=lambda x: str(x).split('/')[-4])
+		except Exception as e:
+			print(f"error:{e}")
+		
 	clustering_stats = None	
 
 
-	colors = ["#2bc2cb", "#1b374d", "#ee4f2f", "#fba720", "blue", "green"]
+	colors = ["#2bc2cb", "#1b374d", "#ee4f2f", "#fba720", "blue", "green", "yellow", "brown", "purple"]
+	# colors = sns.color_palette("inferno", 6)
 	# labels = ['VGG11', 'VGG13', 'VGG16', 'VGG19']
-	labels = ['VGG16', 'Googlenet','resnet18', 'densenet121', 'resnet50', 'resnet101']
+	# labels = ['VGG16', 'Googlenet','resnet18', 'densenet121', 'resnet50', 'resnet101']
 
 	test_results = []
 	handles = []
 	width = 0.25	
 	for idx, file_path in enumerate(file_paths):
 		file_path = str(file_path)
-		epoch = file_path.split('\\')[-2].split('.')[-2]
+		# epoch = file_path.split('\\')[-2].split('.')[-2]
+		epoch = str(file_path).split('/')[-4]
+		# if epoch > 50:
+		# 	continue
 		# eps = file_path.split('\\')[-element].split('.')[1]
 		
 		with open(file_path, "r+") as f:			
@@ -101,10 +111,15 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 			axes[0].fill_between(sizes, [k[0] for k in alphas], [k[-1] for k in alphas], \
 				alpha=0.2, linewidth=4)		
 
-		axes[0].plot(sizes, [np.array(k).mean()	 for k in alphas], label=labels[idx], color=colors[idx])
+		# axes[0].plot(sizes, [np.array(k).mean()	 for k in alphas], label=labels[idx], color=colors[idx%len(colors)])
+		values = [np.array(k).mean()	 for k in alphas]
+		print(values)
+		axes[0].plot(sizes, values, label=str(epoch), color=colors[idx%len(colors)])
+
 		if test_stats is not None and plot_test:
 			test_results.append([test_stats['top_1_accuracy']])
-			axes[1].bar(idx*width, [test_stats['top_1_accuracy']], width, label=labels[idx], color=colors[idx])
+			axes[1].bar(idx*width, [test_stats['top_1_accuracy']], width, label=str(epoch), color=colors[idx%len(colors)])
+			# axes[1].bar(idx*width, [test_stats['top_1_accuracy']], width, label=labels[idx], color=colors[idx%len(colors)])
 
 		lines = ["-","--","-.",":", "-*", "-+"]
 		linecycler = cycle(lines)

@@ -21,14 +21,14 @@ class cifar100_transfer(BaseEnviorment):
             self.model_path = checkpoint_path
 
     def get_dataset(self):
-        dataset = datasets.CIFAR100(root=r'C:\datasets\cifar100', 
+        dataset = datasets.CIFAR100(root=r'/home/ido/datasets/cifar100', 
            train=True, 
            transform=self.get_train_eval_transform(),
            download=True)
         return dataset
 
     def get_test_dataset(self):
-        dataset = datasets.CIFAR100(root=r'C:\datasets\cifar100', 
+        dataset = datasets.CIFAR100(root=r'/home/ido/datasets/cifar100', 
            train=False, 
            transform=self.get_test_eval_transform(),
            download=True)        
@@ -50,8 +50,8 @@ class cifar100_transfer(BaseEnviorment):
         #VGG16        
         # layers = [[k for k in model.model.features if type(k) == nn.MaxPool2d][-1]] + \
         #     [model.model.classifier[6][2], model.model.classifier[6][5], model.model.classifier[6][6]]
-        # layers = [[k for k in model.model.features if type(k) == nn.MaxPool2d][-1]] + \
-        #     [model.model.classifier[6]]
+        layers = [[k for k in model.model.features if type(k) == nn.MaxPool2d][-1]] + \
+            [model.model.classifier[6]]
 
         # densenet121
         # layers = [[k for k in model.model.features if type(k) == torchvision.models.densenet._DenseBlock][-1]] + \
@@ -61,7 +61,7 @@ class cifar100_transfer(BaseEnviorment):
         
         #resnet18      
         # layers = [model.model.layer4, model.model.fc[2], model.model.fc[5],  model.model.fc[6]]
-        layers = [model.model.layer4, model.model.fc]
+        # layers = [model.model.layer4, model.model.fc]
         
         #Googlenet
         # layers = [model.model.inception5b, model.model.fc[2], model.model.fc[5],  model.model.fc[6]]

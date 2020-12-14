@@ -42,6 +42,7 @@ parser.add_argument('--enrich_factor', default=1., type=float, help='num categor
 parser.add_argument('--enrich_dataset', action="store_true", help='if True, will show sample images from DS')
 parser.add_argument('--visualize_dataset', action="store_true", help='if True, will show sample images from DS')
 parser.add_argument('--use_residual', action="store_true")
+parser.add_argument('--save_epochs', action="store_true")
 
 args, _ = parser.parse_known_args()
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -150,11 +151,15 @@ def get_accuracy(model, data_loader, device):
 			correct_pred += (predicted_labels == y_true).sum()
 	return correct_pred.float() / n
 
-def save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc):
+def save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc, epoch_checkpoint=False):
 	fold_folder = os.path.join(output_path, str(fold_index))
 	if not os.path.isdir(fold_folder):
 		os.mkdir(fold_folder)
-	checkpoint_path = os.path.join(fold_folder, f"weights.best.h5")
+	if epoch_checkpoint:
+		file_name = f"weights_{epoch}.h5"
+	else:
+		file_name = f"weights.best.h5"
+	checkpoint_path = os.path.join(fold_folder, file_name)
 	model_state_dict = model.state_dict()
 	state_dict = OrderedDict()
 	state_dict["epoch"] = epoch
@@ -164,7 +169,7 @@ def save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc):
 	save(state_dict, checkpoint_path)
 
 def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
-	epochs, device, print_every=1, fold_index=1):
+	epochs, device, print_every=1, fold_index=1, save_epochs=False):
 	best_loss = 1e10
 	train_losses = []
 	valid_losses = []
@@ -188,9 +193,18 @@ def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
 				  f'Train accuracy: {100 * train_acc:.2f}\t'
 				  f'Valid accuracy: {100 * valid_acc:.2f}')
 
-			if valid_acc > best_val_acc:
-				best_val_acc = valid_acc
-				save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc)				
+
+			if not save_epochs:
+				if valid_acc > best_val_acc:
+					best_val_acc = valid_acc
+					save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc)
+				# if epoch == 20:					
+				# 	save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc)
+
+			else:
+				if epoch % 10 == 0:
+					save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc, epoch_checkpoint=True)
+
 	
 	return model, optimizer, (train_losses, valid_losses)
 
@@ -235,5 +249,7 @@ if args.kfolds > 1:
 								  batch_size=BATCH_SIZE, 
 								  shuffle=False)
 		
+		
 		model, optimizer, _ = training_loop(model, criterion, optimizer, \
-			train_loader, valid_loader, N_EPOCHS, DEVICE, fold_index=fold_index)
+			train_loader, valid_loader, N_EPOCHS, DEVICE, fold_index=fold_index, \
+			save_epochs=args.save_epochs)

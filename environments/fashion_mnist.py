@@ -22,7 +22,7 @@ class fashion_mnist(BaseEnviorment):
 
     def get_dataset(self):
         dataset = torchvision.datasets.FashionMNIST(
-            root = r'C:\datasets\fashion_mnist',
+            root = r'/home/ido/datasets/fashion_mnist',
             train = True,
             download = True,
             transform=self.get_eval_transform()
@@ -31,7 +31,7 @@ class fashion_mnist(BaseEnviorment):
 
     def get_test_dataset(self):
         dataset = torchvision.datasets.FashionMNIST(
-            root=r'C:\datasets\fashion_mnist', 
+            root=r'/home/ido/datasets/fashion_mnist', 
             train=False, 
             transform=self.get_eval_transform(),
             download=True)
@@ -39,7 +39,7 @@ class fashion_mnist(BaseEnviorment):
         return dataset
 
     def get_layers(self, model):
-        layers = [model.max_pool, model.layer2, model.layer3, model.fc1, model.fc2]
+        layers = [model.layer1, model.layer2, model.layer3, model.fc1, model.fc2]
         # layers = [model.layer1, model.layer2, model.layer3, model.layer4, model.avg_pool]
         return layers
 

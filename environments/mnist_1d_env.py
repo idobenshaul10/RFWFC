@@ -9,10 +9,10 @@ from utils import *
 import time
 from environments.base_environment import *
 from torchvision import datasets, transforms
-from models.LeNet5 import LeNet5
-# https://towardsdatascience.com/implementing-yann-lecuns-lenet-5-in-pytorch-5e05a0911320
+from datasets.mnist_1d import Mnist1DDataset
+from models.mnist_1d_net import mnist_1d_net
 
-class mnist(BaseEnviorment):
+class mnist_1d_env(BaseEnviorment):
     def __init__(self, checkpoint_path=None):
         super().__init__()
         self.model_path = None
@@ -20,30 +20,23 @@ class mnist(BaseEnviorment):
             self.model_path = checkpoint_path
 
     def get_dataset(self):
-        dataset = datasets.MNIST(root=r'/home/ido/datasets/mnist_data', 
-           train=True, 
-           transform=self.get_eval_transform(),
-           download=True)
+        dataset = Mnist1DDataset(train=True)
         return dataset
 
     def get_test_dataset(self):
-        dataset = datasets.MNIST(root=r'/home/ido/datasets/mnist_data', 
-           train=False, 
-           transform=self.get_eval_transform(),
-           download=True)        
+        dataset = Mnist1DDataset(train=False)
         return dataset
 
     def get_eval_transform(self):
-        transform = transforms.Compose([transforms.Resize((32, 32)),        	
-            transforms.ToTensor()])
+        transform = transforms.Compose([transforms.ToTensor()])
         return transform
 
     def get_layers(self, model):        
-        layers = [model.max_pool, model.layer2, model.layer3, model.fc1, model.fc2]
+        layers = [model.conv1, model.conv2, model.conv3, model.conv4, model.conv5, model.linear]
         return layers
 
     def get_model(self, **kwargs):
-        model = LeNet5(**kwargs)
+        model = mnist_1d_net(**kwargs)
         if self.use_cuda:
             model = model.cuda()
         if self.model_path is not None:        

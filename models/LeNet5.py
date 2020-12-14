@@ -31,28 +31,32 @@ class LeNet5(nn.Module):
         for k, v in kwargs.items():
             setattr(self, k, v)
         
-        self.ReLU = nn.ReLU()        
+        self.ReLU = nn.ReLU()
+        self.Sigmoid = nn.Sigmoid()
+
         self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2)
         
-        self.layer1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding=1)
-        self.layer2 = ResidualBlock(use_residual=self.use_residual, \
-            in_channels=32, out_channels=32, kernel_size=3, padding=1)
-        self.layer3 = ResidualBlock(use_residual=self.use_residual, \
-            in_channels=32, out_channels=32, kernel_size=3, padding=1)
+        self.layer1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, padding=1)        
+        self.layer2 = nn.Conv2d(in_channels=16, out_channels=16, kernel_size=3, padding=1)
+        self.layer3 = nn.Conv2d(in_channels=16, out_channels=16, kernel_size=3, padding=1)
+
         
         self.drop = nn.Dropout2d(0.25)
-        self.fc1 = nn.Linear(in_features=8192, out_features=600) 
+        self.fc1 = nn.Linear(in_features=4096, out_features=600) 
         self.fc2 = nn.Linear(in_features=600, out_features=120)
         self.fc3 = nn.Linear(in_features=120, out_features=10)
         
-    def forward(self, x):        
-        out = self.layer1(x)        
+    def forward(self, x):
+        out = self.layer1(x)
         out = self.max_pool(out)
+        out = self.ReLU(out)
         out = self.drop(out)
         out = self.layer2(out)
+        out = self.ReLU(out)
         out = self.drop(out)
         out = self.layer3(out)
-        out = out.view(out.size(0), -1)        
+        out = out.view(out.size(0), -1)
+        
         out = self.fc1(out)
         out = self.ReLU(out)
         out = self.drop(out)

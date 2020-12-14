@@ -23,8 +23,8 @@ import json
 import umap
 import pickle
 
-def kmeans_cluster(X, Y, visualize=False, output_folder=None, layer_str="", sample_size=100):
-	np.random.seed(0)
+def kmeans_cluster(X, Y, visualize=False, output_folder=None, layer_str="", sample_size=3000):
+	np.random.seed(2)
 	k = len(np.unique(Y))
 	print(f"Fitting k means with k={k}")
 	kmeans = KMeans(n_clusters=k, random_state=0).fit(X)

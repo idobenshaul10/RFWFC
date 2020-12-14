@@ -53,7 +53,10 @@ def get_args():
 	parser.add_argument('--create_umap', action='store_true', default=False)
 	parser.add_argument('--use_clustering', action='store_true', default=False)
 	parser.add_argument('--calc_test', action='store_true', default=False)
-	parser.add_argument('--output_folder', type=str, default=None)	
+	parser.add_argument('--output_folder', type=str, default=None)
+	parser.add_argument('--checkpoint_file_name', type=str, default="weights.best.h5")
+
+
 
 	args = parser.parse_args()
 	args.low_range_epsilon = 4*args.high_range_epsilon
@@ -81,14 +84,13 @@ def init_params():
 	models = []
 	layers = {}
 	for idx, fold in enumerate(sorted(folds)):
-		checkpoint_path = os.path.join(fold, "weights.best.h5")		
+		checkpoint_path = os.path.join(fold, args.checkpoint_file_name)
 		cur_model = environment.get_model(**params)
 		checkpoint = torch.load(checkpoint_path)['checkpoint']
-		try:
-			cur_model.load_state_dict(checkpoint)
-		except:
-			import pdb; pdb.set_trace()
-			cur_model.model.load_state_dict(checkpoint)
+		# try:
+		cur_model.load_state_dict(checkpoint)
+		# except:			
+		# 	cur_model.model.load_state_dict(checkpoint)
 		if torch.cuda.is_available():
 			cur_model = cur_model.cuda()
 		models.append(cur_model)
@@ -101,7 +103,8 @@ def init_params():
 	if args.output_folder is None:
 		args.output_folder = os.path.join(args.checkpoints_folder, "DL_Analysis")
 	else:
-		args.output_folder = os.path.join(args.output_folder, "DL_Analysis")
+		# args.output_folder = os.path.join(args.output_folder, "DL_Analysis")
+		args.output_folder = args.output_folder
 	if not os.path.isdir(args.output_folder):	
 		os.mkdir(args.output_folder)
 
@@ -176,7 +179,7 @@ def get_top_1_accuracy(model, data_loader, device):
 			X = X.to(device)			
 			output = model(X)			
 			probs = softmax(output).cpu()
-			predicted_labels = torch.max(probs, 1)[1]			
+			predicted_labels = torch.max(probs, 1)[1]
 			n += y_true.size(0)
 			correct_pred += (predicted_labels == y_true).sum()
 	return (correct_pred.float() / n).item()
@@ -215,7 +218,7 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 				X = torch.cat([data for (data, target) in tqdm(data_loader)]).detach()
 				X = X.view(X.shape[0], -1)
 			else:
-				X = []
+				result = None				
 				for model_idx, model in tqdm(enumerate(models), total=len(models)):
 					handle = layers[model_idx][k].register_forward_hook(get_activation(layer_name, args))
 					for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
@@ -226,11 +229,16 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 						# print(activation[list(activation.keys())[0]].shape)
 
 					cur_X = activation[list(activation.keys())[0]]
-					X.append(cur_X.cpu().unsqueeze(0))
+					if result is None:
+						result = cur_X.cpu().numpy()
+					else:
+						result += cur_X.cpu().numpy()					
 					handle.remove()
+					del cur_X
 					del activation[layer_name]				
-				X = np.vstack((X))
-				X = np.mean(X, axis=0)
+				
+				X = result/len(models)
+				
 			
 			start = time.time()
 			Y = np.array(Y).reshape(-1, 1)			
