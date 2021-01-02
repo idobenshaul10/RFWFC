@@ -118,10 +118,10 @@ activation = {}
 def get_activation(name, args):
 	def hook(model, input, output):		
 		if name not in activation:
-			activation[name] = output.detach().view(args.batch_size, -1).cpu()
+			activation[name] = output.detach().view(args.batch_size, -1)
 		else:
 			try:
-				new_outputs = output.detach().view(-1, activation[name].shape[1]).cpu()
+				new_outputs = output.detach().view(-1, activation[name].shape[1])
 				activation[name] = \
 					torch.cat((activation[name], new_outputs), dim=0)
 			except:
@@ -236,17 +236,14 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 					handle.remove()
 					del cur_X
 					del activation[layer_name]				
-				
-				X = result/len(models)
-				
+				X = result/len(models)				
 			
 			start = time.time()
 			Y = np.array(Y).reshape(-1, 1)			
-			X = np.array(X).squeeze()
 
 			print(f"X.shape:{X.shape}, Y shape:{Y.shape}")
-			assert(Y.shape[0] == X.shape[0])		
-
+			assert(Y.shape[0] == X.shape[0])
+			
 			if not args.create_umap:
 				alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
 					num_wavelets=N_wavelets, n_trees=args.trees, \

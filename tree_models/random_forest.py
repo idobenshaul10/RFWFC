@@ -22,6 +22,7 @@ from sklearn import metrics
 import math
 import json
 from tqdm import tqdm
+import torch
 
 class WaveletsForestRegressor:
 	def __init__(self, regressor='random_forest', mode='classification', criterion='gini', bagging=0.8, train_vi=False,
@@ -172,12 +173,17 @@ class WaveletsForestRegressor:
 		:X_raw: Non-normalized features, given as a 2D array with each row representing a sample.
 		:y: Labels, each row is given as a vertex on the simplex.
 		'''		
-		logging.info('Fitting %s samples' % np.shape(X_raw)[0])
-		X = (X_raw - np.min(X_raw, 0))/(np.max(X_raw, 0) - np.min(X_raw, 0))
-		X = np.nan_to_num(X)
-		self.num_classes = y.max()+1
-		
-		self.X = X
+		logging.info('Fitting %s samples' % np.shape(X_raw)[0])		
+		if type(X_raw) == np.ndarray:			
+			X = (X_raw - np.min(X_raw, 0))/(np.max(X_raw, 0) - np.min(X_raw, 0))
+			self.X = X
+		else:
+			X = (X_raw - X_raw.min())/(X_raw.max() - X_raw.min())
+			self.X = X.cpu().numpy()
+			
+
+
+		self.num_classes = y.max()+1		
 		self.y = self.from_label_to_one_hot_label(y)		
 
 		regressor = None
@@ -189,9 +195,7 @@ class WaveletsForestRegressor:
 				trees=self.trees,
 				seed=self.seed,
 			)
-		else:
-			# RandomForestRegressor
-			# RandomForestClassifier			
+		else:			
 			if self.mode == 'classification':
 				regressor = ensemble.RandomForestClassifier(
 					criterion='gini',
@@ -200,7 +204,7 @@ class WaveletsForestRegressor:
 					max_features='auto',
 					n_jobs=-1,
 					random_state=self.seed,
-				)
+				)				
 
 			elif self.mode == 'regression':
 				regressor = ensemble.RandomForestRegressor(
@@ -210,14 +214,14 @@ class WaveletsForestRegressor:
 					n_jobs=-1,
 					random_state=self.seed,
 					verbose=2
-				)
+				)				
 			else:
 				print("ERROR, WRONG MODE")
 				exit()
 		
-		try:
+		try:			
 			rf = regressor.fit(self.X, self.y.ravel())
-		except:
+		except Exception as e:
 			rf = regressor.fit(self.X, self.y)
 		self.rf = rf
 
@@ -471,7 +475,7 @@ class WaveletsForestRegressor:
 			save_path = os.path.join(output_folder, f"{text}_{epsilon_1}_{epsilon_2}_derivates.png")
 			print(f"save_path:{save_path}")
 			plt.savefig(save_path, \
-			    dpi=300, bbox_inches='tight')
+				dpi=300, bbox_inches='tight')
 			plt.clf()
 
 			plt.figure(2)
@@ -491,7 +495,7 @@ class WaveletsForestRegressor:
 			save_path = os.path.join(output_folder, f"{text}_{epsilon_1}_{epsilon_2}_angles.png")
 			print(f"save_path:{save_path}")
 			plt.savefig(save_path, \
-			    dpi=300, bbox_inches='tight')
+				dpi=300, bbox_inches='tight')
 			plt.clf()
 		
 		return alphas

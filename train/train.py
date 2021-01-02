@@ -202,7 +202,7 @@ def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
 				# 	save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc)
 
 			else:
-				if epoch % 10 == 0:
+				if epoch % 60 == 0:
 					save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc, epoch_checkpoint=True)
 
 	

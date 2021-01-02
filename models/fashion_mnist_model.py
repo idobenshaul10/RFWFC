@@ -34,19 +34,19 @@ class fashion_mnist_model(nn.Module):
         self.ReLU = nn.ReLU()
         self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2)
         
-        self.layer1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding=1)
+        self.layer1 = nn.Conv2d(in_channels=1, out_channels=8, kernel_size=3, padding=1)
         # self.layer2 = ResidualBlock(use_residual=self.use_residual, \
         #     in_channels=32, out_channels=32, kernel_size=3, padding=1)
         # self.layer3 = ResidualBlock(use_residual=self.use_residual, \
         #     in_channels=32, out_channels=32, kernel_size=3, padding=1)
         
 
-        self.layer2 = nn.Conv2d(32, 32, 3, padding=1)
-        self.layer3 = nn.Conv2d(32, 32, 3, padding=1)
+        self.layer2 = nn.Conv2d(16, 16, 3, padding=1)
+        self.layer3 = nn.Conv2d(16, 32, 3, padding=1)
         
         self.drop = nn.Dropout2d(0.25)
         self.fc1 = nn.Linear(in_features=6272, out_features=600)
-        # self.fc1 = nn.Linear(in_features=1152, out_features=600)
+        # self.fc1 = nn.Linear(in_features=1568, out_features=600)
         self.fc2 = nn.Linear(in_features=600, out_features=120)
         self.fc3 = nn.Linear(in_features=120, out_features=10)
         
@@ -60,8 +60,9 @@ class fashion_mnist_model(nn.Module):
         # out = self.drop(out)
         out = self.layer3(out)
         out = F.relu(out)
-        out = out.view(out.size(0), -1)        
-        
+        out = out.view(out.size(0), -1)
+        # print(out.shape)
+
         out = self.fc1(out)
         out = self.ReLU(out)
         # out = self.drop(out)

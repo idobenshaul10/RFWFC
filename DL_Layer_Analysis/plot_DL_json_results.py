@@ -48,7 +48,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 		# axes[0].set_xticklabels([0, 1, 2, 3, 4, 5, 6] )#, minor=False)
 		axes[1].set_ylabel('Test Accuracy')
 
-		axes[0].set_title(f"Comparing " + r'$\alpha$' + "-scores on MNIST Phase Classification")
+		axes[0].set_title(f"Comparing " + r'$\alpha$' + "-scores on MNIST 1D, Bad Activation")
 		axes[0].set_xlabel("Layers")
 		axes[1].set_title("Test Accuracy Scores")
 		# axes[1].set_ylim(0.5, 1.)
@@ -68,26 +68,28 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 		file_paths = [str(k) for k in file_paths]
 		# file_paths.sort(key=lambda x: int(x.split('\\')[-2].split('.')[-2]))
 		try:
-			file_paths.sort(key=lambda x: str(x).split('/')[-4])
+			file_paths.sort(key=lambda x: str(x).split('/')[-5])
 		except Exception as e:
 			print(f"error:{e}")
 		
 	clustering_stats = None	
 
 
-	colors = ["#2bc2cb", "#1b374d", "#ee4f2f", "#fba720", "blue", "green", "yellow", "brown", "purple"]
-	# colors = sns.color_palette("inferno", 6)
+	# colors = ["#2bc2cb", "#1b374d", "#ee4f2f", "#fba720", "blue", "green", "yellow", "brown", "purple"]
+	colors = sns.color_palette("inferno", 6)
 	# labels = ['VGG11', 'VGG13', 'VGG16', 'VGG19']
 	# labels = ['VGG16', 'Googlenet','resnet18', 'densenet121', 'resnet50', 'resnet101']
+	# labels = ['ReLU', 'Tanh_4', 'Tanh_3', 'Tanh_2', 'Tanh_1']
 
 	test_results = []
 	handles = []
 	width = 0.25	
+
 	for idx, file_path in enumerate(file_paths):
 		file_path = str(file_path)
 		# epoch = file_path.split('\\')[-2].split('.')[-2]
-		epoch = str(file_path).split('/')[-4]
-		# if epoch > 50:
+		epoch = str(file_path).split('/')[-5]
+		# if int(epoch) > 50:
 		# 	continue
 		# eps = file_path.split('\\')[-element].split('.')[1]
 		
@@ -114,7 +116,8 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 		# axes[0].plot(sizes, [np.array(k).mean()	 for k in alphas], label=labels[idx], color=colors[idx%len(colors)])
 		values = [np.array(k).mean()	 for k in alphas]
 		print(values)
-		axes[0].plot(sizes, values, label=str(epoch), color=colors[idx%len(colors)])
+		# axes[0].plot(sizes, values, label=labels[idx], color=colors[idx%len(colors)])
+		axes[0].plot(sizes, values, label=epoch, color=colors[idx%len(colors)])
 
 		if test_stats is not None and plot_test:
 			test_results.append([test_stats['top_1_accuracy']])

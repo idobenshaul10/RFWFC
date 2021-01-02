@@ -44,7 +44,7 @@ class fashion_mnist(BaseEnviorment):
         return layers
 
     def get_eval_transform(self):
-        transform = transforms.Compose([transforms.Resize((28, 28)),            
+        transform = transforms.Compose([transforms.Resize((28, 28)),
             transforms.ToTensor()])
         return transform
 
