@@ -207,23 +207,23 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 		model.eval()
 	sizes, alphas = [], []
 	clustering_stats = defaultdict(list)
-	with torch.no_grad():
-		# for k in list(range(len(layers[0]))):
-		for k in [-1] + list(range(len(layers[0]))):		
+	with torch.no_grad():		
+		for k in list(range(len(layers[0]))):
+		# for k in [-1] + list(range(len(layers[0]))):		
 			layer_str = 'layer'
 			print(f"LAYER {k}, type:{layer_str}")
 			layer_name = f'layer_{k}'
 
 			if k == -1:
 				X = torch.cat([data for (data, target) in tqdm(data_loader)]).detach()
-				X = X.view(X.shape[0], -1)
+				X = X.view(X.shape[0], -1)				
 			else:
 				result = None				
-				for model_idx, model in tqdm(enumerate(models), total=len(models)):
-					handle = layers[model_idx][k].register_forward_hook(get_activation(layer_name, args))
+				for model_idx, model in tqdm(enumerate(models), total=len(models)):					
+					handle = layers[model_idx][k].register_forward_hook(get_activation(layer_name, args))					
 					for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
 						if args.use_cuda:
-							data = data.cuda()		
+							data = data.cuda()
 						model(data)
 						del data
 						# print(activation[list(activation.keys())[0]].shape)
@@ -236,30 +236,43 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 					handle.remove()
 					del cur_X
 					del activation[layer_name]				
-				X = result/len(models)				
+				size_in_giga = (result.size*result.itemsize)*1e-9
+				print(f"Size of res is: {size_in_giga}")
+				if size_in_giga > 2:					
+					print(f"skipping layer:{k}")
+					continue
+				if len(models) == 1:
+					X = result
+				else:	
+					X = result/len(models)
 			
 			start = time.time()
 			Y = np.array(Y).reshape(-1, 1)			
 
 			print(f"X.shape:{X.shape}, Y shape:{Y.shape}")
-			assert(Y.shape[0] == X.shape[0])
+			assert(Y.shape[0] == X.shape[0])			
 			
 			if not args.create_umap:
-				alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
-					num_wavelets=N_wavelets, n_trees=args.trees, \
-					m_depth=args.depth, \
-					n_state=args.seed, normalize=False, \
-					norm_normalization=norm_normalization, error_TH=0., 
-					text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
-					epsilon_1=args.high_range_epsilon, epsilon_2=args.low_range_epsilon)
-				
-				print(f"ALPHA for LAYER {k} is {np.mean(alpha_index)}")
-				if args.use_clustering:
-					kmeans = kmeans_cluster(X, Y, False, args.output_folder, f"layer_{k}")
-					clustering_stats[k] = get_clustering_statistics(X, Y, kmeans)
+				try:
 
-				sizes.append(k)
-				alphas.append(alpha_index)
+					alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
+						num_wavelets=N_wavelets, n_trees=args.trees, \
+						m_depth=args.depth, \
+						n_state=args.seed, normalize=False, \
+						norm_normalization=norm_normalization, error_TH=0., 
+						text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
+						epsilon_1=args.high_range_epsilon, epsilon_2=args.low_range_epsilon)
+					
+					print(f"ALPHA for LAYER {k} is {np.mean(alpha_index)}")
+					if args.use_clustering:
+						kmeans = kmeans_cluster(X, Y, False, args.output_folder, f"layer_{k}")
+						clustering_stats[k] = get_clustering_statistics(X, Y, kmeans)
+
+					sizes.append(k)
+					alphas.append(alpha_index)
+				except Exception as error:
+					print(f"error: {error}, skipping layer:{k}")
+
 			else:
 				kmeans_cluster(X, Y, True, args.output_folder, f"layer_{k}")
 
@@ -278,4 +291,5 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 
 if __name__ == '__main__':
 	args, models, dataset, test_dataset, layers, data_loader = init_params()	
+	models = models[:1]
 	run_smoothness_analysis(args, models, dataset, test_dataset,  layers, data_loader)
