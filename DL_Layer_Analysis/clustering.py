@@ -20,7 +20,7 @@ sys.path.insert(0,parentdir)
 from utils import *
 import time
 import json
-import umap
+# import umap
 import pickle
 
 def kmeans_cluster(X, Y, visualize=False, output_folder=None, layer_str="", sample_size=3000):

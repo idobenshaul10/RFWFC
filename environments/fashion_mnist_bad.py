@@ -36,12 +36,14 @@ class fashion_mnist_bad(BaseEnviorment):
 
         return dataset
 
-    def get_layers(self, model):
+    def get_layers(self, model):        
         feature_layers = np.array([module for module in \
             model.feature_extractor.modules() if type(module) != nn.Sequential])
         
-        feature_layers = list(feature_layers[[2, 5]])        
-        layers = feature_layers + [model.FC_network, model.Second_Conv_network, model.second_FC_network]
+        feature_layers = list(feature_layers[[0, 2, 3, 5]])
+
+        layers = feature_layers + [model.FC_network_1, model.FC_network_2, \
+            model.Second_Conv_network, model.FC_network_3, model.FC_network_4]        
         return layers
 
 

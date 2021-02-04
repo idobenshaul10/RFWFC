@@ -209,7 +209,7 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 	clustering_stats = defaultdict(list)
 	with torch.no_grad():
 		# for k in list(range(len(layers[0]))):
-		for k in [-1] + list(range(len(layers[0]))):		
+		for k in [-1] + list(range(len(layers[0]))):
 			layer_str = 'layer'
 			print(f"LAYER {k}, type:{layer_str}")
 			layer_name = f'layer_{k}'

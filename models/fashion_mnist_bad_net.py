@@ -23,8 +23,13 @@ class fashion_mnist_bad_net(nn.Module):
             nn.AvgPool2d(kernel_size=2)
         )
 
-        self.FC_network = nn.Sequential(
+        self.FC_network_1 = nn.Sequential(
             nn.Linear(in_features=4, out_features=16),
+            nn.Tanh()            
+        )
+
+        self.FC_network_2 = nn.Sequential(
+            nn.Linear(in_features=16, out_features=16),
             nn.Tanh()
         )
 
@@ -33,26 +38,37 @@ class fashion_mnist_bad_net(nn.Module):
             nn.Tanh()
         )
 
-        self.second_FC_network = nn.Sequential(
+        self.FC_network_3 = nn.Sequential(
+            nn.Linear(in_features=10, out_features=10),
+            nn.Tanh()
+        )
+
+        self.FC_network_4 = nn.Sequential(
             nn.Linear(in_features=10, out_features=10),
             nn.Tanh()
         )
 
         if torch.cuda.is_available():
             self.feature_extractor = self.feature_extractor.cuda()
-            self.FC_network = self.FC_network.cuda()
+            self.FC_network_1 = self.FC_network_1.cuda()
+            self.FC_network_2 = self.FC_network_2.cuda()
+            self.FC_network_3 = self.FC_network_3.cuda()
+            self.FC_network_4 = self.FC_network_4.cuda()
             self.Second_Conv_network = self.Second_Conv_network.cuda()
-            self.FC_network = self.FC_network.cuda()
+            
 
     def forward(self, x):        
-        batch_size, _, _, _ = x.shape        
+        batch_size, _, _, _ = x.shape
+        
         x = self.feature_extractor(x)      
         x = torch.flatten(x, 1)
-        x = self.FC_network(x)
+        x = self.FC_network_1(x)
+        x = self.FC_network_2(x)
         x = x.view(batch_size, 1, 4, 4)
         x = self.Second_Conv_network(x)
         x = torch.flatten(x, 1)        
-        x = self.second_FC_network(x)
+        x = self.FC_network_3(x)
+        x = self.FC_network_4(x)
         logits = torch.flatten(x, 1)
         probs = self.softmax(logits)
         return logits

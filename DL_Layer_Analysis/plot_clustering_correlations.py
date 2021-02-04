@@ -34,7 +34,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 		file_paths.sort(key=lambda x: int(x.split('\\')[-2].split('.')[-2]))	
 	clustering_stats = None
 
-	fig, ax = plt.subplots(figsize=(8,6))
+	fig, ax = plt.subplots(figsize=(8,10))
 	ax.set_ylim([0,3])
 	
 	use_pearson = True
@@ -73,7 +73,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 	
 	metrics = list(correlations.keys())
 	values = np.array([correlations[k] for k in metrics]).reshape(6, 3)
-	dataset_names = ["BAD", "GOOD", "RESIDUAL"]
+	dataset_names = [ "GOOD", "BAD", "RESIDUAL"]
 
 	sns.heatmap(values,  annot=True, vmin=0., vmax=1.,\
 		xticklabels=dataset_names, yticklabels=metrics)

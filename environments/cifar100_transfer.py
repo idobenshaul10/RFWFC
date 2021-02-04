@@ -21,61 +21,41 @@ class cifar100_transfer(BaseEnviorment):
             self.model_path = checkpoint_path
 
     def get_dataset(self):
-        dataset = datasets.CIFAR100(root=r'/home/ido/datasets/cifar100', 
+        dataset = datasets.CIFAR100(root=r'C:\datasets\cifar100', 
            train=True, 
            transform=self.get_train_eval_transform(),
-           download=True)
+           download=True)        
         return dataset
 
     def get_test_dataset(self):
-        dataset = datasets.CIFAR100(root=r'/home/ido/datasets/cifar100', 
+        dataset = datasets.CIFAR100(root=r'C:\datasets\cifar100', 
            train=False, 
            transform=self.get_test_eval_transform(),
            download=True)        
         return dataset
 
     def get_train_eval_transform(self):
-        transform = transforms.Compose([transforms.Resize((32, 32)),            
+        transform = transforms.Compose([transforms.Resize((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
         return transform
 
     def get_test_eval_transform(self):
-        transform = transforms.Compose([transforms.Resize((32, 32)),            
+        transform = transforms.Compose([transforms.Resize((224, 224)),
             transforms.ToTensor(), 
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
         return transform
 
     def get_layers(self, model):        
-        #VGG16        
-        # layers = [[k for k in model.model.features if type(k) == nn.MaxPool2d][-1]] + \
-        #     [model.model.classifier[6][2], model.model.classifier[6][5], model.model.classifier[6][6]]
-        layers = [[k for k in model.model.features if type(k) == nn.MaxPool2d][-1]] + \
-            [model.model.classifier[6]]
-
-        # densenet121
-        # layers = [[k for k in model.model.features if type(k) == torchvision.models.densenet._DenseBlock][-1]] + \
-        #     [model.model.classifier[2], model.model.classifier[5], model.model.classifier[6]]
-        # layers = [[k for k in model.model.features if type(k) == torchvision.models.densenet._DenseBlock][-1]] + \
-        #     [model.model.classifier]
-        
-        #resnet18      
-        # layers = [model.model.layer4, model.model.fc[2], model.model.fc[5],  model.model.fc[6]]
-        # layers = [model.model.layer4, model.model.fc]
-        
-        #Googlenet
-        # layers = [model.model.inception5b, model.model.fc[2], model.model.fc[5],  model.model.fc[6]]
-        # layers = [model.model.inception5b, model.model.fc]
-
-        #inception_v3
-        # layers = [model.model.inception5a, model.model.inception5b, model.model.fc]
+        layers = [block for block in model._modules['blocks']][9:]
         return layers
 
     def get_model(self, **kwargs):
-        model = cifar100_transfer_net()
+        import timm
+        # model = torch.hub.load('facebookresearch/deit:main', 'deit_tiny_patch16_224', pretrained=True, force_reload=True)        
+        model = torch.load(r"C:\projects\DL_Smoothness_Results\transformers\torch_model.h5")
+        # model = torch.hub.load('facebookresearch/deit:main', 'deit_tiny_patch16_224-a1311bcf', pretrained=True)        
+        
         if self.use_cuda:
-            model = model.cuda()
-        if self.model_path is not None:
-            checkpoint = torch.load(self.model_path)['checkpoint']
-            model.load_state_dict(checkpoint)
+            model = model.cuda()        
         return model

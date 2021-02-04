@@ -9,12 +9,10 @@ from utils import *
 import time
 from environments.base_environment import *
 from torchvision import datasets, transforms
-from models.cifar10_net import cifar10_net
-from models.resnet import ResNet18
-from models.vgg import VGG
+from models.LeNet5 import LeNet5
 # https://towardsdatascience.com/implementing-yann-lecuns-lenet-5-in-pytorch-5e05a0911320
 
-class cifar10(BaseEnviorment):
+class irmae(BaseEnviorment):
     def __init__(self, checkpoint_path=None):
         super().__init__()
         self.model_path = None
@@ -22,34 +20,37 @@ class cifar10(BaseEnviorment):
             self.model_path = checkpoint_path
 
     def get_dataset(self):
-        dataset = datasets.CIFAR10(root=r'C:\datasets\cifar10', 
+        dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
            train=True, 
            transform=self.get_eval_transform(),
            download=True)
         return dataset
 
     def get_test_dataset(self):
-        dataset = datasets.CIFAR10(root=r'C:\datasets\cifar10', 
+        dataset = datasets.MNIST(root=r'C:\datasets\mnist_data', 
            train=False, 
            transform=self.get_eval_transform(),
            download=True)        
         return dataset
 
     def get_eval_transform(self):
-        transform = transforms.Compose([transforms.Resize((32, 32)),        	
+        transform = transforms.Compose([transforms.Resize((32, 32)),            
             transforms.ToTensor()])
         return transform
 
     def get_layers(self, model):        
-        # layers = [model.layer1, model.layer2, model.layer3, model.layer4, model.avg_pool]
-        layers = [k for k in model.features if (type(k) == nn.MaxPool2d or type(k) == nn.ReLU)][6:]
+        layers = [model.max_pool, model.layer2, model.layer3, model.fc1, model.fc2]
         return layers
 
     def get_model(self, **kwargs):
-        model = VGG('VGG19')       
-        if self.use_cuda:
-            model = model.cuda()
-        if self.model_path is not None:
-            checkpoint = torch.load(self.model_path)['checkpoint']
-            model.load_state_dict(checkpoint)
-        return model
+        enc = model.MNIST_Encoder(128)
+        enc.cuda()
+        checkpoint = "./checkpoint/"
+        model_name = "default"
+        
+        enc.load_state_dict(torch.load(
+            checkpoint + "/mnist/enc_" + model_name,
+            map_location=torch.device('cpu')))
+
+        head = model.Head(128, 10)
+        head.cuda()

@@ -47,28 +47,6 @@ class phase_net_bad(nn.Module):
         out = self.fc_output(out)
         return out
 
-    # def forward(self, mag):        
-    #     batch_size = mag.size(0)
-    #     # mag = mag.unsqueeze(1)
-    #     # out = self.conv_layer1(mag)
-    #     # out = self.ReLU(out)
-    #     # out = self.conv_layer2(out)
-    #     # out = self.ReLU(out)
-    #     # out = self.conv_layer3(out)
-    #     # out = self.ReLU(out)
-    #     # out = out.view(batch_size, 28, 28, 2)        
-    #     # img = self.get_image_from_phase(out).unsqueeze(1)        
-        
-    #     out = img.view(batch_size, -1)
-
-    #     out = self.fc1(out)
-    #     out = self.ReLU(out)
-    #     out = self.fc2(out)
-    #     out = self.ReLU(out)
-    #     out = self.fc3(out)        
-    #     out = self.fc_output(out)
-    #     return out
-
 if __name__ == '__main__':  
     a = torch.rand(128, 28, 28)
     model = phase_net_bad()

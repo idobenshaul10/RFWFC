@@ -22,7 +22,7 @@ class fashion_mnist(BaseEnviorment):
 
     def get_dataset(self):
         dataset = torchvision.datasets.FashionMNIST(
-            root = r'/home/ido/datasets/fashion_mnist',
+            root = r'C:\datasets\fashion_mnist',
             train = True,
             download = True,
             transform=self.get_eval_transform()
@@ -31,17 +31,36 @@ class fashion_mnist(BaseEnviorment):
 
     def get_test_dataset(self):
         dataset = torchvision.datasets.FashionMNIST(
-            root=r'/home/ido/datasets/fashion_mnist', 
+            root=r'C:\datasets\fashion_mnist', 
             train=False, 
             transform=self.get_eval_transform(),
             download=True)
 
         return dataset
 
-    def get_layers(self, model):
-        layers = [model.layer1, model.layer2, model.layer3, model.fc1, model.fc2]
-        # layers = [model.layer1, model.layer2, model.layer3, model.layer4, model.avg_pool]
-        return layers
+    def get_layers(self, model):        
+        # model.layer1[0]._modules.keys()        
+        layers = [model.layer1, model.layer2, model.layer3]
+        # layers = [model.layer1, model.layer2, model.layer3, model.layer4]
+
+        ###########RESNET
+        final_layers = []
+        for layer in layers:            
+            final_layers.append(layer[0]._modules['conv1'])
+            final_layers.append(layer[0]._modules['conv2'])
+        final_layers.append(model.avg_pool)
+
+        ###############FASHION_MNIST_NORMAL
+        # final_layers = [model.layer1, model.max_pool]
+        # layers = [model.layer2, model.layer3]
+        # for layer in layers:            
+        #     # self.conv1, self.batch_norm, nn.ReLU, self.conv2
+        #     final_layers.append(layer.conv1)
+        #     final_layers.append(layer.conv2)
+
+        # final_layers.extend([model.fc1, model.fc2, model.fc3])        
+        
+        return final_layers
 
     def get_eval_transform(self):
         transform = transforms.Compose([transforms.Resize((28, 28)),            
@@ -49,8 +68,8 @@ class fashion_mnist(BaseEnviorment):
         return transform
 
     def get_model(self, **kwargs):
-        model = fashion_mnist_model(**kwargs)
-        # model = ResNet18_altered()
+        # model = fashion_mnist_model(**kwargs)
+        model = ResNet18_altered()
         if self.use_cuda:
             model = model.cuda()
         if self.model_path is not None:

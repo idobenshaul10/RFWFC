@@ -39,7 +39,7 @@ ion()
 def get_args():
 	parser = argparse.ArgumentParser(description='Network Smoothness Script')	
 	parser.add_argument('--trees',default=1,type=int,help='Number of trees in the forest.')	
-	parser.add_argument('--depth', default=15, type=int,help='Maximum depth of each tree.Use 0 for unlimited depth.')		
+	parser.add_argument('--depth', default=10, type=int,help='Maximum depth of each tree.Use 0 for unlimited depth.')		
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
@@ -95,7 +95,7 @@ def get_activation(name, args):
 				activation[name] = \
 					torch.cat((activation[name], new_outputs), dim=0)
 			except:
-				pass		
+				pass
 	return hook
 
 def save_alphas_plot(args, alphas, sizes, test_stats=None, clustering_stats=None):
@@ -176,19 +176,20 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 	model.eval()
 	sizes, alphas = [], []
 	clustering_stats = defaultdict(list)
-	with torch.no_grad():	
-		layers = ["0"] + layers		
-		for k, layer in enumerate(layers):
+	with torch.no_grad():
+		# layers = [-1] + layers
+		for k in list(range(len(layers))):
+		# for k in [-1] + list(range(len(layers))):
 			layer_str = 'layer'
-			print(f"LAYER {k}, type:{layer_str}")		
+			print(f"LAYER {k}, type:{layer_str}")
 			layer_name = f'layer_{k}'
 
-			if layer == "0":
+			if k == -1:
 				X = torch.cat([data for (data, target) in tqdm(data_loader)]).detach()
 				X = X.view(X.shape[0], -1)
 			else:
-				handle = layer.register_forward_hook(get_activation(layer_name, args))
-				for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
+				handle = layers[k].register_forward_hook(get_activation(layer_name, args))
+				for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):					
 					if args.use_cuda:
 						data = data.cuda()					
 					model(data)
@@ -198,7 +199,7 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 				del activation[layer_name]
 			
 			start = time.time()
-			Y = np.array(Y).reshape(-1, 1)			
+			Y = np.array(Y).reshape(-1, 1)
 			X = np.array(X).squeeze()
 
 			print(f"X.shape:{X.shape}, Y shape:{Y.shape}")

@@ -44,11 +44,11 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 		
 		axes[0].set_ylabel(r'$\alpha$'+'-score')
 		axes[1].set_xticks([])
-		axes[0].set_xticks([-1, 0, 1, 2, 3, 4, 5, 6] )#, minor=False)
+		axes[0].set_xticks(np.arange(0, 20))
 		# axes[0].set_xticklabels([0, 1, 2, 3, 4, 5, 6] )#, minor=False)
-		axes[1].set_ylabel('Test Accuracy')
+		axes[1].set_ylabel('Test Overall Accuracy')
 
-		axes[0].set_title(f"Comparing " + r'$\alpha$' + "-scores on MNIST Phase Classification")
+		axes[0].set_title(f"Comparing advanced layer " + r'$\alpha$' + "-scores on CIFAR10 Classification")
 		axes[0].set_xlabel("Layers")
 		axes[1].set_title("Test Accuracy Scores")
 		# axes[1].set_ylim(0.5, 1.)
@@ -77,30 +77,31 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 
 	colors = ["#2bc2cb", "#1b374d", "#ee4f2f", "#fba720", "blue", "green", "yellow", "brown", "purple"]
 	# colors = sns.color_palette("inferno", 6)
-	# labels = ['VGG11', 'VGG13', 'VGG16', 'VGG19']
-	# labels = ['VGG16', 'Googlenet','resnet18', 'densenet121', 'resnet50', 'resnet101']
+	labels = ['VGG11', 'VGG13', 'VGG16', 'VGG19']
+	# labels = ['Good', 'Bad', 'Residual']
+	# labels = ['VGG16', 'Googlenet','resnet18', 'densenet121', 'resnet50', 'resnet101', "a", "v"]
 
 	test_results = []
 	handles = []
-	width = 0.25	
+	width = 0.1
 	for idx, file_path in enumerate(file_paths):
 		file_path = str(file_path)
-		# epoch = file_path.split('\\')[-2].split('.')[-2]
-		epoch = str(file_path).split('/')[-4]
-		# if epoch > 50:
-		# 	continue
-		# eps = file_path.split('\\')[-element].split('.')[1]
 		
 		with open(file_path, "r+") as f:			
 			result = json.load(f)
 		
 		sizes = result["sizes"]
-		alphas = result["alphas"]
+		alphas = result["alphas"]		
+		if "labels" in result:
+			layer_labels = result["labels"]
 
 		if remove_layers > 0:
 			sizes, alphas = sizes[:-remove_layers], alphas[:-remove_layers]
 		if remove_begin > 0:
 			sizes, alphas = sizes[remove_begin:], alphas[remove_begin:]
+
+		if idx == 0:			
+			sizes, alphas = sizes[:-4], alphas[4:]
 
 		test_stats = None
 		if 'test_stats' in result:
@@ -109,17 +110,33 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 			clustering_stats = result['clustering_stats']
 		if add_fill:
 			axes[0].fill_between(sizes, [k[0] for k in alphas], [k[-1] for k in alphas], \
-				alpha=0.2, linewidth=4)		
-
-		# axes[0].plot(sizes, [np.array(k).mean()	 for k in alphas], label=labels[idx], color=colors[idx%len(colors)])
-		values = [np.array(k).mean()	 for k in alphas]
+				alpha=0.2, linewidth=4)
+		
+		values = [np.array(k).mean() for k in alphas]
 		print(values)
-		axes[0].plot(sizes, values, label=str(epoch), color=colors[idx%len(colors)])
+		
+		# name =  file_path.split('\\')[-4]
+		# axes[0].plot(sizes, values, label=labels[idx], color=colors[idx%len(colors)])
+		axes[0].plot(sizes, values, label=labels[idx], color=colors[idx%len(colors)])
+		
+		
+		try:
+			max_pool_indices = (np.array(layer_labels) == "M")[:len(alphas)]
+			axes[0].scatter(np.array(sizes)[max_pool_indices], np.array(values)[max_pool_indices], \
+				color=colors[idx%len(colors)])
+		except:
+			print("f")
 
+		
 		if test_stats is not None and plot_test:
-			test_results.append([test_stats['top_1_accuracy']])
-			axes[1].bar(idx*width, [test_stats['top_1_accuracy']], width, label=str(epoch), color=colors[idx%len(colors)])
-			# axes[1].bar(idx*width, [test_stats['top_1_accuracy']], width, label=labels[idx], color=colors[idx%len(colors)])
+			# for stat_idx, key in enumerate(test_stats.keys()):
+			# keys = ['F1', 'AUC', 'ACC', 'Overall ACC', 'Kappa']			
+			key = 'top_1_accuracy'
+
+			axes[1].bar(idx*width, [test_stats[key]], width, \
+					label=labels[idx], color=colors[idx])
+			# axes[1].bar(((idx+1)*stat_idx)*width/20, [test_stats[key]], width/100, \
+			# 	label=labels[idx], color=colors[idx])
 
 		lines = ["-","--","-.",":", "-*", "-+"]
 		linecycler = cycle(lines)
@@ -148,4 +165,4 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 
 if __name__ == '__main__':
 	args = get_args()	
-	plot_epochs(args.main_dir, args.checkpoints, plot_test=True, add_fill=False)
+	plot_epochs(args.main_dir, args.checkpoints, plot_test=True, add_fill=False, use_clustering=False)
