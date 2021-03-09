@@ -32,8 +32,8 @@ class mnist_1d_env(BaseEnviorment):
         return transform
 
     def get_layers(self, model):        
-        layers = [model.bn_1, model.bn_2, model.bn_3, model.bn_4, model.bn_5]
-        # layers = [model.conv1, model.conv2, model.conv3, model.conv4, model.conv5, model.linear]
+        # layers = [model.bn_1, model.bn_2, model.bn_3, model.bn_4, model.bn_5]
+        layers = [model.conv1, model.conv2, model.conv3, model.conv4, model.conv5]
         return layers
 
     def get_model(self, **kwargs):

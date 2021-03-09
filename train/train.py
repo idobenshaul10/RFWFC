@@ -26,7 +26,6 @@ from shutil import copyfile
 from pathlib import Path
 import pickle
 from sklearn.model_selection import train_test_split
-
 # USAGE:  python .\train\train_mnist.py --output_path "C:\projects\RFWFC\results\trained_models\mnist\normal\" --batch_size 32 --epochs 100
 
 def get_args():
@@ -38,8 +37,6 @@ def get_args():
 	parser.add_argument('--epochs', default=100, type=int, help='num epochs for train')
 	parser.add_argument('--env_name', type=str, default="mnist")
 	parser.add_argument('--save_epochs', action="store_true")
-
-
 	args, _ = parser.parse_known_args()
 	args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 	return args
@@ -133,7 +130,6 @@ def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
 				  f'Train accuracy: {100 * train_acc:.2f}\t'
 				  f'Valid accuracy: {100 * valid_acc:.2f}')
 
-
 			if not save_epochs:
 				if valid_acc > best_val_acc:
 					best_val_acc = valid_acc
@@ -149,7 +145,6 @@ def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
 
 if __name__ == '__main__':	
 	args = get_args()
-
 	torch.manual_seed(args.seed)
 	m = '.'.join(['environments', args.env_name])
 	module = importlib.import_module(m)

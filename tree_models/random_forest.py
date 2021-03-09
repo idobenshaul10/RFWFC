@@ -22,8 +22,8 @@ import torch
 class WaveletsForestRegressor:
 	def __init__(self, regressor='random_forest', mode='classification', \
 				criterion='gini', bagging=0.8, train_vi=False,
-				depth=9, trees=5, features='auto', seed=2000, vi_threshold=0.8, \
-				norms_normalization='volume', cube_length=1.):
+				depth=9, trees=5, features='auto', seed=2000, \
+				norms_normalization='volume'):
 		'''
 		Construct a new 'WaveletsForestRegressor' object.
 
@@ -64,93 +64,9 @@ class WaveletsForestRegressor:
 			self.depth = depth
 		self.trees = trees
 		self.seed = seed		
-		self.vi_threshold = vi_threshold
 		self.norms_normalization = norms_normalization
 		self.save_errors = False
-
-
-	def visualize_classifier(self, ax=None, cmap='rainbow', depth=-1):		  
-		ax = ax or plt.gca()
-		colors = self.y.reshape(-1)     
-		
-		indices = np.random.choice(self.X.shape[0], int(len(self.X)/5))
-		show_X = self.X[indices]
-
-		# ax.scatter(show_X[:, 0], show_X[:, 1], c=colors[indices], \
-		#   clim=(self.y.min(), self.y.max()), s=0.1, cmap=cmap, zorder=1)
-
-		ax.axis('tight')        
-		xlim = ax.get_xlim()
-		ylim = ax.get_ylim()        
-		xx, yy = np.meshgrid(np.linspace(*xlim, num=200),
-							 np.linspace(*ylim, num=200))
-
-		circle2 = plt.Circle((0.5, 0.5), 0.4, color='b', fill=False, lw=0.25)       
-		ax.add_artist(circle2)
-		
-		Z = self.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)       
-
-		n_classes = len(np.unique(Z))
-		contours = ax.contourf(xx, yy, Z, alpha=0.3,
-							   levels=np.arange(n_classes + 1) - 0.5,
-							   cmap=cmap, zorder=1)
-		ax.set(xlim=xlim, ylim=ylim)        
-		plt.show(block=True)
-
-		# dir_path = r"C:\projects\RFWFC\results\decision_tree_with_bagging\visualizations\per_depth"
-		# save_path = os.path.join(dir_path, f"circle_{depth}.png")
-		# print(f"save_path:{save_path}")
-		# plt.savefig(save_path, \
-		#     dpi=300, bbox_inches='tight')
-		# plt.clf()
-
-	def get_volumes(self, rectangles):
-		result = []
-		for rectangle in rectangles:
-			l, r, d, u = rectangle
-			result.append(abs(l-r)*abs(d-u))
-		return np.array(result)
-
-	def calculate_level_volumes(self, rectangles, levels):
-		levels_volumes = np.zeros(len(np.unique(levels)))
-		intersections = self.find_rectangle_intersection(rectangles)
-		volumes = self.get_volumes(rectangles)
-		intersection_volumes = intersections*volumes
-		for i in range(len(intersection_volumes)):
-			levels_volumes[int(levels[i])] += intersection_volumes[i]
-		
-		levels_volumes
-		return levels_volumes
 	
-	def collision(self, rleft, rtop, width, height, center_x, center_y, radius):  
-		
-		rright, rbottom = rleft + width/2, rtop + height/2		
-		cleft, ctop     = center_x-radius, center_y-radius
-		cright, cbottom = center_x+radius, center_y+radius		
-		if rright < cleft or rleft > cright or rbottom < ctop or rtop > cbottom:
-			return False  
-
-		
-		for x in (rleft, rleft+width):
-			for y in (rtop, rtop+height):				
-				if math.hypot(x-center_x, y-center_y) <= radius:
-					return True  # collision detected
-		
-		if rleft <= center_x <= rright and rtop <= center_y <= rbottom:
-			return True
-
-		return False
-
-	def find_rectangle_intersection(self, rectangles):
-		# INTERSECTION: [LEFT, RIGHT, DOWN, UP]
-		intersections = np.zeros(rectangles.shape[0])
-		for idx, rectangle in enumerate(rectangles):
-			l, r, d, u = rectangle
-			does_intersect = int(self.collision(l, u, r-l, u-d, 0, 0, 1))
-			intersections[idx] = does_intersect
-
-		return intersections
-
 	def from_label_to_one_hot_label(self, y):
 		if y.shape[1] != 1:
 			return y
@@ -179,7 +95,7 @@ class WaveletsForestRegressor:
 		self.num_classes = y.max()+1		
 		self.y = self.from_label_to_one_hot_label(y)
 
-		regressor = None					
+		regressor = None		
 		if self.mode == 'classification':
 			regressor = ensemble.RandomForestClassifier(
 				criterion='gini',
@@ -237,8 +153,7 @@ class WaveletsForestRegressor:
 			# INTERSECTION: [LEFT, RIGHT, DOWN, UP]
 			rectangles = np.zeros((norms.shape[0], 4))			
 			levels = np.zeros((norms.shape[0]))
-			self.__traverse_nodes(estimator, 0, node_box, norms, vals, rectangles, levels)
-			self.calculate_level_volumes(rectangles, levels)
+			self.__traverse_nodes(estimator, 0, node_box, norms, vals, rectangles, levels)			
 
 			volumes = np.product(node_box[:, :, 1] - node_box[:, :, 0], 1)
 
@@ -277,9 +192,6 @@ class WaveletsForestRegressor:
 			return tree_value[:, 0]
 
 	def __traverse_nodes(self, estimator, base_node_id, node_box, norms, vals, rectangles, levels):
-		# https://stackoverflow.com/questions/47719001/what-does-scikit-learn-decisiontreeclassifier-tree-value-do
-		# https://stackoverflow.com/questions/52376272/getting-the-value-of-a-leaf-node-in-a-decisiontreeregressor		
-		# INTERSECTION: [LEFT, RIGHT, DOWN, UP]
 
 		if base_node_id == 0:
 			vals[:, base_node_id] = self.compute_average_score_from_tree(estimator.tree_.value[base_node_id])
@@ -421,9 +333,7 @@ class WaveletsForestRegressor:
 			plt.figure(2)
 			plt.title(f"tau vs. derivative")
 			plt.xlabel(f'tau')
-			plt.ylabel(f'sparsity derivative')
-			# taus_length = int(len(taus)/2)
-			# taus = taus[0:taus_length]
+			plt.ylabel(f'sparsity derivative')			
 			plt.plot(taus, diffs, zorder=1, color=colors[0], label='sparsity derivative')
 			plt.scatter(taus[epsilon_2_indices], diffs[epsilon_2_indices], \
 				color=colors[1], zorder=2, s=0.5, label='epsilon low')

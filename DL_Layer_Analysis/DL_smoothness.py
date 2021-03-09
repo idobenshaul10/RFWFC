@@ -28,7 +28,6 @@ import time
 import json
 from collections import defaultdict
 import cv2
-from utils.utils import visualize_augmentation
 from torch.utils.data import TensorDataset, DataLoader
 import glob
 import pickle
@@ -43,8 +42,7 @@ def get_args():
 	parser.add_argument('--depth', default=15, type=int,help='Maximum depth of each tree.Use 0 for unlimited depth.')		
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
-	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
-	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')
+	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')		
 	parser.add_argument('--batch_size', type=int, default=256)
 	parser.add_argument('--env_name', type=str, default="mnist")
 	parser.add_argument('--checkpoints_folder', type=str, default=None)
@@ -260,4 +258,5 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 
 if __name__ == '__main__':
 	args, model, dataset, test_dataset, layers, data_loader = init_params()	
-	run_smoothness_analysis(args, model, dataset, test_dataset,  layers, data_loader)
+	run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loader)
+
