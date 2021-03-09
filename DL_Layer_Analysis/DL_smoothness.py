@@ -10,7 +10,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision 
 from torchvision import datasets, transforms
-from torch.optim.lr_scheduler import StepLR
 from sklearn import tree, linear_model, ensemble
 from sklearn.metrics import accuracy_score
 from sklearn.utils import shuffle
@@ -19,7 +18,7 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot, ion, show
 import numpy as np
 import importlib
-import os,sys,inspect
+import os, sys, inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
@@ -27,11 +26,13 @@ from clustering import kmeans_cluster, get_clustering_statistics
 from utils.utils import *
 import time
 import json
-import albumentations as A
 from collections import defaultdict
 import cv2
 from utils.utils import visualize_augmentation
 from torch.utils.data import TensorDataset, DataLoader
+import glob
+import pickle
+from get_dim_reduction import get_dim_reduction
 #  python .\DL_smoothness.py --env_name mnist --checkpoint_path "C:\projects\RFWFC\results\trained_models\weights.80.h5" --use_clustering
 
 ion()
@@ -43,42 +44,61 @@ def get_args():
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
-	parser.add_argument('--output_folder', type=str, default=r"C:\projects\results", \
-		help='path to save results')
-	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
-	parser.add_argument('--batch_size', type=int, default=1024)
+	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')
+	parser.add_argument('--batch_size', type=int, default=256)
 	parser.add_argument('--env_name', type=str, default="mnist")
-	parser.add_argument('--checkpoint_path', type=str, default=None)
+	parser.add_argument('--checkpoints_folder', type=str, default=None)
 	parser.add_argument('--high_range_epsilon', type=float, default=0.1)
 	parser.add_argument('--create_umap', action='store_true', default=False)
 	parser.add_argument('--use_clustering', action='store_true', default=False)
 	parser.add_argument('--calc_test', action='store_true', default=False)
+	parser.add_argument('--output_folder', type=str, default=None)
+	parser.add_argument('--checkpoint_file_name', type=str, default="weights.best.h5")
+	parser.add_argument('--feature_dimension', default=100000, type=int, \
+		help='wanted feature dimension')
 
 	args = parser.parse_args()
 	args.low_range_epsilon = 4*args.high_range_epsilon
 	return args
 
 def init_params():	
-	args = get_args()	
+	args = get_args()
+	args.batch_size = args.batch_size
 	args.use_cuda = torch.cuda.is_available()
 
 	m = '.'.join(['environments', args.env_name])
 	module = importlib.import_module(m)
 	dict_input = vars(args)
-	if args.checkpoint_path is not None:
-		environment = eval(f"module.{args.env_name}(r'{args.checkpoint_path}')")
-	else:
-		environment = eval(f"module.{args.env_name}()")
 
-	model, dataset, test_dataset, layers = environment.load_enviorment()	
+	environment = eval(f"module.{args.env_name}()")		
+
+	params_path = os.path.join(args.checkpoints_folder, 'args.p')
+	if os.path.isfile(params_path):
+		params = vars(pickle.load(open(params_path, 'rb')))
+
+	__, dataset, test_dataset, __ = environment.load_enviorment()
+	
+	checkpoint_path = os.path.join(args.checkpoints_folder, args.checkpoint_file_name)
+	model = environment.get_model(**params)
+	checkpoint = torch.load(checkpoint_path)['checkpoint']	
+	model.load_state_dict(checkpoint)	
+	if torch.cuda.is_available():
+		model = model.cuda()
+	
+	layers = environment.get_layers(model)
+
 	data_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
 	torch.manual_seed(args.seed)
 	np.random.seed(args.seed)
-	addition = f"{args.env_name}_{args.trees}_{args.depth}_{args.high_range_epsilon}_{args.low_range_epsilon:.2f}"
-	if args.checkpoint_path is not None:
-		addition += "_" + args.checkpoint_path.split("\\")[-1]
-	args.output_folder = os.path.join(args.output_folder, addition)
+	addition = f"{args.env_name}_{args.trees}_{args.depth}_{args.high_range_epsilon}_{args.low_range_epsilon:.2f}"	
+	if args.output_folder is None:
+		args.output_folder = os.path.join(args.checkpoints_folder, "DL_Analysis")
+	else:		
+		args.output_folder = args.output_folder
+	if not os.path.isdir(args.output_folder):	
+		os.mkdir(args.output_folder)
 
+	args.output_folder = os.path.join(args.output_folder, addition)
 	if not os.path.isdir(args.output_folder):	
 		os.mkdir(args.output_folder)
 
@@ -88,10 +108,10 @@ activation = {}
 def get_activation(name, args):
 	def hook(model, input, output):		
 		if name not in activation:
-			activation[name] = output.detach().view(args.batch_size, -1).cpu()
+			activation[name] = output.detach().view(args.batch_size, -1)
 		else:
 			try:
-				new_outputs = output.detach().view(-1, activation[name].shape[1]).cpu()
+				new_outputs = output.detach().view(-1, activation[name].shape[1])
 				activation[name] = \
 					torch.cat((activation[name], new_outputs), dim=0)
 			except:
@@ -149,91 +169,95 @@ def get_top_1_accuracy(model, data_loader, device):
 			X = X.to(device)			
 			output = model(X)			
 			probs = softmax(output).cpu()
-			predicted_labels = torch.max(probs, 1)[1]			
+			predicted_labels = torch.max(probs, 1)[1]
 			n += y_true.size(0)
 			correct_pred += (predicted_labels == y_true).sum()
 	return (correct_pred.float() / n).item()
 
-def enrich_dataset(X, Y, factor=1.5):
-	new_dataset_size = int(len(X) * factor)
-	indices = np.random.choice(len(X), new_dataset_size)
-	transformed = []	
-	for index in tqdm(indices):		
-		cur = X[index]
-		cur_mean = cur.mean()
-		noise = np.random.uniform(low=-cur_mean*1e-10, high=cur_mean*1e-10, size=cur.shape)
-		cur += noise
-		transformed.append(cur)
-
-	transformed_labels = [Y[i] for i in indices]	
-	X, Y = np.row_stack((transformed)), np.array(transformed_labels)
-	return X, Y
 
 def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loader):	
-	Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()
-	N_wavelets = 10000
-	norm_normalization = 'num_samples'
+	Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()	
+	norm_normalization = 'num_samples'	
 	model.eval()
+
 	sizes, alphas = [], []
 	clustering_stats = defaultdict(list)
-	with torch.no_grad():	
-		layers = ["0"] + layers		
-		for k, layer in enumerate(layers):
+	with torch.no_grad():				
+		for k in [-1] + list(range(len(layers))):
 			layer_str = 'layer'
-			print(f"LAYER {k}, type:{layer_str}")		
+			print(f"LAYER {k}, type:{layer_str}")
 			layer_name = f'layer_{k}'
-
-			if layer == "0":
+			if k == -1:
 				X = torch.cat([data for (data, target) in tqdm(data_loader)]).detach()
 				X = X.view(X.shape[0], -1)
+
+				if X.shape[1] > args.feature_dimension:
+					X = get_dim_reduction(X, args.feature_dimension)
+
 			else:
-				handle = layer.register_forward_hook(get_activation(layer_name, args))
+				result = None				
+				handle = layers[k].register_forward_hook(get_activation(layer_name, args))					
 				for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
 					if args.use_cuda:
-						data = data.cuda()					
+						data = data.cuda()
 					model(data)
+					del data						
 
-				X = activation[list(activation.keys())[0]]
+				cur_X = activation[list(activation.keys())[0]]
+				if result is None:
+					result = cur_X.cpu().numpy()
+				else:
+					result += cur_X.cpu().numpy()					
 				handle.remove()
+				del cur_X
 				del activation[layer_name]
+				
+				X = result
+				if X.shape[1] > args.feature_dimension:
+					X = get_dim_reduction(X, args.feature_dimension)
+					print("after dim reduction")
 			
 			start = time.time()
 			Y = np.array(Y).reshape(-1, 1)			
-			X = np.array(X).squeeze()
 
 			print(f"X.shape:{X.shape}, Y shape:{Y.shape}")
-			assert(Y.shape[0] == X.shape[0])		
-
+			assert(Y.shape[0] == X.shape[0])			
+			
 			if not args.create_umap:
-				alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
-					num_wavelets=N_wavelets, n_trees=args.trees, \
-					m_depth=args.depth, \
-					n_state=args.seed, normalize=False, \
-					norm_normalization=norm_normalization, error_TH=0., 
-					text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
-					epsilon_1=args.high_range_epsilon, epsilon_2=args.low_range_epsilon)
-				
-				print(f"ALPHA for LAYER {k} is {np.mean(alpha_index)}")
-				if args.use_clustering:
-					kmeans = kmeans_cluster(X, Y, False, args.output_folder, f"layer_{k}")
-					clustering_stats[k] = get_clustering_statistics(X, Y, kmeans)
+				try:
 
-				sizes.append(k)
-				alphas.append(alpha_index)
+					alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
+						n_trees=args.trees, \
+						m_depth=args.depth, \
+						n_state=args.seed, normalize=False, \
+						norm_normalization=norm_normalization, error_TH=0., 
+						text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
+						epsilon_1=args.high_range_epsilon, epsilon_2=args.low_range_epsilon)
+					
+					print(f"ALPHA for LAYER {k} is {np.mean(alpha_index)}")
+					if args.use_clustering:
+						kmeans = kmeans_cluster(X, Y, False, args.output_folder, f"layer_{k}")
+						clustering_stats[k] = get_clustering_statistics(X, Y, kmeans)
+
+					sizes.append(k)
+					alphas.append(alpha_index)
+				except Exception as error:
+					print(f"error: {error}, skipping layer:{k}")
+
 			else:
 				kmeans_cluster(X, Y, True, args.output_folder, f"layer_{k}")
 
 	if not args.create_umap:	
 		test_stats = None
 		if args.calc_test and test_dataset is not None:
-			test_stats = {}
+			test_stats = {}			
 			test_loader = torch.utils.data.DataLoader(test_dataset, \
 				batch_size=args.batch_size, shuffle=False)
 			device = 'cuda' if args.use_cuda else 'cpu'
 			test_accuracy = get_top_1_accuracy(model, test_loader, device)
-			test_stats['top_1_accuracy'] = test_accuracy
+			test_stats['top_1_accuracy'] = np.mean(test_accuracy)
 		save_alphas_plot(args, alphas, sizes, test_stats, clustering_stats)
 
 if __name__ == '__main__':
-	args, model, dataset, test_dataset, layers, data_loader = init_params()
+	args, model, dataset, test_dataset, layers, data_loader = init_params()	
 	run_smoothness_analysis(args, model, dataset, test_dataset,  layers, data_loader)

@@ -7,12 +7,7 @@ from sklearn import metrics
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.model_selection import KFold
 import sys
-try:
-	from tree_models.random_forest import WaveletsForestRegressor
-	from tree_models.dyadic_decision_tree_regressor import DyadicDecisionTreeRegressor
-except:
-	sys.path.append(r"C:\projects\RFWFC\tree_models")
-	from random_forest import WaveletsForestRegressor
+from tree_models.random_forest import WaveletsForestRegressor
 import torchvision
 
 def normalize_data(x_raw):
@@ -23,24 +18,16 @@ def normalize_data(x_raw):
 def train_model(x, y, method='RF', mode='regression', trees=5, depth=9, features='auto',
 				state=2000, threshold=1000, train_vi=False, nnormalization='volume', cube_length=1.):
 
-	if method == 'RF':
-		model = RandomForestRegressor(n_estimators=trees, max_depth=depth, \
-									  max_features=features, random_state=state)
-	elif method == 'WF':
-		model = WaveletsForestRegressor(regressor='random_forest', \
-			mode=mode, trees=trees, depth=depth, train_vi=train_vi, features=features, \
-			seed=state, vi_threshold=threshold, norms_normalization=nnormalization, cube_length=cube_length)
-
-	elif method == "dyadic":
-		model = DyadicDecisionTreeRegressor(depth=depth, seed=state, \
-			norms_normalization=nnormalization, cube_length=cube_length)
-
-	else:
-		raise Exception('Method incorrect - should be either RF or WF')    
+	
+	model = WaveletsForestRegressor(regressor='random_forest', \
+		mode=mode, trees=trees, depth=depth, train_vi=train_vi, features=features, \
+		seed=state, vi_threshold=threshold, norms_normalization=nnormalization, cube_length=cube_length)
+	
 	model.fit(x, y)
 	return model
 
-def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_depth=9,
+
+def run_alpha_smoothness(X, y, t_method='RF', n_trees=1, m_depth=9,
 						 n_features='auto', n_state=2000, normalize=True, \
 						 norm_normalization='volume', cube_length=1., error_TH=0.1, \
 						 text='', output_folder='', epsilon_1=None, epsilon_2=None):
@@ -52,18 +39,14 @@ def run_alpha_smoothness(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_de
 	model = train_model(X, y, method=t_method, trees=n_trees, \
 		depth=m_depth, features=n_features, state=n_state, \
 		nnormalization=norm_normalization, cube_length=cube_length)
-
-	if t_method == 'WF':
-		if num_wavelets < 1:
-			num_wavelets = int(np.round(num_wavelets*len(model.norms)))
-			norm_m_term = -np.sort(-model.norms)[num_wavelets-1]    
+	
 
 	alpha = model.evaluate_angle_smoothness(text=text, \
 		output_folder=output_folder, epsilon_1=epsilon_1, epsilon_2=epsilon_2)
 	n_wavelets, errors = 0., 0.
 
 	logging.log(60, 'ALPHA SMOOTHNESS over X: ' + str(alpha))
-	return alpha, -1, num_wavelets, norm_m_term, model
+	return alpha, -1, -1, norm_m_term, model
 
 
 def save_wavelet_norms(X, y, t_method='RF', num_wavelets=1000, n_trees=1, m_depth=9,

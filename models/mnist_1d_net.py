@@ -17,7 +17,7 @@ class mnist_1d_net(nn.Module):
         self.conv3 = nn.Conv1d(channels, channels, 3, stride=2, padding=1)
         self.conv4 = nn.Conv1d(channels, channels, 3, stride=2, padding=1)
         self.conv5 = nn.Conv1d(channels, channels, 3, stride=2, padding=1)
-        self.activation = nn.Sigmoid()
+        self.activation = nn.ReLU()
         self.bn_1 = nn.BatchNorm1d(channels)
         self.bn_2 = nn.BatchNorm1d(channels)
         self.bn_3 = nn.BatchNorm1d(channels)

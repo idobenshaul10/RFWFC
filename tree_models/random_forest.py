@@ -10,11 +10,6 @@ from scipy.sparse import csr_matrix, lil_matrix
 import operator
 import code
 from functools import reduce
-try:
-	from tree_models.decision_tree_with_bagging import DecisionTreeWithBaggingRegressor	
-except:
-	print("could not import DyadicDecisionTreeModel+DecisionTreeWithBaggingRegressor")
-
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot, ion, show
 import random
@@ -25,9 +20,10 @@ from tqdm import tqdm
 import torch
 
 class WaveletsForestRegressor:
-	def __init__(self, regressor='random_forest', mode='classification', criterion='gini', bagging=0.8, train_vi=False,
-				 depth=9, trees=5, features='auto', seed=2000, vi_threshold=0.8, \
-				 norms_normalization='volume', cube_length=1.):
+	def __init__(self, regressor='random_forest', mode='classification', \
+				criterion='gini', bagging=0.8, train_vi=False,
+				depth=9, trees=5, features='auto', seed=2000, vi_threshold=0.8, \
+				norms_normalization='volume', cube_length=1.):
 		'''
 		Construct a new 'WaveletsForestRegressor' object.
 
@@ -67,8 +63,7 @@ class WaveletsForestRegressor:
 		else:
 			self.depth = depth
 		self.trees = trees
-		self.seed = seed
-		self.train_vi = train_vi
+		self.seed = seed		
 		self.vi_threshold = vi_threshold
 		self.norms_normalization = norms_normalization
 		self.save_errors = False
@@ -180,44 +175,33 @@ class WaveletsForestRegressor:
 		else:
 			X = (X_raw - X_raw.min())/(X_raw.max() - X_raw.min())
 			self.X = X.cpu().numpy()
-			
-
 
 		self.num_classes = y.max()+1		
-		self.y = self.from_label_to_one_hot_label(y)		
+		self.y = self.from_label_to_one_hot_label(y)
 
-		regressor = None
-		if self.regressor == 'decision_tree_with_bagging':
-			regressor = DecisionTreeWithBaggingRegressor(
-				bagging=self.bagging,
-				criterion=self.criterion,
-				depth=self.depth,
-				trees=self.trees,
-				seed=self.seed,
-			)
-		else:			
-			if self.mode == 'classification':
-				regressor = ensemble.RandomForestClassifier(
-					criterion='gini',
-					n_estimators=self.trees, 
-					max_depth=self.depth,
-					max_features='auto',
-					n_jobs=-1,
-					random_state=self.seed,
-				)				
+		regressor = None					
+		if self.mode == 'classification':
+			regressor = ensemble.RandomForestClassifier(
+				criterion='gini',
+				n_estimators=self.trees, 
+				max_depth=self.depth,
+				max_features='auto',
+				n_jobs=-1,
+				random_state=self.seed,
+			)				
 
-			elif self.mode == 'regression':
-				regressor = ensemble.RandomForestRegressor(
-					n_estimators=self.trees, 
-					max_depth=self.depth,
-					max_features='auto',
-					n_jobs=-1,
-					random_state=self.seed,
-					verbose=2
-				)				
-			else:
-				print("ERROR, WRONG MODE")
-				exit()
+		elif self.mode == 'regression':
+			regressor = ensemble.RandomForestRegressor(
+				n_estimators=self.trees, 
+				max_depth=self.depth,
+				max_features='auto',
+				n_jobs=-1,
+				random_state=self.seed,
+				verbose=2
+			)				
+		else:
+			print("ERROR, WRONG MODE")
+			exit()
 		
 		try:			
 			rf = regressor.fit(self.X, self.y.ravel())
@@ -276,24 +260,8 @@ class WaveletsForestRegressor:
 				self.root_nodes.append(self.root_nodes[-1] + num_nodes)
 
 			self.num_samples = np.append(self.num_samples, num_samples)
-			self.vals = np.append(self.vals, vals, axis=1)          
-			
-			##
-			if self.train_vi:
-				for k in range(0, num_features):
-					vi_node_box = np.zeros((num_nodes, num_features, 2))
-					vi_node_box[:, :, 1] = 1
-					vi_norms = np.zeros(num_nodes)
-					vi_vals = np.zeros((val_size, num_nodes))
-					self.__variable_importance(estimator, 0, vi_node_box, vi_norms, vi_vals, k, self.vi_threshold)
-					if self.norms_normalization == 'volume':
-						vi_norms = np.multiply(vi_norms, np.sqrt(volumes))
-					else:
-						vi_norms = np.multiply(vi_norms, np.sqrt(num_samples))
-					self.si_tree[k, i] = np.sum(vi_norms)
-
-		self.si = np.append(self.si, np.sum(self.si_tree, 1) / len(rf.estimators_))
-		self.feature_importances_ = self.si		
+			self.vals = np.append(self.vals, vals, axis=1)			
+		
 		return self
 
 	def __compute_norm(self, avg, parent_avg, volume):		
@@ -360,35 +328,7 @@ class WaveletsForestRegressor:
 			self.__traverse_nodes(estimator, right_id, node_box, norms, vals, rectangles, levels)
 			vals[:, right_id] = self.compute_average_score_from_tree(estimator.tree_.value[right_id]) - \
 				self.compute_average_score_from_tree(estimator.tree_.value[base_node_id])
-			norms[right_id] = self.__compute_norm(vals[:, right_id], vals[:, base_node_id], 1)	
-
-	def __variable_importance(self, estimator, base_node_id, vi_node_box, vi_norms, vi_vals, feature, threshod):        
-		if base_node_id == 0:
-			vi_vals[:, base_node_id] = estimator.tree_.value[base_node_id][:, 0]
-			vi_norms[base_node_id] = self.__compute_norm(vi_vals[:, base_node_id], 0, 1)
-
-		left_id = estimator.tree_.children_left[base_node_id]
-		right_id = estimator.tree_.children_right[base_node_id]
-		if left_id >= 0:
-			vi_node_box[left_id, :, :] = vi_node_box[base_node_id, :, :]
-			vi_node_box[left_id, estimator.tree_.feature[base_node_id], 1] = np.min(
-				[estimator.tree_.threshold[base_node_id],
-				 vi_node_box[left_id, estimator.tree_.feature[base_node_id], 1]])
-			self.__variable_importance(estimator, left_id, vi_node_box, vi_norms, vi_vals, feature, self.vi_threshold)
-			vi_vals[:, left_id] = estimator.tree_.value[left_id][:, 0] - estimator.tree_.value[base_node_id][:, 0]
-			tnorm = self.__compute_norm(vi_vals[:, left_id], vi_vals[:, base_node_id], 1)
-			if estimator.tree_.feature[estimator.tree_.children_left[base_node_id]] == feature and tnorm > threshod:
-				vi_norms[left_id] = tnorm
-		if right_id >= 0:
-			vi_node_box[right_id, :, :] = vi_node_box[base_node_id, :, :]
-			vi_node_box[right_id, estimator.tree_.feature[base_node_id], 0] = np.max(
-				[estimator.tree_.threshold[base_node_id],
-				 vi_node_box[right_id, estimator.tree_.feature[base_node_id], 0]])
-			self.__variable_importance(estimator, right_id, vi_node_box, vi_norms, vi_vals, feature, self.vi_threshold)
-			vi_vals[:, right_id] = estimator.tree_.value[right_id][:, 0] - estimator.tree_.value[base_node_id][:, 0]
-			tnorm = self.__compute_norm(vi_vals[:, right_id], vi_vals[:, base_node_id], 1)
-			if estimator.tree_.feature[estimator.tree_.children_right[base_node_id]] == feature and tnorm > threshod:
-				vi_norms[right_id] = tnorm
+			norms[right_id] = self.__compute_norm(vals[:, right_id], vals[:, base_node_id], 1)
 
 	def predict(self, X, m=10, start_m=0, paths=None):
 		'''
@@ -499,98 +439,6 @@ class WaveletsForestRegressor:
 			plt.clf()
 		
 		return alphas
-		
-
-	def evaluate_smoothness(self, m=1000, error_TH=0.):
-		'''
-		Evaluates smoothness for a maximum of M-terms
-		:m: Maximum terms to use. Default is 1000.
-		:return: Smothness index, n_wavelets, errors.
-		'''		
-		n_wavelets = []
-		errors = []
-		step = 10
-		power = 2
-		print_errors = False		
-		paths, n_nodes_ptr = self.rf.decision_path(self.X)
-		predictions = np.zeros(np.shape(self.y))
-		for m_step in range(2, m, step):
-			if m_step > len(self.norms):
-				break			
-			predictions += self.predict(self.X, m=m_step, start_m=max(m_step - step, 0), paths=paths)			
-			error_norms = np.power(np.sum(np.power(self.y - predictions, power), 1), 1. / power)
-			total_error = np.sum(np.square(error_norms), 0) / len(self.X)
-
-			if len(errors)> 0:
-				if errors[-1] == total_error:
-					break
-
-
-			if total_error < error_TH:
-				break
-			
-			if m_step > 0 and total_error > 0:
-				if print_errors:
-					logging.info('Error for m=%s: %s' % (m_step - 1, total_error))
-				n_wavelets.append(m_step - 1)
-				errors.append(total_error)
-		logging.info(f"total m_step is {m_step}")        
-
-
-		plt.figure(0.5)        
-		plt.clf()		
-		n_wavelets = np.reshape(n_wavelets, (-1, 1))
-		errors = np.reshape(errors, (-1, 1))
-		plt.title(f'#wavelets to errors, DS size: {self.X.shape[0]}')
-		plt.xlabel('#wavelets')
-		plt.ylabel('errors')
-		plt.plot(n_wavelets, errors)
-		plt.draw()
-		plt.pause(0.5)
-		
-
-		plt.figure(2)
-		plt.clf()
-		n_wavelets_log = np.log(np.reshape(n_wavelets, (-1, 1)))
-		errors_log = np.log(np.reshape(errors, (-1, 1)))
-		plt.title(f'log(#wavelets) to log(errors), DS size: {self.X.shape[0]}')
-		plt.xlabel('log(#wavelets)')
-		plt.ylabel('log(errors)')
-
-		if self.save_errors:
-			def convert(o):
-				if isinstance(o, np.generic): return o.item()  
-				raise TypeError
-
-			dir_path = r"C:\projects\RFWFC\results\approximation_methods\RF_50_TREE"
-			json_file_name = "50000_points_50_TREE.json"
-			write_data = {}
-			write_data['n_wavelets'] = list(n_wavelets.squeeze())
-			write_data['errors'] = list(errors.squeeze())			
-			# write_data['mean_norms'] = list(mean_norms)
-			path = os.path.join(dir_path, json_file_name)
-			with open(path, "w+") as f:
-				json.dump(write_data, f, default=convert)
-			print(f"saved errors to {path}")
-
-		regr = linear_model.LinearRegression()
-		# regr = linear_model.Ridge(alpha=.8)
-		
-		regr.fit(n_wavelets_log, errors_log)
-
-		y_pred = regr.predict(n_wavelets_log)
-		plt.plot(n_wavelets_log, y_pred, color='blue', linewidth=3)	
-
-		alpha = np.abs(regr.coef_[0][0])
-
-		# plt.plot(n_wavelets_log, errors_log, label=f'alpha:{alpha}')
-		# plt.legend()
-		# plt.draw()
-		# plt.pause(1)		
-
-		# logging.info('Smoothness index: %s' % alpha)
-
-		return alpha, n_wavelets, errors
 
 	def save_wavelet_norms(self, dir_path=''):
 		mask = np.ones(len(self.norms), dtype=bool)
