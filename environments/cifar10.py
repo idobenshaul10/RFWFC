@@ -22,14 +22,14 @@ class cifar10(BaseEnviorment):
             self.model_path = checkpoint_path
 
     def get_dataset(self):
-        dataset = datasets.CIFAR10(root=r'C:\datasets\cifar10', 
+        dataset = datasets.CIFAR10(root=r'/home/ido/datasets/cifar10', 
            train=True, 
            transform=self.get_eval_transform(),
            download=True)
         return dataset
 
     def get_test_dataset(self):
-        dataset = datasets.CIFAR10(root=r'C:\datasets\cifar10', 
+        dataset = datasets.CIFAR10(root=r'/home/ido/datasets/cifar10', 
            train=False, 
            transform=self.get_eval_transform(),
            download=True)        
@@ -42,11 +42,12 @@ class cifar10(BaseEnviorment):
 
     def get_layers(self, model):        
         # layers = [model.layer1, model.layer2, model.layer3, model.layer4, model.avg_pool]
-        layers = [k for k in model.features if type(k) == nn.MaxPool2d]
+        # layers = [k for k in model.features if type(k) == nn.MaxPool2d]
+        layers = [k for k in model.features if (type(k) == nn.MaxPool2d or type(k) == nn.ReLU)][6:]        
         return layers
 
     def get_model(self, **kwargs):
-        model = VGG('VGG19')        
+        model = VGG('VGG11')        
         if self.use_cuda:
             model = model.cuda()
         if self.model_path is not None:

@@ -34,6 +34,7 @@ from utils.utils import visualize_augmentation
 from torch.utils.data import TensorDataset, DataLoader
 import glob
 import pickle
+from get_dim_reduction import get_dim_reduction
 #  python .\DL_smoothness.py --env_name mnist --checkpoint_path "C:\projects\RFWFC\results\trained_models\weights.80.h5" --use_clustering
 
 ion()
@@ -45,7 +46,7 @@ def get_args():
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')	
-	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')	
+	parser.add_argument('--num_wavelets', default=2000, type=int,help='# wavelets in N-term approx')
 	parser.add_argument('--batch_size', type=int, default=256)
 	parser.add_argument('--env_name', type=str, default="mnist")
 	parser.add_argument('--checkpoints_folder', type=str, default=None)
@@ -55,8 +56,8 @@ def get_args():
 	parser.add_argument('--calc_test', action='store_true', default=False)
 	parser.add_argument('--output_folder', type=str, default=None)
 	parser.add_argument('--checkpoint_file_name', type=str, default="weights.best.h5")
-
-
+	parser.add_argument('--feature_dimension', default=1000, type=int, \
+		help='wanted feature dimension')
 
 	args = parser.parse_args()
 	args.low_range_epsilon = 4*args.high_range_epsilon
@@ -69,12 +70,13 @@ def init_params():
 
 	m = '.'.join(['environments', args.env_name])
 	module = importlib.import_module(m)
-	dict_input = vars(args)	
-	
+	dict_input = vars(args)
+		
 	environment = eval(f"module.{args.env_name}()")
+	import pdb; pdb.set_trace()
+
 	folds = glob.glob(os.path.join(args.checkpoints_folder, "*"))	
-	folds = [f for f in folds if os.path.isdir(f) and "DL_Analysis" not in f]
-	NUM_FOLDS = len(folds)
+	folds = [f for f in folds if os.path.isdir(f) and "DL_Analysis" not in f]	
 
 	params_path = os.path.join(args.checkpoints_folder, 'args.p')
 	if os.path.isfile(params_path):
@@ -184,20 +186,6 @@ def get_top_1_accuracy(model, data_loader, device):
 			correct_pred += (predicted_labels == y_true).sum()
 	return (correct_pred.float() / n).item()
 
-def enrich_dataset(X, Y, factor=1.5):
-	new_dataset_size = int(len(X) * factor)
-	indices = np.random.choice(len(X), new_dataset_size)
-	transformed = []	
-	for index in tqdm(indices):		
-		cur = X[index]
-		cur_mean = cur.mean()
-		noise = np.random.uniform(low=-cur_mean*1e-10, high=cur_mean*1e-10, size=cur.shape)
-		cur += noise
-		transformed.append(cur)
-
-	transformed_labels = [Y[i] for i in indices]	
-	X, Y = np.row_stack((transformed)), np.array(transformed_labels)
-	return X, Y
 
 def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_loader):	
 	Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()	
@@ -209,14 +197,18 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 	clustering_stats = defaultdict(list)
 	with torch.no_grad():		
 		for k in list(range(len(layers[0]))):
-		# for k in [-1] + list(range(len(layers[0]))):		
+		# for k in [-1] + list(range(len(layers[0]))):
 			layer_str = 'layer'
 			print(f"LAYER {k}, type:{layer_str}")
 			layer_name = f'layer_{k}'
 
 			if k == -1:
 				X = torch.cat([data for (data, target) in tqdm(data_loader)]).detach()
-				X = X.view(X.shape[0], -1)				
+				X = X.view(X.shape[0], -1)
+
+				if X.shape[1] > args.feature_dimension:
+					X = get_dim_reduction(X, args.feature_dimension)
+
 			else:
 				result = None				
 				for model_idx, model in tqdm(enumerate(models), total=len(models)):					
@@ -235,16 +227,19 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 						result += cur_X.cpu().numpy()					
 					handle.remove()
 					del cur_X
-					del activation[layer_name]				
-				size_in_giga = (result.size*result.itemsize)*1e-9
-				print(f"Size of res is: {size_in_giga}")
-				if size_in_giga > 2:					
-					print(f"skipping layer:{k}")
-					continue
+					del activation[layer_name]
+				
 				if len(models) == 1:
 					X = result
-				else:	
-					X = result/len(models)
+				else:
+					try:
+						X = result/len(models)
+					except:
+						import pdb; pdb.set_trace()
+
+				if X.shape[1] > args.feature_dimension:
+					X = get_dim_reduction(X, args.feature_dimension)
+					print("after dim reduction")
 			
 			start = time.time()
 			Y = np.array(Y).reshape(-1, 1)			

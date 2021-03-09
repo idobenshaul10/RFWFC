@@ -20,86 +20,31 @@ import albumentations as A
 from PIL import Image
 from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
-from utils.utils import visualize_augmentation
 from datetime import datetime
 import importlib
-from sklearn.model_selection import KFold
 from shutil import copyfile
 from pathlib import Path
 import pickle
+from sklearn.model_selection import train_test_split
 
 # USAGE:  python .\train\train_mnist.py --output_path "C:\projects\RFWFC\results\trained_models\mnist\normal\" --batch_size 32 --epochs 100
-parser = argparse.ArgumentParser(description='train lenet5 on mnist dataset')
-parser.add_argument('--output_path', default=r"C:\projects\DL_Smoothness_Results\trained_models", 
-	help='output_path for checkpoints')
-parser.add_argument('--seed', default=0, type=int, help='seed')
-parser.add_argument('--lr', default=0.001, type=float, help='lr for train')
-parser.add_argument('--batch_size', default=32, type=int, help='batch_size for train/test')
-parser.add_argument('--epochs', default=100, type=int, help='num epochs for train')
-parser.add_argument('--env_name', type=str, default="mnist")
-parser.add_argument('--kfolds', default=5, type=int, help='number of folds for cross-validation')
-parser.add_argument('--enrich_factor', default=1., type=float, help='num categories in output of model')
-parser.add_argument('--enrich_dataset', action="store_true", help='if True, will show sample images from DS')
-parser.add_argument('--visualize_dataset', action="store_true", help='if True, will show sample images from DS')
-parser.add_argument('--use_residual', action="store_true")
-parser.add_argument('--save_epochs', action="store_true")
 
-args, _ = parser.parse_known_args()
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-RANDOM_SEED = args.seed
-LEARNING_RATE = args.lr
-BATCH_SIZE = args.batch_size
-N_EPOCHS = args.epochs
-ENRICH_FACTOR = args.enrich_factor
+def get_args():
+	parser = argparse.ArgumentParser(description='train a model from enviorment')
+	parser.add_argument('--output_path', help='output_path for checkpoints')
+	parser.add_argument('--seed', default=0, type=int, help='seed')
+	parser.add_argument('--lr', default=0.001, type=float, help='lr for train')
+	parser.add_argument('--batch_size', default=32, type=int, help='batch_size for train/test')
+	parser.add_argument('--epochs', default=100, type=int, help='num epochs for train')
+	parser.add_argument('--env_name', type=str, default="mnist")
+	parser.add_argument('--save_epochs', action="store_true")
+
+
+	args, _ = parser.parse_known_args()
+	args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+	return args
+
 softmax = nn.Softmax(dim=1)
-torch.manual_seed(RANDOM_SEED)
-
-m = '.'.join(['environments', args.env_name])
-module = importlib.import_module(m)
-dict_input = vars(args)
-environment = eval(f"module.{args.env_name}()")
-
-model, train_dataset, test_dataset, layers = environment.load_enviorment(**dict_input)
-time_filename = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
-output_path = os.path.join(args.output_path, f"{args.env_name}_{time_filename}")
-
-if not os.path.isdir(output_path):
-	os.mkdir(output_path)
-
-path = Path(__file__)
-model_path = os.path.join(path.parents[1], 'models', f"{type(model).__name__}.py")
-copyfile(model_path, os.path.join(output_path, "model.py"))
-print(f"Begining train, args:{args}")
-pickle.dump(args, open(os.path.join(output_path, "args.p"), "wb"))
-
-AUG = A.Compose({
-	A.Resize(32, 32),	
-	# A.HorizontalFlip(p=0.5),
-	A.Rotate(limit=(-25, 25)),
-	# A.VerticalFlip(p=0.5),
-	# A.Normalize((0.5), (0.5))
-	A.OpticalDistortion()
-})
-
-def transform(image):		
-	image = AUG(image=np.array(image))['image']		
-	image = torch.tensor(image, dtype=torch.float)	
-	return image
-
-def enrich_dataset(dataset, factor=1.):
-	new_dataset_size = int(len(dataset) * factor)		
-	indices = np.random.choice(len(dataset), new_dataset_size)
-	transformed_images = []
-	for index in tqdm(indices):
-		image = dataset[index][0]
-		image = transform(image)/255.
-		transformed_images.append(image.view(1, 1, 32, 32))
-
-	labels = [dataset[i][1] for i in indices]		
-	labels = torch.tensor(labels)		
-	transformed_images = torch.cat(transformed_images)		
-	new_dataset = TensorDataset(transformed_images, labels)
-	return new_dataset
 
 def train(train_loader, model, criterion, optimizer, device):
 	model.train()
@@ -108,12 +53,8 @@ def train(train_loader, model, criterion, optimizer, device):
 		optimizer.zero_grad()		
 		X = X.to(device)
 		y_true = y_true.to(device)
-		y_hat = model(X)
-		# import pdb; pdb.set_trace()
-		# try:
-		loss = criterion(y_hat, y_true.long())
-		# except:
-		# 	import pdb; pdb.set_trace()
+		y_hat = model(X)		
+		loss = criterion(y_hat, y_true.long())		
 		running_loss += loss.item() * X.size(0)
 		loss.backward()
 		optimizer.step()
@@ -151,15 +92,14 @@ def get_accuracy(model, data_loader, device):
 			correct_pred += (predicted_labels == y_true).sum()
 	return correct_pred.float() / n
 
-def save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc, epoch_checkpoint=False):
-	fold_folder = os.path.join(output_path, str(fold_index))
-	if not os.path.isdir(fold_folder):
-		os.mkdir(fold_folder)
+def save_epoch(output_path, epoch, model, train_acc, valid_acc, epoch_checkpoint=False):	
+	if not os.path.isdir(output_path):
+		os.mkdir(output_path)
 	if epoch_checkpoint:
 		file_name = f"weights_{epoch}.h5"
 	else:
 		file_name = f"weights.best.h5"
-	checkpoint_path = os.path.join(fold_folder, file_name)
+	checkpoint_path = os.path.join(output_path, file_name)
 	model_state_dict = model.state_dict()
 	state_dict = OrderedDict()
 	state_dict["epoch"] = epoch
@@ -169,7 +109,7 @@ def save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc, epoc
 	save(state_dict, checkpoint_path)
 
 def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
-	epochs, device, print_every=1, fold_index=1, save_epochs=False):
+	epochs, device, print_every=1, save_epochs=False):
 	best_loss = 1e10
 	train_losses = []
 	valid_losses = []
@@ -197,59 +137,68 @@ def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
 			if not save_epochs:
 				if valid_acc > best_val_acc:
 					best_val_acc = valid_acc
-					save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc)
-				# if epoch == 20:					
-				# 	save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc)
+					save_epoch(output_path, epoch, model, train_acc, valid_acc)				
 
 			else:
 				if epoch % 60 == 0:
-					save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc, epoch_checkpoint=True)
+					save_epoch(output_path, epoch, model, train_acc, valid_acc, epoch_checkpoint=True)
 
 	
 	return model, optimizer, (train_losses, valid_losses)
 
-if args.enrich_dataset:	
-	train_dataset = enrich_dataset(train_dataset, factor=ENRICH_FACTOR)
-	if args.visualize_dataset:
-		random_indices = np.random.choice(len(train_dataset), 16)
-		to_show_images = []
-		for i in random_indices:
-			image = train_dataset[i][0]
-			to_show_images.append(image)
-		visualize_augmentation(to_show_images)
+
+if __name__ == '__main__':	
+	args = get_args()
+
+	torch.manual_seed(args.seed)
+	m = '.'.join(['environments', args.env_name])
+	module = importlib.import_module(m)
+	dict_input = vars(args)
+	environment = eval(f"module.{args.env_name}()")
+
+	model, train_dataset, _, layers = environment.load_enviorment(**dict_input)
+	time_filename = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
+	output_path = os.path.join(args.output_path, f"{args.env_name}_{time_filename}")
+
+	if not os.path.isdir(output_path):
+		os.mkdir(output_path)
+
+	path = Path(__file__)
+	model_path = os.path.join(path.parents[1], 'models', f"{type(model).__name__}.py")
+	copyfile(model_path, os.path.join(output_path, "model.py"))
+	print(f"Begining train, args:{args}")
+	pickle.dump(args, open(os.path.join(output_path, "args.p"), "wb"))
+
+	optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+	criterion = nn.CrossEntropyLoss()
+
+	x_train = np.vstack([x.unsqueeze(0) for x, y in train_dataset])
+	y_train = np.array([y for _, y in train_dataset])
+
+	x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, \
+		test_size=0.2, random_state=args.seed)
+
+	x_train, x_val = torch.tensor(x_train), torch.tensor(x_val)
+	y_train, y_val = torch.tensor(y_train), torch.tensor(y_val)
+
+	train_dataset = TensorDataset(x_train, y_train)
+	val_dataset = TensorDataset(x_val, y_val)
+
+	train_loader = DataLoader(dataset=train_dataset, 
+							  batch_size=args.batch_size, 
+							  shuffle=True)
+
+	valid_loader = DataLoader(dataset=val_dataset, 
+							  batch_size=args.batch_size, 
+							  shuffle=False)
 
 
-optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
-criterion = nn.CrossEntropyLoss()
+	model, optimizer, _ = training_loop(model, criterion, optimizer, \
+		train_loader, valid_loader, args.epochs, args.device, \
+		save_epochs=args.save_epochs)
 
-if args.kfolds > 1:
-	x_train = [x.unsqueeze(0) for x, y in train_dataset]
-	y_train = [y for x, y in train_dataset]
 
-	x_train = np.vstack(x_train)
-	y_train = np.array(y_train)
-	kfold =KFold(n_splits=args.kfolds)
-	
-	for fold_index, (train_index, test_index) in enumerate(kfold.split(x_train)):
-		print(f"fold_index:{fold_index}")
 
-		x_train_fold = torch.tensor(x_train[train_index])
-		y_train_fold = torch.tensor(y_train[train_index])
-		x_test_fold = torch.tensor(x_train[test_index])
-		y_test_fold = torch.tensor(y_train[test_index])
 
-		fold_train_dataset = TensorDataset(x_train_fold, y_train_fold)
-		fold_val_dataset = TensorDataset(x_test_fold, y_test_fold)
-		
-		train_loader = DataLoader(dataset=fold_train_dataset, 
-								  batch_size=BATCH_SIZE, 
-								  shuffle=True)
 
-		valid_loader = DataLoader(dataset=fold_val_dataset, 
-								  batch_size=BATCH_SIZE, 
-								  shuffle=False)
-		
-		
-		model, optimizer, _ = training_loop(model, criterion, optimizer, \
-			train_loader, valid_loader, N_EPOCHS, DEVICE, fold_index=fold_index, \
-			save_epochs=args.save_epochs)
+
