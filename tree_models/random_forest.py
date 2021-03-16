@@ -84,7 +84,7 @@ class WaveletsForestRegressor:
 		:X_raw: Non-normalized features, given as a 2D array with each row representing a sample.
 		:y: Labels, each row is given as a vertex on the simplex.
 		'''		
-		logging.info('Fitting %s samples' % np.shape(X_raw)[0])		
+		logging.info('Fitting %s samples' % np.shape(X_raw)[0])				
 		if type(X_raw) == np.ndarray:			
 			X = (X_raw - np.min(X_raw, 0))/(np.max(X_raw, 0) - np.min(X_raw, 0))
 			self.X = X
@@ -92,7 +92,7 @@ class WaveletsForestRegressor:
 			X = (X_raw - X_raw.min())/(X_raw.max() - X_raw.min())
 			self.X = X.cpu().numpy()
 
-		self.num_classes = y.max()+1		
+		self.num_classes = y.max()+1
 		self.y = self.from_label_to_one_hot_label(y)
 
 		regressor = None		
@@ -148,12 +148,10 @@ class WaveletsForestRegressor:
 			node_box[:, :, 1] = 1
 
 			norms = np.zeros(num_nodes)
-			vals = np.zeros((val_size, num_nodes))          
-			
-			# INTERSECTION: [LEFT, RIGHT, DOWN, UP]
-			rectangles = np.zeros((norms.shape[0], 4))			
+			vals = np.zeros((val_size, num_nodes))			
 			levels = np.zeros((norms.shape[0]))
-			self.__traverse_nodes(estimator, 0, node_box, norms, vals, rectangles, levels)			
+
+			self.__traverse_nodes(estimator, 0, node_box, norms, vals, levels)			
 
 			volumes = np.product(node_box[:, :, 1] - node_box[:, :, 0], 1)
 
@@ -191,53 +189,42 @@ class WaveletsForestRegressor:
 		else:
 			return tree_value[:, 0]
 
-	def __traverse_nodes(self, estimator, base_node_id, node_box, norms, vals, rectangles, levels):
+	def __traverse_nodes(self, estimator, base_node_id, node_box, norms, vals, levels):
 
 		if base_node_id == 0:
 			vals[:, base_node_id] = self.compute_average_score_from_tree(estimator.tree_.value[base_node_id])
-			norms[base_node_id] = self.__compute_norm(vals[:, base_node_id], 0, 1)
-			rectangles[base_node_id] = np.array([-2., 2., -2., 2.])			
+			norms[base_node_id] = self.__compute_norm(vals[:, base_node_id], 0, 1)			
 
 		left_id = estimator.tree_.children_left[base_node_id]
 		right_id = estimator.tree_.children_right[base_node_id]
 
 
 		if left_id >= 0:			
-			rectangles[left_id] = rectangles[base_node_id]
+			
 			levels[left_id] = levels[base_node_id] + 1
 			tree = estimator.tree_			
 			left_feature = tree.feature[base_node_id]
 			left_threshold = tree.threshold[base_node_id]
-			
-			if left_feature == 0:
-				rectangles[left_id][1] = left_threshold
-			else:				
-				rectangles[left_id][3] = left_threshold			
 
 			node_box[left_id, :, :] = node_box[base_node_id, :, :]			
 			node_box[left_id, estimator.tree_.feature[base_node_id], 1] = np.min(
 				[estimator.tree_.threshold[base_node_id], node_box[left_id, estimator.tree_.feature[base_node_id], 1]])
-			self.__traverse_nodes(estimator, left_id, node_box, norms, vals, rectangles, levels)
+			self.__traverse_nodes(estimator, left_id, node_box, norms, vals, levels)
 			vals[:, left_id] = self.compute_average_score_from_tree(estimator.tree_.value[left_id]) - \
 				self.compute_average_score_from_tree(estimator.tree_.value[base_node_id])
 			norms[left_id] = self.__compute_norm(vals[:, left_id], vals[:, base_node_id], 1)
 
 		if right_id >= 0:
-			rectangles[right_id] = rectangles[base_node_id]
+			
 			levels[right_id] = levels[base_node_id] + 1
 			tree = estimator.tree_
 			right_feature = tree.feature[base_node_id]
-			right_threshold = tree.threshold[base_node_id]
-			
-			if left_feature == 0:
-				rectangles[right_id][0] = right_threshold
-			else:
-				rectangles[right_id][2] = right_threshold
+			right_threshold = tree.threshold[base_node_id]			
 
 			node_box[right_id, :, :] = node_box[base_node_id, :, :]
 			node_box[right_id, estimator.tree_.feature[base_node_id], 0] = np.max(
 				[estimator.tree_.threshold[base_node_id], node_box[right_id, estimator.tree_.feature[base_node_id], 0]])
-			self.__traverse_nodes(estimator, right_id, node_box, norms, vals, rectangles, levels)
+			self.__traverse_nodes(estimator, right_id, node_box, norms, vals, levels)
 			vals[:, right_id] = self.compute_average_score_from_tree(estimator.tree_.value[right_id]) - \
 				self.compute_average_score_from_tree(estimator.tree_.value[base_node_id])
 			norms[right_id] = self.__compute_norm(vals[:, right_id], vals[:, base_node_id], 1)

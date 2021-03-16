@@ -42,7 +42,7 @@ def get_args():
 	parser.add_argument('--depth', default=15, type=int,help='Maximum depth of each tree.Use 0 for unlimited depth.')		
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
-	parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')		
+	parser.add_argument('--seed', type=int, default=2, metavar='S', help='random seed (default: 1)')		
 	parser.add_argument('--batch_size', type=int, default=256)
 	parser.add_argument('--env_name', type=str, default="mnist")
 	parser.add_argument('--checkpoints_folder', type=str, default=None)
@@ -88,7 +88,7 @@ def init_params():
 	data_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
 	torch.manual_seed(args.seed)
 	np.random.seed(args.seed)
-	addition = f"{args.env_name}_{args.trees}_{args.depth}_{args.high_range_epsilon}_{args.low_range_epsilon:.2f}"	
+	addition = f"{args.env_name}_{args.trees}_{args.depth}_{args.high_range_epsilon}_{args.low_range_epsilon:.2f}_{args.seed}"	
 	if args.output_folder is None:
 		args.output_folder = os.path.join(args.checkpoints_folder, "DL_Analysis")
 	else:		
@@ -227,8 +227,7 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 					alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
 						n_trees=args.trees, \
 						m_depth=args.depth, \
-						n_state=args.seed, normalize=False, \
-						norm_normalization=norm_normalization, error_TH=0., 
+						n_state=args.seed, norm_normalization=norm_normalization, 
 						text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
 						epsilon_1=args.high_range_epsilon, epsilon_2=args.low_range_epsilon)
 					

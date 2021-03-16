@@ -34,23 +34,25 @@ class mnist_1d_net(nn.Module):
         x = x.view(-1,1,x.shape[-1])
         out = self.conv1(x)
         out = self.activation(out)
-        out = self.bn_1(out)
+        # out = self.bn_1(out)
 
         out = self.conv2(out)
         out = self.activation(out)
-        out = self.bn_2(out)
+        # out = self.bn_2(out)
 
         out = self.conv3(out)
         out = self.activation(out)
-        out = self.bn_3(out)
+        # out = self.bn_3(out)
 
         out = self.conv4(out)
         out = self.activation(out)
-        out = self.bn_4(out)
+        # out = self.bn_4(out)
 
         out = self.conv5(out)
         out = self.activation(out)
-        out = self.bn_5(out)
-        out = out.view(out.shape[0], -1)           
+        # out = self.bn_5(out)
+
+        out = out.view(out.shape[0], -1)
+        # import pdb; pdb.set_trace()
 
         return self.linear(out)
