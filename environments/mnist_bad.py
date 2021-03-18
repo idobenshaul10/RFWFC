@@ -40,11 +40,11 @@ class mnist_bad(BaseEnviorment):
 
     def get_layers(self, model):
         feature_layers = np.array([module for module in \
-            model.feature_extractor.modules() if type(module) != nn.Sequential])
-        
-        feature_layers = list(feature_layers[[2, 5]])        
+            model.feature_extractor.modules() if type(module) != nn.Sequential])        
+        feature_layers = list(feature_layers[[2, 5]])
         layers = feature_layers + [model.FC_network, model.Second_Conv_network, model.second_FC_network]
         return layers
+
 
     def get_model(self, **kwargs):
         model = LeNet5_Bad(**kwargs)

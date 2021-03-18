@@ -3,16 +3,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import logging
 from tqdm import tqdm
-from sklearn import metrics
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.model_selection import KFold
 import sys
 from tree_models.random_forest import WaveletsForestRegressor
 import torchvision
-
-def normalize_data(x_raw):		
-	x = (x_raw - x_raw.mean())/x_raw.std()	
-	return x
 
 def train_model(x, y, mode='regression', trees=5, depth=9, features='auto',
 				state=2000, nnormalization='volume'):
@@ -39,12 +32,3 @@ def run_alpha_smoothness(X, y, t_method='RF', n_trees=1, m_depth=9,
 
 	logging.log(60, 'ALPHA SMOOTHNESS over X: ' + str(alpha))
 	return alpha, -1, -1, norm_m_term, model
-
-
-
-if __name__ == '__main__':    
-	from sklearn.datasets import make_moons, make_circles, make_classification
-	X, y = make_classification(n_features=2, n_redundant=0, n_informative=2,
-						   random_state=1, n_clusters_per_class=1)
-
-	import pdb; pdb.set_trace()

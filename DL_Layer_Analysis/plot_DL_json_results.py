@@ -16,7 +16,7 @@ import seaborn as sns
 import matplotlib.gridspec as gridspec
 import copy
 import seaborn as sns
-# USAGE: python .\DL_Layer_Analysis\plot_DL_json_results.py --main_dir C:\projects\RFWFC\results\mnist
+#USAGE: python .\DL_Layer_Analysis\plot_DL_json_results.py --main_dir C:\projects\RFWFC\results\mnist
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Network Smoothness Script')	
@@ -44,14 +44,12 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 		
 		axes[0].set_ylabel(r'$\alpha$'+'-score')
 		axes[1].set_xticks([])
-		axes[0].set_xticks([-1, 0, 1, 2, 3, 4, 5, 6] )#, minor=False)
-		# axes[0].set_xticklabels([0, 1, 2, 3, 4, 5, 6] )#, minor=False)
+		axes[0].set_xticks([-1, 0, 1, 2, 3, 4, 5, 6] )		
 		axes[1].set_ylabel('Test Accuracy')
 
 		axes[0].set_title(f"Comparing " + r'$\alpha$' + "-scores on MNIST 1D, Bad Activation")
 		axes[0].set_xlabel("Layers")
-		axes[1].set_title("Test Accuracy Scores")
-		# axes[1].set_ylim(0.5, 1.)
+		axes[1].set_title("Test Accuracy Scores")		
 
 		if use_clustering:
 			axes[2].set_title("Clustering Statistics")
@@ -121,8 +119,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 
 		if test_stats is not None and plot_test:
 			test_results.append([test_stats['top_1_accuracy']])
-			axes[1].bar(idx*width, [test_stats['top_1_accuracy']], width, label=str(epoch), color=colors[idx%len(colors)])
-			# axes[1].bar(idx*width, [test_stats['top_1_accuracy']], width, label=labels[idx], color=colors[idx%len(colors)])
+			axes[1].bar(idx*width, [test_stats['top_1_accuracy']], width, label=str(epoch), color=colors[idx%len(colors)])			
 
 		lines = ["-","--","-.",":", "-*", "-+"]
 		linecycler = cycle(lines)

@@ -123,6 +123,7 @@ class WaveletsForestRegressor:
 			rf = regressor.fit(self.X, self.y.ravel())
 		except Exception as e:
 			rf = regressor.fit(self.X, self.y)
+			
 		self.rf = rf
 
 		try:
@@ -228,6 +229,7 @@ class WaveletsForestRegressor:
 			vals[:, right_id] = self.compute_average_score_from_tree(estimator.tree_.value[right_id]) - \
 				self.compute_average_score_from_tree(estimator.tree_.value[base_node_id])
 			norms[right_id] = self.__compute_norm(vals[:, right_id], vals[:, base_node_id], 1)
+
 
 	def predict(self, X, m=10, start_m=0, paths=None):
 		'''
@@ -336,44 +338,5 @@ class WaveletsForestRegressor:
 			plt.clf()
 		
 		return alphas
-
-	def save_wavelet_norms(self, dir_path=''):
-		mask = np.ones(len(self.norms), dtype=bool)
-		mask[self.root_nodes] = False
-		norms = self.norms[mask]
-		
-		def convert(o):
-			if isinstance(o, np.generic): return o.item()
-			raise TypeError
-
-		if not os.path.isdir(dir_path):
-			print(f"directory {dir_path} does not exist!")
-			exit()
-		
-		json_file_name = "wavelet_norms.json"
-		write_data = {}		
-		write_data['norms'] = norms
-		write_data['num_trees'] = len(self.rf.estimators_)
-		norms_path = os.path.join(dir_path, json_file_name)
-		with open(norms_path, "w+") as f:
-			json.dump(write_data, f, default=convert)
-		print(f"saved norms to:{norms_path}")
-
-	def accuracy(self, y_pred, y):
-		'''
-		Evaluates accuracy given predictions and actual labels.
-
-		:y_pred: Predictions as vertices on the simplex (preprocessed by 'pred_to_one_hot').
-		:y: Actual labels.
-		:return: Accuracy.
-		'''
-		return accuracy_score(y, y_pred)
-
-	def pred_to_one_hot(self, y_pred):
-		'''
-		Converts regression predictions to their closest vertices on the simplex
-		'''
-		argmax = np.argmax(y_pred, 1)
-		ret = np.zeros((len(argmax), np.shape(y_pred)[1]))
-		ret[np.arange(len(argmax)), argmax] = 1
-		return ret
+	
+	
