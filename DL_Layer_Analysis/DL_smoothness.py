@@ -22,7 +22,7 @@ import os, sys, inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
-from clustering import kmeans_cluster, get_clustering_statistics
+
 from utils.utils import *
 import time
 import json
@@ -31,12 +31,14 @@ import cv2
 from torch.utils.data import TensorDataset, DataLoader
 import glob
 import pickle
-from get_dim_reduction import get_dim_reduction
+from DL_Layer_Analysis.clustering import kmeans_cluster, get_clustering_statistics
+from DL_Layer_Analysis.get_dim_reduction import get_dim_reduction
+
 #  python .\DL_smoothness.py --env_name mnist --checkpoint_path "C:\projects\RFWFC\results\trained_models\weights.80.h5" --use_clustering
 
 ion()
 
-def get_args():
+def get_args():	
 	parser = argparse.ArgumentParser(description='Network Smoothness Script')	
 	parser.add_argument('--trees',default=1,type=int,help='Number of trees in the forest.')	
 	parser.add_argument('--depth', default=15, type=int,help='Maximum depth of each tree.Use 0 for unlimited depth.')		
@@ -44,37 +46,40 @@ def get_args():
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
 	parser.add_argument('--seed', type=int, default=2, metavar='S', help='random seed (default: 1)')		
 	parser.add_argument('--batch_size', type=int, default=256)
-	parser.add_argument('--env_name', type=str, default="mnist")
+	parser.add_argument('--env_name', type=str, default="mnist_1d_env")
 	parser.add_argument('--checkpoints_folder', type=str, default=None)
 	parser.add_argument('--high_range_epsilon', type=float, default=0.1)
 	parser.add_argument('--create_umap', action='store_true', default=False)
 	parser.add_argument('--use_clustering', action='store_true', default=False)
-	parser.add_argument('--calc_test', action='store_true', default=False)
-	parser.add_argument('--output_folder', type=str, default=None)
-	parser.add_argument('--checkpoint_file_name', type=str, default="weights.best.h5")
+	parser.add_argument('--calc_test', action='store_true', default=False)	
+	parser.add_argument('--output_folder', type=str, default=None)	
 	parser.add_argument('--feature_dimension', default=100000, type=int, \
 		help='wanted feature dimension')
-
+	parser.add_argument('--checkpoint_file_name', type=str, default="weights.best.h5")
 	args = parser.parse_args()
 	args.low_range_epsilon = 4*args.high_range_epsilon
 	return args
 
-def init_params():	
-	args = get_args()
+def init_params(args=None):	
+	if args is None:
+		args = get_args()
+
 	args.batch_size = args.batch_size
-	args.use_cuda = torch.cuda.is_available()
+	args.use_cuda = torch.cuda.is_available()	
+	print(args)
 
 	m = '.'.join(['environments', args.env_name])
 	module = importlib.import_module(m)
 	dict_input = vars(args)
 
-	environment = eval(f"module.{args.env_name}()")		
-
+	environment = eval(f"module.{args.env_name}()")
+	
+	
 	params_path = os.path.join(args.checkpoints_folder, 'args.p')
 	if os.path.isfile(params_path):
 		params = vars(pickle.load(open(params_path, 'rb')))
 
-	__, dataset, test_dataset, __ = environment.load_enviorment()
+	__, dataset, test_dataset, __ = environment.load_enviorment()	
 	
 	checkpoint_path = os.path.join(args.checkpoints_folder, args.checkpoint_file_name)
 	model = environment.get_model(**params)
@@ -93,6 +98,7 @@ def init_params():
 		args.output_folder = os.path.join(args.checkpoints_folder, "DL_Analysis")
 	else:		
 		args.output_folder = args.output_folder
+	
 	if not os.path.isdir(args.output_folder):	
 		os.mkdir(args.output_folder)
 
@@ -116,7 +122,7 @@ def get_activation(name, args):
 				pass		
 	return hook
 
-def save_alphas_plot(args, alphas, sizes, test_stats=None, clustering_stats=None):
+def save_alphas_plot(args, alphas, sizes, test_stats=None, clustering_stats=None, save_to_file=False):
 	plt.figure(1)
 	plt.clf()
 	if type(alphas) == list:
@@ -136,8 +142,8 @@ def save_alphas_plot(args, alphas, sizes, test_stats=None, clustering_stats=None
 	plt.xlabel(f'Layer\n\n{acc_txt}')
 	plt.ylabel(f'evaluate_smoothnes index- alpha')
 
-	save_graph=True
-	if save_graph:
+	
+	if save_to_file:
 		save_path = os.path.join(args.output_folder, "result.png")
 		print(f"save_path:{save_path}")
 		plt.savefig(save_path, \
@@ -147,15 +153,18 @@ def save_alphas_plot(args, alphas, sizes, test_stats=None, clustering_stats=None
 		if isinstance(o, np.generic): return o.item()
 		raise TypeError
 
-	json_file_name = os.path.join(args.output_folder, "result.json")
+	json_file_name = os.path.join("result.json")
 	write_data = {}
 	write_data['alphas'] = [tuple(k) for k in alphas]
 	write_data['sizes'] = sizes
 	write_data['test_stats'] = test_stats
 	write_data['clustering_stats'] = clustering_stats
-	norms_path = os.path.join(args.output_folder, json_file_name)	
-	with open(norms_path, "w+") as f:
-		json.dump(write_data, f, default=convert)
+
+	if save_to_file:		
+		norms_path = os.path.join(args.output_folder, json_file_name)	
+		with open(norms_path, "w+") as f:
+			json.dump(write_data, f, default=convert)
+	return write_data
 
 def get_top_1_accuracy(model, data_loader, device):	
 	softmax = nn.Softmax(dim=1)
@@ -180,6 +189,7 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 
 	sizes, alphas = [], []
 	clustering_stats = defaultdict(list)
+	total_num_layers = len(layers) + 1
 	with torch.no_grad():				
 		for k in [-1] + list(range(len(layers))):
 			layer_str = 'layer'
@@ -233,7 +243,8 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 					
 					print(f"ALPHA for LAYER {k} is {np.mean(alpha_index)}")
 					if args.use_clustering:
-						kmeans = kmeans_cluster(X, Y, False, args.output_folder, f"layer_{k}")
+						kmeans = kmeans_cluster(X, Y, visualize=False, \
+							output_folder=args.output_folder, layer_str=f"layer_{k}")
 						clustering_stats[k] = get_clustering_statistics(X, Y, kmeans)
 
 					sizes.append(k)
@@ -242,7 +253,12 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 					print(f"error: {error}, skipping layer:{k}")
 
 			else:
-				kmeans_cluster(X, Y, True, args.output_folder, f"layer_{k}")
+				if k == -1:
+					fig = plt.figure(figsize=(20, 16))
+				kmeans_cluster(X, Y,total_num_layers=total_num_layers, \
+					visualize=True, output_folder=args.output_folder, \
+					layer_str=f"{k}", fig=fig, save_graph=True)
+	plt.show()
 
 	if not args.create_umap:	
 		test_stats = None
@@ -253,9 +269,9 @@ def run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loa
 			device = 'cuda' if args.use_cuda else 'cpu'
 			test_accuracy = get_top_1_accuracy(model, test_loader, device)
 			test_stats['top_1_accuracy'] = np.mean(test_accuracy)
-		save_alphas_plot(args, alphas, sizes, test_stats, clustering_stats)
+		return save_alphas_plot(args, alphas, sizes, test_stats, clustering_stats, save_to_file=True)
 
 if __name__ == '__main__':
-	args, model, dataset, test_dataset, layers, data_loader = init_params()	
+	args, model, dataset, test_dataset, layers, data_loader = init_params()
 	run_smoothness_analysis(args, model, dataset, test_dataset, layers, data_loader)
 

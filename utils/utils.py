@@ -30,5 +30,4 @@ def run_alpha_smoothness(X, y, t_method='RF', n_trees=1, m_depth=9,
 	alpha = model.evaluate_angle_smoothness(text=text, \
 		output_folder=output_folder, epsilon_1=epsilon_1, epsilon_2=epsilon_2)	
 
-	logging.log(60, 'ALPHA SMOOTHNESS over X: ' + str(alpha))
 	return alpha, -1, -1, norm_m_term, model

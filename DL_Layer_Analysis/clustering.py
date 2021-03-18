@@ -22,13 +22,17 @@ import json
 import umap
 import pickle
 
-def kmeans_cluster(X, Y, visualize=False, output_folder=None, layer_str="", sample_size=3000):
+def kmeans_cluster(X, Y, total_num_layers=-1, visualize=False, output_folder=None, layer_str="", \
+		sample_size=3000, save_graph=False, fig=None):
+	plt.clf()
+	plt.figure(num=None, figsize=(8, 6))
 	np.random.seed(2)
 	k = len(np.unique(Y))
 	print(f"Fitting k means with k={k}")
 	kmeans = KMeans(n_clusters=k, random_state=0).fit(X)
 	save_path = os.path.join(output_folder, f"{layer_str}.p")
-	pickle.dump(kmeans, open(save_path, "wb"))
+	if save_graph:
+		pickle.dump(kmeans, open(save_path, "wb"))
 	if not visualize:		
 		return kmeans
 	predicted_labels = kmeans.labels_
@@ -41,9 +45,9 @@ def kmeans_cluster(X, Y, visualize=False, output_folder=None, layer_str="", samp
 	predicted_labels = predicted_labels[indices]	
 	
 	embedding_train = reducer.fit_transform(X)
-	print(f"Done fitting umap")
+	print(f"Done fitting umap")	
 	
-	fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=(12, 10))
+	ax = fig.add_subplot(total_num_layers//2, (2+total_num_layers%2), int(layer_str)+2)
 	scatter = ax.scatter(
 		embedding_train[:, 0], embedding_train[:, 1], c=predicted_labels, cmap="Spectral" , s=0.5
 	)
@@ -51,16 +55,15 @@ def kmeans_cluster(X, Y, visualize=False, output_folder=None, layer_str="", samp
 			loc="lower left", title="Classes")
 
 	plt.setp(ax, xticks=[], yticks=[])	
-	plt.suptitle(f"UMAP of Clustering for {layer_str}", fontsize=18)	
-	ax.set_xlabel(f"clustering inertia:{kmeans.inertia_}")
-	save_graph=True
+	plt.suptitle(f"UMAP of Clustering for {layer_str}", fontsize=18)
+	ax.set_xlabel(f"layer:{layer_str}")
+
 	if save_graph:
 		save_path = os.path.join(output_folder, f"{layer_str}.png")
 		print(f"save_path:{save_path}")
 		plt.savefig(save_path, \
 			dpi=300, bbox_inches='tight')
-
-	plt.clf()
+	
 	return kmeans
 
 def get_clustering_statistics(X, Y, kmeans):

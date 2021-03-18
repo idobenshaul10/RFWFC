@@ -33,7 +33,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 			gs = gridspec.GridSpec(1, 2, width_ratios=[10, 1])
 			axes = [None, None]
 		else:
-			fig, axes = plt.subplots(1, 3)
+			fig, axes = plt.subplots(1, 3, figsize=(12, 10))
 			gs = gridspec.GridSpec(1, 3, width_ratios=[10, 1, 10])
 			axes = [None, None, None]	
 			axes[2] = plt.subplot(gs[2])
@@ -70,14 +70,9 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 		except Exception as e:
 			print(f"error:{e}")
 		
-	clustering_stats = None	
-
-
-	# colors = ["#2bc2cb", "#1b374d", "#ee4f2f", "#fba720", "blue", "green", "yellow", "brown", "purple"]
-	colors = sns.color_palette("inferno", 6)
-	# labels = ['VGG11', 'VGG13', 'VGG16', 'VGG19']
-	# labels = ['VGG16', 'Googlenet','resnet18', 'densenet121', 'resnet50', 'resnet101']
-	# labels = ['ReLU', 'Tanh_4', 'Tanh_3', 'Tanh_2', 'Tanh_1']
+	clustering_stats = None
+	colors = sns.color_palette("pastel", 20)
+	
 
 	test_results = []
 	handles = []
@@ -85,11 +80,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 
 	for idx, file_path in enumerate(file_paths):
 		file_path = str(file_path)
-		# epoch = file_path.split('\\')[-2].split('.')[-2]
-		epoch = str(file_path).split('/')[-5]
-		# if int(epoch) > 50:
-		# 	continue
-		# eps = file_path.split('\\')[-element].split('.')[1]
+		epoch = str(file_path).split('/')[-2]		
 		
 		with open(file_path, "r+") as f:			
 			result = json.load(f)
@@ -109,12 +100,10 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 			clustering_stats = result['clustering_stats']
 		if add_fill:
 			axes[0].fill_between(sizes, [k[0] for k in alphas], [k[-1] for k in alphas], \
-				alpha=0.2, linewidth=4)		
-
-		# axes[0].plot(sizes, [np.array(k).mean()	 for k in alphas], label=labels[idx], color=colors[idx%len(colors)])
+				alpha=0.2, linewidth=4)
+		
 		values = [np.array(k).mean()	 for k in alphas]
-		print(values)
-		# axes[0].plot(sizes, values, label=labels[idx], color=colors[idx%len(colors)])
+		print(values)		
 		axes[0].plot(sizes, values, label=epoch, color=colors[idx%len(colors)])
 
 		if test_stats is not None and plot_test:
@@ -148,4 +137,4 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 
 if __name__ == '__main__':
 	args = get_args()	
-	plot_epochs(args.main_dir, args.checkpoints, plot_test=True, add_fill=False)
+	plot_epochs(args.main_dir, args.checkpoints, plot_test=True, add_fill=True)
