@@ -9,7 +9,6 @@ from torch.optim.lr_scheduler import StepLR
 from sklearn import tree, linear_model, ensemble
 import sklearn.metrics as metrics
 from sklearn.utils import shuffle
-from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot, ion, show
 import importlib
@@ -80,10 +79,7 @@ def get_clustering_statistics(X, Y, kmeans):
 		print(f'{k}:{v}')
 	return metrics_results
 
-if __name__ == '__main__':
-	# N = 20
-	# X = np.random.rand(N, 20)
-	# Y = np.random.randint(0, 10, (N, 1)) 
+if __name__ == '__main__':	
 
 	from sklearn.datasets import make_blobs
 	X, Y = make_blobs(n_samples=5000, centers=10, n_features=200, random_state=0)
