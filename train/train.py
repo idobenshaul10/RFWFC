@@ -23,16 +23,16 @@ from tqdm import tqdm
 from utils.utils import visualize_augmentation
 from datetime import datetime
 import importlib
-from sklearn.model_selection import KFold
+from sklearn.model_selection import train_test_split
 from shutil import copyfile
 from pathlib import Path
 import pickle
+import random
 
 # USAGE:  python .\train\train_mnist.py --output_path "C:\projects\RFWFC\results\trained_models\mnist\normal\" --batch_size 32 --epochs 100
 parser = argparse.ArgumentParser(description='train lenet5 on mnist dataset')
 parser.add_argument('--output_path', default=r"C:\projects\DL_Smoothness_Results\trained_models", 
 	help='output_path for checkpoints')
-parser.add_argument('--seed', default=0, type=int, help='seed')
 parser.add_argument('--lr', default=0.001, type=float, help='lr for train')
 parser.add_argument('--batch_size', default=32, type=int, help='batch_size for train/test')
 parser.add_argument('--epochs', default=100, type=int, help='num epochs for train')
@@ -46,13 +46,12 @@ parser.add_argument('--save_epochs', action="store_true")
 
 args, _ = parser.parse_known_args()
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-RANDOM_SEED = args.seed
 LEARNING_RATE = args.lr
 BATCH_SIZE = args.batch_size
 N_EPOCHS = args.epochs
 ENRICH_FACTOR = args.enrich_factor
 softmax = nn.Softmax(dim=1)
-torch.manual_seed(RANDOM_SEED)
+
 
 m = '.'.join(['environments', args.env_name])
 module = importlib.import_module(m)
@@ -198,9 +197,6 @@ def training_loop(model, criterion, optimizer, train_loader, valid_loader, \
 				if valid_acc > best_val_acc:
 					best_val_acc = valid_acc
 					save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc)
-				# if epoch == 20:					
-				# 	save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc)
-
 			else:
 				if epoch % 10 == 0:
 					save_epoch(output_path, epoch, fold_index, model, train_acc, valid_acc, epoch_checkpoint=True)
@@ -221,35 +217,32 @@ if args.enrich_dataset:
 
 optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 criterion = nn.CrossEntropyLoss()
+x_train = np.vstack([x.unsqueeze(0) for x, y in train_dataset])
+y_train = np.array([y for _, y in train_dataset])
 
-if args.kfolds > 1:
-	x_train = [x.unsqueeze(0) for x, y in train_dataset]
-	y_train = [y for x, y in train_dataset]
+x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, \
+	test_size=0.2, random_state=0)
 
-	x_train = np.vstack(x_train)
-	y_train = np.array(y_train)
-	kfold =KFold(n_splits=args.kfolds)
+x_train, x_val = torch.tensor(x_train), torch.tensor(x_val)
+y_train, y_val = torch.tensor(y_train), torch.tensor(y_val)
+
+train_dataset = TensorDataset(x_train, y_train)
+val_dataset = TensorDataset(x_val, y_val)
+
+for fold_index in range(args.kfolds):
+	print(f"fold_index:{fold_index}")
+	torch.manual_seed(fold_index)
+	random.seed(fold_index)
+	np.random.seed(fold_index)	
 	
-	for fold_index, (train_index, test_index) in enumerate(kfold.split(x_train)):
-		print(f"fold_index:{fold_index}")
+	train_loader = DataLoader(dataset=train_dataset, 
+							  batch_size=BATCH_SIZE, 
+							  shuffle=True)
 
-		x_train_fold = torch.tensor(x_train[train_index])
-		y_train_fold = torch.tensor(y_train[train_index])
-		x_test_fold = torch.tensor(x_train[test_index])
-		y_test_fold = torch.tensor(y_train[test_index])
-
-		fold_train_dataset = TensorDataset(x_train_fold, y_train_fold)
-		fold_val_dataset = TensorDataset(x_test_fold, y_test_fold)
-		
-		train_loader = DataLoader(dataset=fold_train_dataset, 
-								  batch_size=BATCH_SIZE, 
-								  shuffle=True)
-
-		valid_loader = DataLoader(dataset=fold_val_dataset, 
-								  batch_size=BATCH_SIZE, 
-								  shuffle=False)
-		
-		
-		model, optimizer, _ = training_loop(model, criterion, optimizer, \
-			train_loader, valid_loader, N_EPOCHS, DEVICE, fold_index=fold_index, \
-			save_epochs=args.save_epochs)
+	valid_loader = DataLoader(dataset=val_dataset, 
+							  batch_size=BATCH_SIZE, 
+							  shuffle=False)	
+	
+	model, optimizer, _ = training_loop(model, criterion, optimizer, \
+		train_loader, valid_loader, N_EPOCHS, DEVICE, fold_index=fold_index, \
+		save_epochs=args.save_epochs)

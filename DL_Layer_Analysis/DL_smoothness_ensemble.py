@@ -86,11 +86,9 @@ def init_params():
 	for idx, fold in enumerate(sorted(folds)):
 		checkpoint_path = os.path.join(fold, args.checkpoint_file_name)
 		cur_model = environment.get_model(**params)
-		checkpoint = torch.load(checkpoint_path)['checkpoint']
-		# try:
+		checkpoint = torch.load(checkpoint_path)['checkpoint']		
 		cur_model.load_state_dict(checkpoint)
-		# except:			
-		# 	cur_model.model.load_state_dict(checkpoint)
+		
 		if torch.cuda.is_available():
 			cur_model = cur_model.cuda()
 		models.append(cur_model)
@@ -218,53 +216,52 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 				X = torch.cat([data for (data, target) in tqdm(data_loader)]).detach()
 				X = X.view(X.shape[0], -1)
 			else:
-				result = None				
+				result = None
+				Y = np.array(Y).reshape(-1, 1)
+				X = np.array(X).squeeze()
+
+				alpha_index = []
 				for model_idx, model in tqdm(enumerate(models), total=len(models)):
 					handle = layers[model_idx][k].register_forward_hook(get_activation(layer_name, args))
 					for i, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):	
 						if args.use_cuda:
 							data = data.cuda()		
 						model(data)
-						del data
-						# print(activation[list(activation.keys())[0]].shape)
+						del data						
 
 					cur_X = activation[list(activation.keys())[0]]
-					if result is None:
-						result = cur_X.cpu().numpy()
-					else:
-						result += cur_X.cpu().numpy()					
+					result = cur_X.cpu().numpy()					
 					handle.remove()
 					del cur_X
-					del activation[layer_name]				
+					del activation[layer_name]
 				
-				X = result/len(models)
+					features = result
 				
 			
-			start = time.time()
-			Y = np.array(Y).reshape(-1, 1)			
-			X = np.array(X).squeeze()
+					start = time.time()
+					print(f"features.shape:{features.shape}, Y shape:{Y.shape}")
+					assert(Y.shape[0] == features.shape[0])		
 
-			print(f"X.shape:{X.shape}, Y shape:{Y.shape}")
-			assert(Y.shape[0] == X.shape[0])		
+					if not args.create_umap:
+						cur_alpha_index, __, __, __, __ = run_alpha_smoothness(features, Y, t_method="WF", \
+							num_wavelets=N_wavelets, n_trees=args.trees, \
+							m_depth=args.depth, \
+							n_state=args.seed, normalize=False, \
+							norm_normalization=norm_normalization, error_TH=0., 
+							text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
+							epsilon_1=args.high_range_epsilon, epsilon_2=args.low_range_epsilon)
+						
+						print(f"ALPHA for LAYER {k}, model:{model_idx} is {np.mean(cur_alpha_index)}")
+						alpha_index.append(cur_alpha_index)
 
-			if not args.create_umap:
-				alpha_index, __, __, __, __ = run_alpha_smoothness(X, Y, t_method="WF", \
-					num_wavelets=N_wavelets, n_trees=args.trees, \
-					m_depth=args.depth, \
-					n_state=args.seed, normalize=False, \
-					norm_normalization=norm_normalization, error_TH=0., 
-					text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
-					epsilon_1=args.high_range_epsilon, epsilon_2=args.low_range_epsilon)
-				
-				print(f"ALPHA for LAYER {k} is {np.mean(alpha_index)}")
-				if args.use_clustering:
-					kmeans = kmeans_cluster(X, Y, False, args.output_folder, f"layer_{k}")
-					clustering_stats[k] = get_clustering_statistics(X, Y, kmeans)
+						if args.use_clustering:
+							kmeans = kmeans_cluster(features, Y, False, args.output_folder, f"layer_{k}")
+							clustering_stats[k].append(get_clustering_statistics(X, Y, kmeans))						
+					else:
+						kmeans_cluster(X, Y, True, args.output_folder, f"layer_{k}")
 
-				sizes.append(k)
-				alphas.append(alpha_index)
-			else:
-				kmeans_cluster(X, Y, True, args.output_folder, f"layer_{k}")
+			sizes.append(k)
+			alphas.append(alpha_index)
 
 	if not args.create_umap:	
 		test_stats = None
