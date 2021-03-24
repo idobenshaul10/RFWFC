@@ -37,7 +37,7 @@ parser.add_argument('--lr', default=0.001, type=float, help='lr for train')
 parser.add_argument('--batch_size', default=32, type=int, help='batch_size for train/test')
 parser.add_argument('--epochs', default=100, type=int, help='num epochs for train')
 parser.add_argument('--env_name', type=str, default="mnist")
-parser.add_argument('--kfolds', default=5, type=int, help='number of folds for cross-validation')
+parser.add_argument('--kfolds', default=3, type=int, help='number of folds for cross-validation')
 parser.add_argument('--enrich_factor', default=1., type=float, help='num categories in output of model')
 parser.add_argument('--enrich_dataset', action="store_true", help='if True, will show sample images from DS')
 parser.add_argument('--visualize_dataset', action="store_true", help='if True, will show sample images from DS')
@@ -70,35 +70,6 @@ model_path = os.path.join(path.parents[1], 'models', f"{type(model).__name__}.py
 copyfile(model_path, os.path.join(output_path, "model.py"))
 print(f"Begining train, args:{args}")
 pickle.dump(args, open(os.path.join(output_path, "args.p"), "wb"))
-
-AUG = A.Compose({
-	A.Resize(32, 32),	
-	# A.HorizontalFlip(p=0.5),
-	A.Rotate(limit=(-25, 25)),
-	# A.VerticalFlip(p=0.5),
-	# A.Normalize((0.5), (0.5))
-	A.OpticalDistortion()
-})
-
-def transform(image):		
-	image = AUG(image=np.array(image))['image']		
-	image = torch.tensor(image, dtype=torch.float)	
-	return image
-
-def enrich_dataset(dataset, factor=1.):
-	new_dataset_size = int(len(dataset) * factor)		
-	indices = np.random.choice(len(dataset), new_dataset_size)
-	transformed_images = []
-	for index in tqdm(indices):
-		image = dataset[index][0]
-		image = transform(image)/255.
-		transformed_images.append(image.view(1, 1, 32, 32))
-
-	labels = [dataset[i][1] for i in indices]		
-	labels = torch.tensor(labels)		
-	transformed_images = torch.cat(transformed_images)		
-	new_dataset = TensorDataset(transformed_images, labels)
-	return new_dataset
 
 def train(train_loader, model, criterion, optimizer, device):
 	model.train()
@@ -214,8 +185,6 @@ if args.enrich_dataset:
 			to_show_images.append(image)
 		visualize_augmentation(to_show_images)
 
-
-optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 criterion = nn.CrossEntropyLoss()
 x_train = np.vstack([x.unsqueeze(0) for x, y in train_dataset])
 y_train = np.array([y for _, y in train_dataset])
@@ -231,9 +200,15 @@ val_dataset = TensorDataset(x_val, y_val)
 
 for fold_index in range(args.kfolds):
 	print(f"fold_index:{fold_index}")
+	
 	torch.manual_seed(fold_index)
 	random.seed(fold_index)
-	np.random.seed(fold_index)	
+	np.random.seed(fold_index)
+
+	model, _, _, _ = environment.load_enviorment(**dict_input)
+	optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+
+	
 	
 	train_loader = DataLoader(dataset=train_dataset, 
 							  batch_size=BATCH_SIZE, 
