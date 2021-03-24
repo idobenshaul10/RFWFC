@@ -40,7 +40,7 @@ ion()
 
 def get_args():
 	parser = argparse.ArgumentParser(description='Network Smoothness Script')	
-	parser.add_argument('--trees',default=1,type=int,help='Number of trees in the forest.')	
+	parser.add_argument('--trees',default=3,type=int,help='Number of trees in the forest.')	
 	parser.add_argument('--depth', default=15, type=int,help='Maximum depth of each tree.Use 0 for unlimited depth.')		
 	parser.add_argument('--criterion',default='gini',help='Splitting criterion.')
 	parser.add_argument('--bagging',default=0.8,type=float,help='Bagging. Only available when using the "decision_tree_with_bagging" regressor.')
@@ -197,6 +197,9 @@ def enrich_dataset(X, Y, factor=1.5):
 	X, Y = np.row_stack((transformed)), np.array(transformed_labels)
 	return X, Y
 
+
+
+
 def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_loader):	
 	Y = torch.cat([target for (data, target) in tqdm(data_loader)]).detach()	
 	N_wavelets = 10000
@@ -205,6 +208,8 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 		model.eval()
 	sizes, alphas = [], []
 	clustering_stats = defaultdict(list)
+	X = torch.cat([data for (data, target) in tqdm(data_loader)]).detach()
+
 	with torch.no_grad():
 		# for k in list(range(len(layers[0]))):
 		for k in [-1] + list(range(len(layers[0]))):
@@ -213,8 +218,27 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 			layer_name = f'layer_{k}'
 
 			if k == -1:
-				X = torch.cat([data for (data, target) in tqdm(data_loader)]).detach()
-				X = X.view(X.shape[0], -1)
+				Y = np.array(Y).reshape(-1, 1)
+				features = X.view(X.shape[0], -1)
+				features = np.array(features).squeeze()			
+				cur_alpha_index, __, __, __, __ = run_alpha_smoothness(features, Y, t_method="WF", \
+					num_wavelets=N_wavelets, n_trees=args.trees, \
+					m_depth=args.depth, \
+					n_state=args.seed, normalize=False, \
+					norm_normalization=norm_normalization, error_TH=0., 
+					text=f"layer_{k}_{layer_str}", output_folder=args.output_folder, 
+					epsilon_1=args.high_range_epsilon, epsilon_2=args.low_range_epsilon)
+				
+				print(f"ALPHA for LAYER {k}, is {np.mean(cur_alpha_index)}")
+				alpha_index = []
+				for i in range(len(models)):
+					alpha_index.append(cur_alpha_index)
+
+
+				if args.use_clustering:
+					kmeans = kmeans_cluster(features, Y, False, args.output_folder, f"layer_{k}")
+					clustering_stats[k].append(get_clustering_statistics(X, Y, kmeans))
+
 			else:
 				result = None
 				Y = np.array(Y).reshape(-1, 1)
@@ -256,7 +280,7 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 
 						if args.use_clustering:
 							kmeans = kmeans_cluster(features, Y, False, args.output_folder, f"layer_{k}")
-							clustering_stats[k].append(get_clustering_statistics(X, Y, kmeans))						
+							clustering_stats[k].append(get_clustering_statistics(X, Y, kmeans))
 					else:
 						kmeans_cluster(X, Y, True, args.output_folder, f"layer_{k}")
 
