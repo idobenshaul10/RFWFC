@@ -127,39 +127,43 @@ def get_activation(name, args):
 	return hook
 
 def save_alphas_plot(args, alphas, sizes, test_stats=None, clustering_stats=None):
-	plt.figure(1)
-	plt.clf()
-	if type(alphas) == list:
-		plt.fill_between(sizes, [k[0] for k in alphas], [k[-1] for k in alphas], \
-			alpha=0.2, facecolor='#089FFF', \
-			linewidth=4)
-		plt.plot(sizes, [np.array(k).mean()	 for k in alphas], 'k', color='#1B2ACC')
-	else:
-		plt.plot(sizes, alphas, 'k', color='#1B2ACC')
-
-	plt.title(f"{args.env_name} Angle Smoothness")
-	
-	acc_txt = ''
-	if test_stats is not None and 'top_1_accuracy' in test_stats:
-		acc_txt = f"TEST Top1-ACC {test_stats['top_1_accuracy']}"
-		
-	plt.xlabel(f'Layer\n\n{acc_txt}')
-	plt.ylabel(f'evaluate_smoothnes index- alpha')
-
-	save_graph=True
+	save_graph=False
 	if save_graph:
+	
+		plt.figure(1)
+		plt.clf()
+		if type(alphas) == list:
+			plt.fill_between(sizes, [k[0] for k in alphas], [k[-1] for k in alphas], \
+				alpha=0.2, facecolor='#089FFF', \
+				linewidth=4)
+			plt.plot(sizes, [np.array(k).mean()	 for k in alphas], 'k', color='#1B2ACC')
+		else:
+			plt.plot(sizes, alphas, 'k', color='#1B2ACC')
+
+		plt.title(f"{args.env_name} Angle Smoothness")
+		
+		acc_txt = ''
+		if test_stats is not None and 'top_1_accuracy' in test_stats:
+			acc_txt = f"TEST Top1-ACC {test_stats['top_1_accuracy']}"
+			
+		plt.xlabel(f'Layer\n\n{acc_txt}')
+		plt.ylabel(f'evaluate_smoothnes index- alpha')
+
+	
 		save_path = os.path.join(args.output_folder, "result.png")
 		print(f"save_path:{save_path}")
 		plt.savefig(save_path, \
 			dpi=300, bbox_inches='tight')
 
-	def convert(o):
+	def convert(o):		
 		if isinstance(o, np.generic): return o.item()
+		if isinstance(o, np.ndarray):
+			return o.tolist()
 		raise TypeError
 
 	json_file_name = os.path.join(args.output_folder, "result.json")
-	write_data = {}
-	write_data['alphas'] = [tuple(k) for k in alphas]
+	write_data = {}	
+	write_data['alphas'] = np.array([np.array(k) for k in alphas])	
 	write_data['sizes'] = sizes
 	write_data['test_stats'] = test_stats
 	write_data['clustering_stats'] = clustering_stats
@@ -167,7 +171,7 @@ def save_alphas_plot(args, alphas, sizes, test_stats=None, clustering_stats=None
 	with open(norms_path, "w+") as f:
 		json.dump(write_data, f, default=convert)
 
-def get_top_1_accuracy(model, data_loader, device):	
+def get_top_1_accuracy(model, data_loader, device):
 	softmax = nn.Softmax(dim=1)
 	correct_pred = 0
 	n = 0
@@ -216,9 +220,9 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 			layer_str = 'layer'
 			print(f"LAYER {k}, type:{layer_str}")
 			layer_name = f'layer_{k}'
-
+			Y = np.array(Y).reshape(-1, 1)
 			if k == -1:
-				Y = np.array(Y).reshape(-1, 1)
+				
 				features = X.view(X.shape[0], -1)
 				features = np.array(features).squeeze()			
 				cur_alpha_index, __, __, __, __ = run_alpha_smoothness(features, Y, t_method="WF", \
@@ -234,14 +238,14 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 				for i in range(len(models)):
 					alpha_index.append(cur_alpha_index)
 
-
 				if args.use_clustering:
 					kmeans = kmeans_cluster(features, Y, False, args.output_folder, f"layer_{k}")
-					clustering_stats[k].append(get_clustering_statistics(X, Y, kmeans))
+					cur_clustering_stats = get_clustering_statistics(features, Y, kmeans)
+					for i in range(len(models)):
+						clustering_stats[k].append(cur_clustering_stats)
 
 			else:
-				result = None
-				Y = np.array(Y).reshape(-1, 1)
+				result = None				
 				X = np.array(X).squeeze()
 
 				alpha_index = []
@@ -280,7 +284,7 @@ def run_smoothness_analysis(args, models, dataset, test_dataset, layers, data_lo
 
 						if args.use_clustering:
 							kmeans = kmeans_cluster(features, Y, False, args.output_folder, f"layer_{k}")
-							clustering_stats[k].append(get_clustering_statistics(X, Y, kmeans))
+							clustering_stats[k].append(get_clustering_statistics(features, Y, kmeans))
 					else:
 						kmeans_cluster(X, Y, True, args.output_folder, f"layer_{k}")
 

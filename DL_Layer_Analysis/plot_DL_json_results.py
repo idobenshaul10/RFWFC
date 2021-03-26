@@ -21,12 +21,13 @@ import seaborn as sns
 def get_args():
 	parser = argparse.ArgumentParser(description='Network Smoothness Script')	
 	parser.add_argument('--main_dir', type=str ,help='Results folder', default=None)
-	parser.add_argument('--checkpoints','--list', nargs='+', default=None)	
+	parser.add_argument('--checkpoints','--list', nargs='+', default=None)
+	parser.add_argument('--title', default="CIFAR10 Classification")
 	args = parser.parse_args()
 	return args
 
 def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remove_layers=0, \
-	use_clustering=False, remove_begin=0):
+	use_clustering=False, remove_begin=0, title=''):
 	if plot_test:
 		if not use_clustering:
 			fig, axes = plt.subplots(1, 2)
@@ -48,7 +49,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 		# axes[0].set_xticklabels([0, 1, 2, 3, 4, 5, 6] )#, minor=False)
 		axes[1].set_ylabel('Test Overall Accuracy')
 
-		axes[0].set_title(f"Comparing advanced layer " + r'$\alpha$' + "-scores on CIFAR10 Classification")
+		axes[0].set_title(f"Comparing advanced layer " + r'$\alpha$' + "-scores on " + args.title)
 		axes[0].set_xlabel("Layers")
 		axes[1].set_title("Test Accuracy Scores")
 		# axes[1].set_ylim(0.5, 1.)
@@ -76,6 +77,7 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 
 
 	colors = ["#2bc2cb", "#1b374d", "#ee4f2f", "#fba720", "blue", "green", "yellow", "brown", "purple"]
+	colors = ["red", "#ee4f2f", "#fba720", "blue", "green", "yellow", "brown", "purple"]
 	# colors = sns.color_palette("inferno", 6)
 	labels = ['VGG11', 'VGG13', 'VGG16', 'VGG19']
 	# labels = ['Good', 'Bad', 'Residual']
@@ -98,27 +100,24 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 		if remove_layers > 0:
 			sizes, alphas = sizes[:-remove_layers], alphas[:-remove_layers]
 		if remove_begin > 0:
-			sizes, alphas = sizes[remove_begin:], alphas[remove_begin:]
+			sizes, alphas = sizes[remove_begin:], alphas[remove_begin:]		
 
-		if idx == 0:			
-			sizes, alphas = sizes[:-4], alphas[4:]
-
+		
 		test_stats = None
 		if 'test_stats' in result:
 			test_stats = result['test_stats']
 		if 'clustering_stats' in result:
 			clustering_stats = result['clustering_stats']
-		if add_fill:
-			axes[0].fill_between(sizes, [k[0] for k in alphas], [k[-1] for k in alphas], \
-				alpha=0.2, linewidth=4)
-		
+
 		values = [np.array(k).mean() for k in alphas]
 		print(values)
+
+		if add_fill:
+			stds = np.array(alphas).mean(axis=2).std(axis=1)
+			axes[0].fill_between(sizes, values - stds, values + stds, \
+				alpha=0.2, linewidth=0, color=colors[idx%len(colors)])		
 		
-		# name =  file_path.split('\\')[-4]
-		# axes[0].plot(sizes, values, label=labels[idx], color=colors[idx%len(colors)])
-		axes[0].plot(sizes, values, label=labels[idx], color=colors[idx%len(colors)])
-		
+		axes[0].plot(sizes, values, label=labels[idx], color=colors[idx%len(colors)])		
 		
 		try:
 			max_pool_indices = (np.array(layer_labels) == "M")[:len(alphas)]
@@ -143,17 +142,27 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 
 		if use_clustering:
 			if clustering_stats is not None and plot_test:
-				keys = sorted(list(clustering_stats.keys()))			
+				import pdb; pdb.set_trace()
+				keys = sorted(list(clustering_stats.keys()))
 				if len(keys) == 0:
 					continue
-				stat_names = clustering_stats[list(keys)[0]].keys()			
-				for chosen_stat in stat_names:				
-					values = [clustering_stats[k][chosen_stat] for k in keys]				
-					if idx == 0:
-						h, = axes[2].plot(keys, values, next(linecycler), color=colors[idx], label=f"{chosen_stat}")	
-						handles.append(copy.copy(h))
-					else:
-						axes[2].plot(keys, values, next(linecycler), color=colors[idx])
+				stat_names = clustering_stats[list(keys)[0]][0].keys()			
+				for chosen_stat in stat_names:
+					mean_values, std_values = [], []
+					for k in keys:
+						cur_level_clustering_stats = clustering_stats[k]
+						cur_metric_values = np.array([j[chosen_stat] for j in cur_level_clustering_stats])
+						mean_value = cur_metric_values.mean()
+						std_value = cur_metric_values.std()
+						mean_values.append(mean_value)
+						std_values.append(std_value)
+
+					# values = [[chosen_stat] for k in keys]
+					# if idx == 0:
+					# 	h, = axes[2].plot(keys, values, next(linecycler), color=colors[idx], label=f"{chosen_stat}")	
+					# 	handles.append(copy.copy(h))
+					# else:
+					axes[2].plot(keys, mean_values, next(linecycler), color=colors[idx])
 
 	
 	axes[0].legend()
@@ -165,4 +174,5 @@ def plot_epochs(main_dir, checkpoints=None, plot_test=True, add_fill=False, remo
 
 if __name__ == '__main__':
 	args = get_args()	
-	plot_epochs(args.main_dir, args.checkpoints, plot_test=True, add_fill=False, use_clustering=False)
+	plot_epochs(args.main_dir, args.checkpoints, plot_test=True, \
+		add_fill=True, use_clustering=True, title=args.title)

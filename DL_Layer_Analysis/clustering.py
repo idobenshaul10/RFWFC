@@ -27,7 +27,10 @@ def kmeans_cluster(X, Y, visualize=False, output_folder=None, layer_str="", samp
 	np.random.seed(2)
 	k = len(np.unique(Y))
 	print(f"Fitting k means with k={k}")
-	kmeans = KMeans(n_clusters=k, random_state=0).fit(X)
+	try:
+		kmeans = KMeans(n_clusters=k, random_state=0).fit(X)
+	except:
+		import pdb; pdb.set_trace()
 	save_path = os.path.join(output_folder, f"{layer_str}.p")
 	pickle.dump(kmeans, open(save_path, "wb"))
 	if not visualize:		
@@ -65,10 +68,10 @@ def kmeans_cluster(X, Y, visualize=False, output_folder=None, layer_str="", samp
 	return kmeans
 
 def get_clustering_statistics(X, Y, kmeans):
-	Y = Y.squeeze()	
+	Y = Y.squeeze()
 	metrics_results = {}
-	preds = kmeans.labels_
-	print("START clustering statistics")
+	preds = kmeans.labels_	
+	print("START clustering statistics")	
 	metrics_results['silhouette_score'] = metrics.silhouette_score(X, preds)	
 	metrics_results['adj_rand'] = metrics.adjusted_rand_score(Y, preds)
 	metrics_results['MI_score'] = metrics.adjusted_mutual_info_score(Y, preds)
